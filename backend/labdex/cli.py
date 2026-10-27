@@ -310,6 +310,15 @@ def register_plugin_tools(app: Flask) -> None:
         doc = sign(Path(directory), Path(key_path).read_bytes(), signer)
         click.echo(f"Signed {doc['id']} {doc['version']}: {len(doc['files'])} files, key {doc['key_id']}")
 
+    @plugin_group.command("prune")
+    @click.argument("directory", type=click.Path(file_okay=False, exists=True))
+    def plugin_prune(directory):
+        """Delete from DIRECTORY (a copy made for a release) what its .releaseignore lists,
+        plus the repository's own files (.git, .github, .gitignore …). Run it before `sign`."""
+        from .plugins.installer import prune_release
+        for rel in prune_release(Path(directory)):
+            click.echo(f"  left out {rel}")
+
     @plugin_group.command("pack")
     @click.argument("directory", type=click.Path(file_okay=False, exists=True))
     @click.option("-o", "--output", type=click.Path(dir_okay=False), required=True)

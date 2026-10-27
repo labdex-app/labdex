@@ -26,7 +26,10 @@ bump `version` in `plugin.yaml`, add a `## <version>` section to `CHANGELOG.md`,
 then publish a GitHub release tagged `v<version>` (in the web UI, or
 `gh release create v<version> --target main --notes ""`). The workflow checks the tag against
 the manifest, signs exactly what's committed and attaches `<id>-<version>.zip` to the
-release; empty release notes are filled from that CHANGELOG section.
+release with `CHANGELOG.md`; the release description gets that version's CHANGELOG section
+(below anything you wrote). Files listed in `.releaseignore` (one pattern per line, like
+`.gitignore`: `tests/`, `*.log`, `docs/draft.md`) stay out of the zip; so do the repository's
+own files (`.git`, `.github`, `.gitignore`). `labdex plugin prune <copy>` does that by hand.
 
 ## A Marketplace from plugin repositories
 

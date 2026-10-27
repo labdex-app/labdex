@@ -5,7 +5,8 @@ name: Release
 #   ghcr.io/<owner>/labdex:1.23.0, :1.23, :1 and :latest for amd64 and arm64, signed with
 #   cosign (keyless, this workflow's identity) with an SPDX SBOM attached as an attestation;
 #   on the release: the source archive (with the plugins), the Python wheel and sdist, their
-#   SBOM and a cosign bundle for each file. Empty release notes come from CHANGELOG.md.
+#   SBOM, CHANGELOG.md and a cosign bundle for each file. The description gets this version's
+#   CHANGELOG.md section, below anything you wrote.
 on:
   release:
     types: [published]
@@ -119,6 +120,7 @@ jobs:
           (cd backend && python -m build --outdir ../dist)
           # the source with the shipped plugins (git archive alone leaves submodules out)
           git ls-files --recurse-submodules -z | tar --null -czf "dist/labdex-${version}-source.tar.gz" --transform "s,^,labdex-${version}/," -T -
+          cp CHANGELOG.md dist/CHANGELOG.md
       - name: SBOM of the Python package
         uses: anchore/sbom-action@v0
         with:
@@ -142,7 +144,16 @@ jobs:
           BODY: ${{ github.event.release.body }}
         run: |
           gh release upload "$GITHUB_REF_NAME" dist/* --clobber
-          if [ -z "$(printf '%s' "$BODY" | tr -d '[:space:]')" ]; then
-            notes="$(awk -v v="## ${GITHUB_REF_NAME#v}" '$0==v{f=1;next} /^## /{if(f)exit} f' CHANGELOG.md)"
-            gh release edit "$GITHUB_REF_NAME" --notes "${notes:-See CHANGELOG.md}"
-          fi
+          # the description: what you wrote, then this version's CHANGELOG.md section (once)
+          python3 - <<'PY'
+          import os, re
+          v = os.environ["GITHUB_REF_NAME"].removeprefix("v")
+          m = re.search(rf"^## {re.escape(v)}\s*\n(.*?)(?=^## |\Z)", open("CHANGELOG.md").read(), re.M | re.S)
+          section = m.group(1).strip() if m else ""
+          body = os.environ.get("BODY", "").strip()
+          parts = [body] if body else []
+          if section and section not in body:
+              parts.append(f"## Changes in {v}\n\n{section}" if body else section)
+          open("notes.md", "w").write("\n\n".join(parts) or "See CHANGELOG.md")
+          PY
+          gh release edit "$GITHUB_REF_NAME" --notes-file notes.md

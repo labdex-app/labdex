@@ -578,6 +578,45 @@ def build_index_from_sources(sources: dict, out: Path, private_pem: bytes, name:
     return {**doc, "problems": problems}
 
 
+RELEASEIGNORE = ".releaseignore"
+ALWAYS_LEFT_OUT = (".git", ".github", ".gitattributes", ".gitignore", RELEASEIGNORE, "__pycache__", "*.pyc", "*.zip")
+
+
+def release_ignored(root: Path) -> list[Path]:
+    """What a plugin's .releaseignore (and the usual repository files) keeps out of its release.
+
+    One pattern per line, like .gitignore: `tests/` (a folder), `*.log` (any file named so,
+    anywhere), `docs/draft.md` (a path from the plugin's root); `#` starts a comment."""
+    from fnmatch import fnmatch
+    pats = list(ALWAYS_LEFT_OUT)
+    f = root / RELEASEIGNORE
+    if f.is_file():
+        pats += [ln.strip() for ln in f.read_text().splitlines() if ln.strip() and not ln.strip().startswith("#")]
+    out = []
+    for p in sorted(root.rglob("*")):
+        rel = p.relative_to(root).as_posix()
+        if any(rel == q or rel.startswith(q + "/") for q in (x.relative_to(root).as_posix() for x in out)):
+            continue  # inside something already left out
+        for pat in pats:
+            folder = pat.endswith("/")
+            pat = pat.strip("/")
+            if folder and not p.is_dir():
+                continue
+            if fnmatch(rel, pat) if "/" in pat else fnmatch(p.name, pat):
+                out.append(p)
+                break
+    return out
+
+
+def prune_release(root: Path) -> list[str]:
+    """Delete what release_ignored() names (on a copy made for the release), before signing."""
+    gone = []
+    for p in release_ignored(root):
+        gone.append(p.relative_to(root).as_posix())
+        shutil.rmtree(p) if p.is_dir() else p.unlink(missing_ok=True)
+    return gone
+
+
 def changes_for(changelog: str, version: str) -> str:
     """The notes for one version from a plugin's CHANGELOG.md (a `## <version>` heading)."""
     import re

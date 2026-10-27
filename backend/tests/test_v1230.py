@@ -256,3 +256,16 @@ def test_official_repository_follows_the_shipped_key(app, monkeypatch):
         kid = next(iter(trust.official_keys()))
         assert (r.url, r.key_id) == ("https://x.github.io/labdex-plugins/index.json", kid)
         assert db.session.scalar(db.select(db.func.count()).select_from(PluginRepository)) == 1
+
+
+def test_releaseignore(tmp_path):
+    root = tmp_path / "p"
+    for f in ["plugin.yaml", "plugin.py", "CHANGELOG.md", "README.md", "tests/test_x.py", "docs/draft.md", "docs/keep.md",
+              "playbooks/site.yml", "debug.log", "sub/debug.log", ".github/workflows/release.yml", ".gitignore"]:
+        (root / f).parent.mkdir(parents=True, exist_ok=True)
+        (root / f).write_text("x")
+    (root / ".releaseignore").write_text("# not for users\ntests/\n*.log\ndocs/draft.md\n")
+    gone = installer.prune_release(root)
+    left = sorted(p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file())
+    assert left == ["CHANGELOG.md", "README.md", "docs/keep.md", "playbooks/site.yml", "plugin.py", "plugin.yaml"], left
+    assert ".releaseignore" in gone and "tests" in gone and "sub/debug.log" in gone
