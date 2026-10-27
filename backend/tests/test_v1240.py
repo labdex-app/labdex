@@ -182,11 +182,11 @@ class FakeIdP:
 
     def jwt(self, claims):
         import base64
-        b = lambda d: base64.urlsafe_b64encode(self.json.dumps(d).encode()).rstrip(b"=").decode()  # noqa: E731
+        b = lambda d: base64.urlsafe_b64encode(self.json.dumps(d).encode()).rstrip(b"=").decode()
         return f"{b({'alg': 'RS256'})}.{b(claims)}.c2ln"
 
     def handle(self, req):
-        J = lambda d, s=200: self.Response(self.json.dumps(d), status=s, mimetype="application/json")  # noqa: E731
+        J = lambda d, s=200: self.Response(self.json.dumps(d), status=s, mimetype="application/json")
         if req.path == "/o/labdex/.well-known/openid-configuration":
             return J({"issuer": self.iss, "authorization_endpoint": self.srv.url + "/authorize", "token_endpoint": self.srv.url + "/token",
                       "userinfo_endpoint": self.srv.url + "/userinfo"})
