@@ -389,6 +389,7 @@ def marketplace(fetch: bool = True) -> dict:
 
 
 OFFICIAL_SEEDED = "official_repo_seeded"
+OFFICIAL_NAME = "labdex official"
 
 
 def ensure_official_repository() -> None:
@@ -407,10 +408,18 @@ def ensure_official_repository() -> None:
         db.session.commit()
     if not url or naming.get_setting(OFFICIAL_SEEDED) == "true":
         return
-    if keys and db.session.scalar(db.select(PluginRepository).where(PluginRepository.url == url)) is None:
+    if keys:
         kid, (_, pub) = next(iter(keys.items()))
-        db.session.add(PluginRepository(name="labdex official", url=url, key_id=kid, public_key=public_b64(pub), official=True,
-                                        added_by="labdex"))
+        with db.session.no_autoflush:
+            # one added by hand already (by its address, or under the official name): that one becomes the official one
+            row = (db.session.scalar(db.select(PluginRepository).where(PluginRepository.url == url))
+                   or db.session.scalar(db.select(PluginRepository).where(PluginRepository.name == OFFICIAL_NAME)))
+        if row is None:
+            db.session.add(PluginRepository(name=OFFICIAL_NAME, url=url, key_id=kid, public_key=public_b64(pub), official=True,
+                                            added_by="labdex"))
+        else:
+            row.url, row.key_id, row.public_key, row.official, row.error, row.fetched_at = url, kid, public_b64(pub), True, "", None
+            _index_cache.clear()
     store.save_settings({OFFICIAL_SEEDED: "true"})
     db.session.commit()
 

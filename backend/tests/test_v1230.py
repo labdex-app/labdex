@@ -269,3 +269,22 @@ def test_releaseignore(tmp_path):
     left = sorted(p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file())
     assert left == ["CHANGELOG.md", "README.md", "docs/keep.md", "playbooks/site.yml", "plugin.py", "plugin.yaml"], left
     assert ".releaseignore" in gone and "tests" in gone and "sub/debug.log" in gone
+
+
+@pytest.mark.parametrize("same", ["name", "url"])
+def test_official_repository_added_by_hand(app, monkeypatch, same):
+    """1.24.0 crashed on start when someone had added the official Marketplace themselves
+    (under its name, or its address) before labdex shipped it."""
+    from labdex import naming, store
+    from labdex.models import PluginRepository, db
+    url = "https://x.github.io/labdex-plugins/index.json"
+    with app.app_context():
+        store.save_settings({installer.OFFICIAL_SEEDED: ""})
+        db.session.add(PluginRepository(name="labdex official" if same == "name" else "mine", url=url if same == "url" else "https://elsewhere/index.json",
+                                        key_id="x", public_key="x", official=False, added_by="mike"))
+        db.session.commit()
+        monkeypatch.setenv("LABDEX_OFFICIAL_INDEX", url)
+        installer.ensure_official_repository()
+        rows = list(db.session.scalars(db.select(PluginRepository)))
+        assert len(rows) == 1 and rows[0].official and rows[0].url == url and rows[0].key_id == next(iter(trust.official_keys()))
+        assert naming.get_setting(installer.OFFICIAL_SEEDED) == "true"
