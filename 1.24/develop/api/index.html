@@ -196,7 +196,7 @@
     
     
       <div class="md-header__source">
-        <a href="https://github.com/reykimedev/labdex" title="Go to repository" class="md-source" data-md-component="source">
+        <a href="https://github.com/labdex-app/labdex" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
@@ -242,7 +242,7 @@
   </label>
   
     <div class="md-nav__source">
-      <a href="https://github.com/reykimedev/labdex" title="Go to repository" class="md-source" data-md-component="source">
+      <a href="https://github.com/labdex-app/labdex" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
@@ -1764,17 +1764,22 @@ takes a host or network name (<code>/api/hosts/&lt;name&gt;</code>, <code>/api/n
 <tr>
 <td>GET</td>
 <td><code>/api/marketplace</code> (<code>?offline=1</code> skips the repositories)</td>
-<td>Everything installable: what ships with labdex (<code>bundled</code>, <code>installed</code>) and what repositories offer (<code>update</code>, <code>repo_version</code>)</td>
+<td>Everything installable: what repositories offer (<code>installed</code>, <code>update</code>, <code>repo_version</code>), and development checkouts (<code>bundled</code>)</td>
 </tr>
 <tr>
 <td>POST</td>
-<td><code>/api/marketplace/install</code> <code>{id}</code> or <code>{repository_id, id}</code></td>
-<td>A plugin that ships with labdex installs at once; a repository plugin is staged for <code>/api/plugins/stage/&lt;token&gt;/confirm</code></td>
+<td><code>/api/marketplace/install</code> <code>{repository_id, id}</code></td>
+<td>Stages a repository plugin for <code>/api/plugins/stage/&lt;token&gt;/confirm</code> (a development checkout, <code>{id}</code>, installs at once)</td>
 </tr>
 <tr>
 <td>DELETE</td>
 <td><code>/api/plugins/&lt;id&gt;</code></td>
-<td>Uninstall (a shipped plugin is only hidden; 409 while it has instances)</td>
+<td>Uninstall (409 while it has instances)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/plugins/restore</code></td>
+<td>Install the plugins this labdex uses but doesn't have (after an upgrade from 1.24.0) from the official repository now: <code>{installed, failed, missing}</code>; <code>GET /api/plugins</code> lists them as <code>missing</code></td>
 </tr>
 <tr>
 <td>POST · DELETE</td>
