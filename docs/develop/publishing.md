@@ -40,6 +40,9 @@ plugins:
     withdrawn: {"0.3": "loses the blocklists on restart"}
 ```
 
+Add `discover: [{owner: me, prefix: labdex-plugin-}]` and every public repository of
+yours named like that is included too, so a new plugin repository shows up by itself.
+
 `labdex plugin build-index plugins.yaml site --key my.pem` reads every listed repository's
 releases (with `GITHUB_TOKEN` set it can make more API calls), checks each archive's
 checksum and that it's signed with *your* key, and writes a signed `site/index.json` that
@@ -47,7 +50,7 @@ points at the release assets. Every release is a version people can install, upd
 go back to, with its notes; a `withdrawn` version stays installable on purpose but warns
 everyone who has it, and updates skip it. Publish `site/` on GitHub Pages: the
 [labdex-plugins](https://github.com/reykimedev/labdex-plugins) repository is a ready-made
-example (it rebuilds every six hours, when `plugins.yaml` changes, and on a
+example (it rebuilds every hour, when `plugins.yaml` changes, and on a
 `plugin-released` dispatch from a plugin's release workflow).
 
 ## A repository from plugin folders

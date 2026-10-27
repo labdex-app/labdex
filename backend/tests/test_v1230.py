@@ -202,12 +202,19 @@ def test_index_from_plugin_repositories(admin, tmp_path):
             return Response(json.dumps([{"tag_name": f"v{v}", "body": f"notes {v}", "published_at": f"2026-10-0{i}T10:00:00Z", "draft": False, "prerelease": False,
                                          "assets": [{"name": f"hello-{v}.zip", "browser_download_url": f"{srv.url}/dl/hello-{v}.zip"}]}
                                         for i, v in enumerate(["1.0", "1.1", "1.2"], 1)]), mimetype="application/json")
+        if req.path == "/users/me/repos":  # discovery finds the listed one again and an empty new one
+            return Response(json.dumps([{"name": "labdex-plugin-hello", "full_name": "me/labdex-plugin-hello"},
+                                        {"name": "labdex-plugin-new", "full_name": "me/labdex-plugin-new"}, {"name": "other", "full_name": "me/other"}]),
+                            mimetype="application/json")
+        if req.path == "/repos/me/labdex-plugin-new/releases":
+            return Response("[]", mimetype="application/json")
         if req.path.startswith("/dl/"):
             return Response(assets[req.path[4:]], mimetype="application/zip")
         return Response("", 404)
     srv = FakeServer(handle)
     try:
-        sources = {"name": "Mine", "plugins": [{"repo": "me/labdex-plugin-hello", "withdrawn": {"1.0": "old bug"}}, {"repo": "me/missing"}]}
+        sources = {"name": "Mine", "plugins": [{"repo": "me/labdex-plugin-hello", "withdrawn": {"1.0": "old bug"}}, {"repo": "me/missing"}],
+                   "discover": [{"owner": "me", "prefix": "labdex-plugin-"}]}
         doc = installer.build_index_from_sources(sources, tmp_path / "out", pem, api=srv.url)
         hello = doc["plugins"][0]
         assert hello["version"] == "1.1" and [v["version"] for v in hello["versions"]] == ["1.1", "1.0"]
@@ -215,6 +222,7 @@ def test_index_from_plugin_repositories(admin, tmp_path):
         assert hello["url"] == f"{srv.url}/dl/hello-1.1.zip" and hello["source"] == "https://github.com/me/labdex-plugin-hello"
         assert any("hello-1.2.zip" in p and "not signed with this repository's key" in p for p in doc["problems"])
         assert any(p.startswith("me/missing") for p in doc["problems"])
+        assert "me/labdex-plugin-new: no release with a signed plugin" in doc["problems"] and len(doc["plugins"]) == 1
         trust.verify_index(json.loads((tmp_path / "out" / "index.json").read_text()), trust.load_public(doc["public_key"]))
 
         # labdex reads it like any repository: absolute asset URLs, versions, withdrawn ones

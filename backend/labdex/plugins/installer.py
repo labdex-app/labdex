@@ -507,7 +507,24 @@ def build_index_from_sources(sources: dict, out: Path, private_pem: bytes, name:
     mine = {key_id(key.public_key()): ("this repository", key.public_key())}
     hdr = {"Accept": "application/vnd.github+json", **({"Authorization": f"Bearer {token}"} if token else {})}
     plugins, problems = [], []
-    for src in sources.get("plugins") or []:
+    listed = list(sources.get("plugins") or [])
+    for d in sources.get("discover") or []:  # every repository of an owner whose name starts with a prefix
+        owner, prefix = str(d.get("owner") or ""), str(d.get("prefix") or "labdex-plugin-")
+        try:
+            found = []
+            for page in range(1, 11):
+                r = get(f"{api}/users/{owner}/repos?per_page=100&page={page}", headers=hdr, timeout=30)
+                r.raise_for_status()
+                batch = r.json()
+                found += [x["full_name"] for x in batch if str(x.get("name", "")).startswith(prefix) and not x.get("archived") and not x.get("private")]
+                if len(batch) < 100:
+                    break
+        except Exception as exc:
+            problems.append(f"discovering {owner}/{prefix}*: {exc}")
+            continue
+        have = {str(x.get("repo") or "").lower() for x in listed}
+        listed += [{"repo": f} for f in sorted(found) if f.lower() not in have]
+    for src in listed:
         repo = str(src.get("repo") or "")
         withdrawn = {str(k): str(v) for k, v in (src.get("withdrawn") or {}).items()}
         try:
