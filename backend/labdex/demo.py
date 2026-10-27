@@ -93,6 +93,8 @@ def seed() -> None:
     funpools.ensure_builtin()
     db.session.flush()
     inventory.import_yaml(LAB.read_text(), commit=False)
+    from . import dashboards
+    dashboards.ensure_overview()  # the wipe took the start page too
     db.session.add(User(username=USER, display_name="Demo", is_admin=True, password_hash=security.hash_password(PASSWORD)))
     db.session.add(ApprovalPolicy(name="demo", position=0, approvals=1, self_approval=True,
                                   description="One approval, and you may approve your own plans"))

@@ -36,6 +36,7 @@ def test_seeded_on_start(demo_app):
     meta = c.get("/api/meta").get_json()
     assert meta["demo"]["resets_at"].endswith("03:00:00Z")
     assert c.get("/api/dashboard").get_json()["counts"]["down"] == 1  # one host has a bad day
+    assert [d["name"] for d in c.get("/api/dashboards").get_json()["dashboards"]] == ["Overview"]  # the start page survives the wipe (1.24)
     w = c.get("/api/widgets").get_json()
     assert {x["id"]: x["data"]["kind"] for x in w} == {"traffic": "sparkline", "records": "stat"}, w
     plan = next(j for j in c.get("/api/jobs?integration=lab&status=planned").get_json() if j["action"] == "sync")

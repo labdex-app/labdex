@@ -9,7 +9,13 @@ const setup = computed(() => state.auth?.setup_required)
 const demo = computed(() => state.auth?.demo)
 const form = reactive({ username: state.auth?.demo?.username || '', password: state.auth?.demo?.password || '', password2: '' })
 const errors = ref({})
-const message = ref('')
+// the provider sent the browser back with a problem (labdex puts it in ?sso_error=)
+const sp = new URLSearchParams(window.location.search)
+const message = ref(sp.get('sso_error') ? `Single sign-on: ${sp.get('sso_error')}` : '')
+if (sp.get('sso_error')) window.history.replaceState(null, '', window.location.pathname)
+const oidc = computed(() => (!setup.value && state.auth?.oidc?.enabled ? state.auth.oidc : null))
+const passwordForm = computed(() => setup.value || !oidc.value?.only)
+const ssoHref = computed(() => `/api/auth/oidc/login?next=${encodeURIComponent(window.location.pathname === '/' ? '/' : window.location.pathname + window.location.search)}`)
 const busy = ref(false)
 
 async function submit() {
@@ -46,7 +52,10 @@ async function submit() {
         (filled in). Change anything you like: it all resets every night at 03:00 UTC, and nothing here talks to a real network.
       </div>
 
-      <div class="stack">
+      <div v-if="message" class="errbox" style="margin: 8px 0 4px">{{ message }}</div>
+      <a v-if="oidc" :href="ssoHref" class="btn primary go sso">Sign in with {{ oidc.name }}</a>
+      <div v-if="oidc && passwordForm" class="or small faint"><span>or with a password</span></div>
+      <div v-if="passwordForm" class="stack">
         <Field label="Username" :error="errors.username">
           <input v-model.trim="form.username" type="text" autocomplete="username" autofocus required spellcheck="false">
         </Field>
@@ -57,8 +66,7 @@ async function submit() {
           <input v-model="form.password2" type="password" autocomplete="new-password" required>
         </Field>
       </div>
-      <div v-if="message" class="errbox" style="margin-top: 14px">{{ message }}</div>
-      <button class="btn primary go" :disabled="busy">{{ busy ? '…' : setup ? 'Create administrator' : 'Sign in' }}</button>
+      <button v-if="passwordForm" class="btn go" :class="{ primary: !oidc }" :disabled="busy">{{ busy ? '…' : setup ? 'Create administrator' : 'Sign in' }}</button>
       <p v-if="state.auth?.sso && !setup" class="hint">Single sign-on is configured: open labdex through your SSO proxy to be signed in automatically.</p>
     </form>
   </main>
@@ -72,4 +80,7 @@ async function submit() {
 h1 { margin-bottom: 8px; }
 .stack { margin-top: 16px; }
 .go { width: 100%; justify-content: center; margin-top: 20px; padding: 10px; }
+.sso { display: flex; margin-top: 8px; text-decoration: none; }
+.or { display: flex; align-items: center; gap: 10px; margin-top: 18px; }
+.or::before, .or::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
 </style>

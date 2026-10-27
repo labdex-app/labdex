@@ -306,3 +306,9 @@ def record_links(source: str, links: list[dict]) -> dict:
     """Links a switch (or controller) sees: LLDP/CDP neighbours, UniFi port tables. See cabling.record."""
     from . import cabling
     return cabling.record(source, links)
+
+
+def record_macs(source: str, entries: list[dict]) -> dict:
+    """MAC addresses a switch (or controller) has on its ports. See macs.record."""
+    from . import macs
+    return macs.record(source, entries)

@@ -12,7 +12,7 @@ from sqlalchemy import event
 
 from .models import db
 
-__version__ = "1.23.1"
+__version__ = "1.24.0"
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -49,6 +49,17 @@ def create_app(config: dict | None = None) -> Flask:
         LABDEX_SSO_GROUPS_HEADER=os.environ.get("LABDEX_SSO_GROUPS_HEADER", ""),
         LABDEX_SSO_AUTOCREATE=_env_bool("LABDEX_SSO_AUTOCREATE", False),
         LABDEX_TRUSTED_PROXIES=_env_list("LABDEX_TRUSTED_PROXIES"),
+        # OpenID Connect sign-in (see oidc.py)
+        LABDEX_OIDC_ISSUER=os.environ.get("LABDEX_OIDC_ISSUER", "").strip(),
+        LABDEX_OIDC_CLIENT_ID=os.environ.get("LABDEX_OIDC_CLIENT_ID", "").strip(),
+        LABDEX_OIDC_CLIENT_SECRET=os.environ.get("LABDEX_OIDC_CLIENT_SECRET", "").strip(),
+        LABDEX_OIDC_NAME=os.environ.get("LABDEX_OIDC_NAME", "").strip(),
+        LABDEX_OIDC_SCOPES=os.environ.get("LABDEX_OIDC_SCOPES", "openid profile email groups").strip(),
+        LABDEX_OIDC_USERNAME_CLAIM=os.environ.get("LABDEX_OIDC_USERNAME_CLAIM", "preferred_username").strip(),
+        LABDEX_OIDC_GROUPS_CLAIM=os.environ.get("LABDEX_OIDC_GROUPS_CLAIM", "groups").strip(),
+        LABDEX_OIDC_ADMIN_GROUPS=os.environ.get("LABDEX_OIDC_ADMIN_GROUPS", "").strip(),
+        LABDEX_OIDC_AUTOCREATE=_env_bool("LABDEX_OIDC_AUTOCREATE", True),
+        LABDEX_OIDC_ONLY=_env_bool("LABDEX_OIDC_ONLY", False),
         LABDEX_SCHEDULER=_env_bool("LABDEX_SCHEDULER", not testing),
         LABDEX_JOBS_SYNC=False,
         LABDEX_WORKER=os.environ.get("LABDEX_WORKER", "inline").strip().lower(),

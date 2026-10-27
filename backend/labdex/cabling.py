@@ -203,3 +203,96 @@ def add(ha: Host, pa: str, hb: Host, pb: str, extra: dict | None = None, a_side:
 
 def actor() -> str:
     return g.principal.label if has_request_context() and getattr(g, "principal", None) else "labdex"
+
+
+# ------------------------------------------------------------------ trace
+MAX_HOPS = 32
+
+
+def _cable_on(host_id: int, port: str) -> Link | None:
+    p = port.lower()
+    for lk in db.session.scalars(db.select(Link).where(db.or_(Link.a_host_id == host_id, Link.b_host_id == host_id))):
+        if lk.medium == "virtual":
+            continue
+        if lk.a_host_id == host_id and lk.a_port.lower() == p or lk.b_host_id == host_id and lk.b_port.lower() == p:
+            return lk
+    return None
+
+
+def _partner(host: Host, port: str) -> str:
+    p = port.lower()
+    i = next((i for i in host.interfaces if (i.label or "").lower() == p), None)
+    return (i.passthrough or "") if i is not None else ""
+
+
+def _cable_dict(lk: Link) -> dict:
+    return {"id": lk.id, "label": lk.label or "", "medium": lk.medium or "", "speed": lk.speed or "", "length": lk.length or "",
+            "colour": lk.colour or "", "notes": lk.notes or ""}
+
+
+def _walk(host: Host, port: str, seen: set) -> list[dict]:
+    """From a port outwards: its cable, the far port, through the far host if that port passes
+    through, and on, until a port with no cable or no pass-through."""
+    out = []
+    while len(out) < MAX_HOPS:
+        lk = _cable_on(host.id, port)
+        if lk is None:
+            break
+        if lk.a_host_id == host.id and lk.a_port.lower() == port.lower():
+            far, far_port = lk.b_host, lk.b_port
+        else:
+            far, far_port = lk.a_host, lk.a_port
+        out.append({"type": "cable", "cable": _cable_dict(lk), "to": {"host": far.name, "uid": far.uid or "", "port": far_port}})
+        key = (far.id, far_port.lower())
+        if key in seen:
+            out.append({"type": "loop"})
+            break
+        seen.add(key)
+        through = _partner(far, far_port)
+        if not through:
+            break
+        out.append({"type": "through", "host": far.name, "uid": far.uid or "", "from": far_port, "to": through})
+        host, port = far, through
+        seen.add((far.id, through.lower()))
+    return out
+
+
+def trace(host: Host, port: str) -> dict:
+    """A port's whole path: both directions if the port itself passes through (a patch panel
+    port in the middle of a run), as one list of points from one end to the other.
+
+    Each point is {"host", "uid", "port"}; between two points either a cable (its label,
+    colour, length …) or "through" (inside a patch panel, front to rear)."""
+    port = _label(store.host_to_dict(host), port)
+    seen = {(host.id, port.lower())}
+    start = {"host": host.name, "uid": host.uid or "", "port": port}
+    fwd = _walk(host, port, seen)
+    back = []
+    through = _partner(host, port)
+    if through:
+        seen.add((host.id, through.lower()))
+        back = _walk(host, through, seen)
+    # one list from the far end of "back" to the far end of "fwd"
+    points, links = [start], []
+    for step in fwd:
+        if step["type"] == "cable":
+            links.append({"cable": step["cable"]})
+            points.append(step["to"])
+        elif step["type"] == "through":
+            links.append({"through": True})
+            points.append({"host": step["host"], "uid": step["uid"], "port": step["to"]})
+    if through:
+        bpoints, blinks = [{"host": host.name, "uid": host.uid or "", "port": through}], [{"through": True}]
+        for step in back:
+            if step["type"] == "cable":
+                blinks.append({"cable": step["cable"]})
+                bpoints.append(step["to"])
+            elif step["type"] == "through":
+                blinks.append({"through": True})
+                bpoints.append({"host": step["host"], "uid": step["uid"], "port": step["to"]})
+        points = list(reversed(bpoints)) + points
+        links = list(reversed(blinks)) + links
+    loop = any(s["type"] == "loop" for s in fwd + back)
+    cables = sum(1 for lk in links if "cable" in lk)
+    return {"points": points, "links": links, "cables": cables, "loop": loop,
+            "complete": cables > 0 and not loop, "ends": [points[0], points[-1]]}

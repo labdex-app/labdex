@@ -308,6 +308,15 @@ def admin_settings():
         raise store.ValidationError([{"field": "public_url", "message": "starts with https://"}])
     if "public_url" in data:
         data["public_url"] = url
+    if "project_url" in data:
+        from .about_api import DEFAULT_PROJECT, release_api
+        pu = str(data["project_url"] or "").strip().rstrip("/").removesuffix(".git") or DEFAULT_PROJECT
+        try:
+            release_api(pu)
+        except ValueError:
+            raise store.ValidationError([{"field": "project_url", "message": "the project's address, like https://github.com/owner/repo"}]) from None
+        data["project_url"] = pu
+        data["update_check_repo"] = ""  # the address replaces the old owner/repo setting
     if "alias_ids" in data and data["alias_ids"] not in ("uid", "readable"):
         raise store.ValidationError([{"field": "alias_ids", "message": "uid or readable"}])
     before = naming.settings_dict()

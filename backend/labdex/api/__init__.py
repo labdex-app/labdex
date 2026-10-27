@@ -10,7 +10,7 @@ from ..plugins.base import PluginError
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 
-PUBLIC = {"api.auth_status", "api.auth_login", "api.auth_setup"}
+PUBLIC = {"api.auth_status", "api.auth_login", "api.auth_setup", "api.auth_oidc_login", "api.auth_oidc_callback"}
 
 
 @bp.before_request

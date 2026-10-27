@@ -1,6 +1,6 @@
 """Hostname building blocks: <category>-<type>-<role>-<nn>.
 
-Categories, types and roles are lists you maintain (Admin → Naming). The host
+Categories, types and roles are lists you maintain (Settings → Naming). The host
 form builds the name from three dropdowns and takes the next free number for
 that combination. Names outside the scheme are still allowed (legacy hosts);
 the linter points them out.

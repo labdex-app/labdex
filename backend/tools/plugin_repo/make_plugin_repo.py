@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Turn a plugin folder into a git repository of its own (the layout every labdex plugin
-repository uses): the plugin at the root, a README written from its manifest, the MIT
-licence, and the release workflow that signs it and attaches it to a GitHub release.
+repository uses): the plugin at the root, a README written from its manifest, a licence
+(AGPL-3.0 and a NOTICE for official plugins, MIT for your own), and the release workflow that signs it and attaches it to a GitHub release.
 
     python3 tools/plugin_repo/make_plugin_repo.py labdex/official_plugins/opnsense ../labdex-plugin-opnsense
 """
@@ -36,6 +36,17 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+
+
+def notice(m: dict, repo: str) -> str:
+    """The copyright and licence notice of an official plugin."""
+    return (f"{m.get('name', m['id'])}, a plugin for labdex\n"
+            f"Copyright (C) reykimedev and the labdex contributors\nhttps://github.com/reykimedev/{repo}\n\n"
+            "This program is free software: you can redistribute it and/or modify it under the terms\n"
+            "of the GNU Affero General Public License version 3 as published by the Free Software\n"
+            "Foundation (see LICENSE). It is distributed WITHOUT ANY WARRANTY; without even the\n"
+            "implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
+            "Keep this notice and the credit to the original project in every copy and fork.\n")
 
 
 def readme(m: dict, official: bool) -> str:
@@ -92,13 +103,17 @@ def main(src: str, dest: str, official: bool = True) -> None:
     (d / ".github" / "workflows").mkdir(parents=True, exist_ok=True)
     shutil.copy2(HERE / ".github" / "workflows" / "release.yml", d / ".github" / "workflows" / "release.yml")
     shutil.copy2(HERE / ".gitattributes", d / ".gitattributes")
+    shutil.copy2(HERE / ".github" / "dependabot.yml", d / ".github" / "dependabot.yml")
     if not (d / ".releaseignore").exists():
         shutil.copy2(HERE / ".releaseignore", d / ".releaseignore")
     (d / ".gitignore").write_text("__pycache__/\n*.pyc\nbuild/\n*.zip\n")
     if not (d / "README.md").exists():
         (d / "README.md").write_text(readme(m, official))
-    if not (d / "LICENSE").exists():
-        (d / "LICENSE").write_text(LICENSE)
+    if not (d / "LICENSE").exists():  # official plugins: labdex's licence (AGPL-3.0); your own: MIT (change it as you like)
+        agpl = HERE.parents[2] / "LICENSE"
+        (d / "LICENSE").write_text(agpl.read_text() if official and agpl.is_file() else LICENSE)
+        if official:
+            (d / "NOTICE").write_text(notice(m, d.name))
     if not (d / "CHANGELOG.md").exists():
         (d / "CHANGELOG.md").write_text(f"# {m.get('name', m['id'])}\n\n## {m.get('version', '1.0')}\n- First release as its own repository.\n")
     print(f"{m['id']} {m.get('version')}: {d}")

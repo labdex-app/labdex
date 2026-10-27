@@ -70,7 +70,7 @@ it takes the references along.
 While the vault is sealed, jobs that need a secret fail and say so. They run in the labdex
 process (the default); the separate `labdex worker` process can't read the vault.
 
-**Before 1.18** shared secrets lived under Admin › Secrets, encrypted with `secret.key`.
+**Before 1.18** shared secrets lived under Settings › Secrets, encrypted with `secret.key`.
 They move into the vault as `global/<name>` (field `value`) the first time an
 administrator sets it up or unseals it, and `{$secret: name}` keeps meaning
 `vault:global/<name>#value`, so nothing that points at them breaks. `/api/secrets` still

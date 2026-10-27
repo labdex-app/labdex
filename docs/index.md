@@ -16,7 +16,7 @@ plugins, keeps your firewall, DNS server and monitoring in step with it.
 It sits between a spreadsheet and NetBox: one container, SQLite (or PostgreSQL),
 well under 100 MB of RAM, and a YAML file you can keep in git.
 
-![Hosts](hosts.png)
+![The hosts list](screenshots/hosts.png)
 
 ## What you get
 

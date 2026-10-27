@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "labdex"
-version = "1.23.1"
+version = "1.24.0"
 description = "Small homelab inventory with zones, naming rules, IPAM, RBAC, change history, discovery and integration plugins"
-license = { text = "MIT" }
+license = { text = "AGPL-3.0-only" }  # with a plugin exception, see NOTICE
 requires-python = ">=3.11"
 dependencies = [
   "Flask>=3.0",

@@ -47,4 +47,5 @@ cosign verify-blob labdex-1.0.0.tar.gz --bundle labdex-1.0.0.tar.gz.bundle \
 ## Reporting a problem
 
 Please report security problems privately through GitHub's *Report a vulnerability*
-on the repository, not in a public issue.
+on the repository, not in a public issue. What's supported, what happens after a report and
+what doesn't count: [SECURITY.md](https://github.com/reykimedev/labdex/blob/main/SECURITY.md).

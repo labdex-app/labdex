@@ -4,7 +4,7 @@ from datetime import timedelta
 
 from flask import current_app, g, jsonify
 
-from .. import audit, auth, demo, rbac, security, store
+from .. import audit, auth, demo, oidc, rbac, security, store
 from ..models import ApiToken, User, db, utcnow
 from . import body, bp, err
 
@@ -26,6 +26,7 @@ def auth_status():
         "setup_required": auth.user_count() == 0,
         "user": me_dict(p) if p.user else None,
         "sso": bool(current_app.config.get("LABDEX_SSO_HEADER")),
+        "oidc": oidc.public_info(),
         "demo": demo.info(),
     })
 
@@ -164,3 +165,81 @@ def delete_token(token_id):
     db.session.delete(tok)
     db.session.commit()
     return "", 204
+
+
+# ------------------------------------------------------------------ OpenID Connect
+@bp.get("/auth/oidc/login", endpoint="auth_oidc_login")
+def auth_oidc_login():
+    """Off to the provider. The flow's state lives in a short cookie of its own (SameSite=Lax:
+    it must come back with the provider's redirect, which the Strict session cookie doesn't)."""
+    from flask import redirect, request
+    if not oidc.enabled():
+        return err(404, "single sign-on isn't set up")
+    try:
+        url, cookie = oidc.start(str(request.args.get("next") or "/"))
+    except oidc.OidcError as exc:
+        return redirect(f"/?sso_error={_q(str(exc))}")
+    resp = redirect(url)
+    resp.set_cookie(oidc.COOKIE, cookie, max_age=600, httponly=True, samesite="Lax", secure=current_app.config["SESSION_COOKIE_SECURE"],
+                    path="/api/auth/oidc")
+    return resp
+
+
+@bp.get("/auth/oidc/callback", endpoint="auth_oidc_callback")
+def auth_oidc_callback():
+    from flask import request
+    if not oidc.enabled():
+        return err(404, "single sign-on isn't set up")
+    ip = auth.client_ip()
+    wait = auth.throttled(f"{ip}|oidc")
+    if wait:
+        return _land(f"/?sso_error={_q(f'too many attempts; try again in {wait} s')}")
+    try:
+        claims, nxt = oidc.finish(dict(request.args), request.cookies.get(oidc.COOKIE, ""))
+        with db.session.no_autoflush:
+            user = oidc.user_for(claims)
+        new = user in db.session.new
+    except oidc.OidcError as exc:
+        db.session.rollback()
+        auth.record_failure(f"{ip}|oidc")
+        resp = _land(f"/?sso_error={_q(str(exc))}")
+        resp.delete_cookie(oidc.COOKIE, path="/api/auth/oidc")
+        return resp
+    db.session.flush()
+    if new:
+        audit.record("create", "user", user.username, None, {"username": user.username, "via": "oidc"},
+                     summary=f"account created at its first sign-in ({oidc.public_info()['name']})", actor=(user.username, "user"))
+    auth.login_session(user)
+    db.session.commit()
+    resp = _land(nxt)
+    resp.delete_cookie(oidc.COOKIE, path="/api/auth/oidc")
+    return resp
+
+
+def _q(s: str) -> str:
+    from urllib.parse import quote
+    return quote(s[:300])
+
+
+def _land(to: str):
+    """A page that moves on by itself: the hop to labdex is then same-site, so the Strict
+    session cookie set here goes along."""
+    from flask import make_response
+    import html
+    t = html.escape(to, quote=True)
+    resp = make_response(f'<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url={t}">'
+                         f'<title>labdex</title><a href="{t}">Continue</a>')
+    resp.headers["Content-Type"] = "text/html; charset=utf-8"
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
+@bp.get("/admin/sso")
+def admin_sso():
+    """How sign-in is set up (configured through the environment)."""
+    rbac.require_admin()
+    c = oidc.config()
+    return jsonify({"oidc": {"enabled": oidc.enabled(), "name": oidc.public_info()["name"], "issuer": c["issuer"] or "", "client_id": c["client_id"] or "",
+                             "confidential": bool(c["client_secret"]), "redirect_uri": oidc.redirect_uri(), "autocreate": bool(c["autocreate"]),
+                             "groups_claim": c["groups_claim"] or "groups", "admin_groups": c["admin_groups"] or "", "only": bool(c["only"])},
+                    "header": current_app.config.get("LABDEX_SSO_HEADER") or ""})

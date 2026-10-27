@@ -6,7 +6,8 @@
 // Drag things where you like them: each view's arrangement is shared, everyone sees the same map
 // (people who edit hosts move it; for others a drag only lasts until the page reloads).
 // People who edit hosts draw cables here too: Cable, then click both ends.
-import { Cable, Download, LocateFixed, MoreHorizontal, RefreshCw, Save, Server, Trash2, X } from 'lucide-vue-next'
+import { Cable, Download, LocateFixed, MoreHorizontal, RefreshCw, Route, Save, Server, Trash2, X } from 'lucide-vue-next'
+import CableTrace from '../components/CableTrace.vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CableExtras from '../components/CableExtras.vue'
@@ -19,7 +20,7 @@ import { useQuery } from '../query'
 import { api } from '../api'
 import { confirm } from '../confirm'
 import { iconFor, iconPicture } from '../icons'
-import { CABLE_COLOURS, MEDIA, SPEEDS, SPEED_STEPS, speedMbps, speedStep } from '../links'
+import { MEDIA, SPEEDS, SPEED_STEPS, cableHex, speedMbps, speedStep } from '../links'
 import { state, toast, zoneHex } from '../store'
 import { shown as shownTheme } from '../theme'
 
@@ -37,6 +38,7 @@ const hiddenNets = ref(pref('hidden-nets', []))
 watch(grid, (v) => { try { localStorage.setItem('labdex-topo-grid', JSON.stringify(v)) } catch { /* */ } })
 watch(hiddenNets, (v) => { try { localStorage.setItem('labdex-topo-hidden-nets', JSON.stringify(v)) } catch { /* */ } }, { deep: true })
 const GRID = 24 // model units between grid lines
+const tracing = ref(null) // {host, port}: the trace dialog
 const hover = ref(null) // {n, x, y}: the card next to a host under the pointer
 
 // --------------------------------------------------------------- saved views
@@ -193,12 +195,6 @@ function elements(d) {
   ]
 }
 
-/** A cable colour (a name from the list, or #hex) as #hex; '' when it has none. */
-function cableHex(c) {
-  if (!c) return ''
-  if (/^#[0-9a-f]{3,8}$/i.test(c)) return c
-  return CABLE_COLOURS.find((x) => x.name === String(c).toLowerCase())?.hex || ''
-}
 // what a cable is drawn in: its own colour (white and black get a thin edge so they show on both themes), or its speed
 function lineColour(e) {
   if (e.kind !== 'cable') return { colour: undefined, outline: undefined }
@@ -635,6 +631,7 @@ onBeforeUnmount(() => cy.value?.destroy())
           <div v-else class="small" style="margin-top: 8px">{{ [sel.cable_label, sel.medium, sel.speed, sel.length ? `${sel.length} m` : '', sel.cable_colour, sel.notes].filter(Boolean).join(' · ') || 'No details.' }}</div>
           <div v-if="canArrange" class="row" style="gap: 8px; margin-top: 10px">
             <button class="btn small danger" @click="removeCable(sel)"><Trash2 :size="13" /> Remove</button><span class="grow"></span>
+            <button v-if="sel.kind === 'cable'" class="btn small" @click="tracing = { host: sel.a_host, port: sel.a_port }"><Route :size="13" /> Trace</button>
             <button class="btn small primary" :disabled="!edgeDirty" @click="saveEdge">Save</button></div>
         </template>
       </aside>
@@ -688,6 +685,7 @@ onBeforeUnmount(() => cy.value?.destroy())
         <button class="btn primary" :disabled="!viewDlg.name" @click="saveView(!current)">{{ current ? `Update ${current.name}` : 'Save' }}</button>
       </template>
     </Modal>
+    <Modal v-if="tracing" :title="`Trace ${tracing.host} ${tracing.port}`" @close="tracing = null"><CableTrace :host="tracing.host" :port="tracing.port" /></Modal>
     <datalist id="cable-speeds-t"><option v-for="x in SPEEDS" :key="x" :value="x" /></datalist>
     <Modal v-if="cableDlg" :title="cableDlg.same ? `A cable inside ${cableDlg.a.host}` : 'New cable'" wide :busy="busy" @close="cableDlg = null">
       <div class="g2">

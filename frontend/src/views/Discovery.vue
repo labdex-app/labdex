@@ -1,5 +1,6 @@
 <script setup>
 import { X } from 'lucide-vue-next'
+import WhereIs from '../components/WhereIs.vue'
 import FilterSelect from '../components/FilterSelect.vue'
 import { onActivated, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -31,6 +32,7 @@ async function loadSummary() {
 }
 
 async function load() {
+  if (tab.value === 'where') return // its own search
   loading.value = true
   const qs = new URLSearchParams({ page: f.page, q: f.q })
   let url
@@ -126,7 +128,10 @@ function go(p) { f.page = p; load() }
       <a href="#" :class="{ 'router-link-active': tab === 'unknown' }" @click.prevent="setTab('unknown')">Unknown addresses</a>
       <a href="#" :class="{ 'router-link-active': tab === 'missing' }" @click.prevent="setTab('missing')">Not seen</a>
       <a href="#" :class="{ 'router-link-active': tab === 'macs' }" @click.prevent="setTab('macs')">MACs</a>
+      <a href="#" :class="{ 'router-link-active': tab === 'where' }" @click.prevent="setTab('where')">Where is…</a>
     </div>
+    <WhereIs v-if="tab === 'where'" />
+    <template v-else>
 
     <div class="filters">
       <template v-if="tab === 'services'">
@@ -232,6 +237,7 @@ function go(p) { f.page = p; load() }
       <span class="small muted">Page {{ f.page }} of {{ pages() }} · {{ data.total }} rows</span>
       <button class="btn small" :disabled="f.page >= pages()" @click="go(f.page + 1)">Next ›</button>
     </div>
+    </template>
   </div>
 </template>
 

@@ -33,6 +33,13 @@ export const CABLE_COLOURS = [
   { name: 'black', hex: '#262626' }, { name: 'pink', hex: '#ec4899' }, { name: 'aqua', hex: '#22d3ee' },
 ]
 
+/** A cable colour (a name from the list, or #hex) as #hex; '' when it has none. */
+export function cableHex(c) {
+  if (!c) return ''
+  if (/^#[0-9a-f]{3,8}$/i.test(c)) return c
+  return CABLE_COLOURS.find((x) => x.name === String(c).toLowerCase())?.hex || ''
+}
+
 // Interfaces: what a physical port is, and which kinds are physical at all (the rest sit on something).
 export const CONNECTORS = ['rj45', 'sfp', 'sfp+', 'sfp28', 'qsfp+', 'qsfp28', 'qsfp-dd', 'usb', 'console', 'radio', 'other']
 // the speed a connector usually runs at, offered when one is picked

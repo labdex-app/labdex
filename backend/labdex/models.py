@@ -292,6 +292,9 @@ class Interface(db.Model):
     extra_ips: Mapped[list] = mapped_column(JSONList, default=list)  # more addresses (secondary IPs), not in DNS
     connector: Mapped[str] = mapped_column(String(16), default="")  # rj45, sfp, sfp+ … (physical ports)
     speed: Mapped[str] = mapped_column(String(16), default="")  # nominal: 1G, 10G …
+    # a port that passes straight through to another port of the same host (a patch panel's
+    # front port and its rear port): a cable trace continues there. Set on both ports.
+    passthrough: Mapped[str] = mapped_column(String(32), default="")
 
     @property
     def ip6s(self) -> list[str]:
@@ -337,6 +340,23 @@ class Link(db.Model):
 
     a_host: Mapped[Host] = relationship(foreign_keys=[a_host_id], lazy="joined")
     b_host: Mapped[Host] = relationship(foreign_keys=[b_host_id], lazy="joined")
+
+
+class MacSeen(db.Model):
+    """A MAC address a switch has on one of its ports (its forwarding table, from SNMP or a
+    controller). Each report from a source replaces what it said before."""
+    id: Mapped[int] = mapped_column(primary_key=True)
+    source: Mapped[str] = mapped_column(String(120), index=True)
+    mac: Mapped[str] = mapped_column(String(17), index=True)
+    host_id: Mapped[int | None] = mapped_column(ForeignKey("host.id", ondelete="SET NULL"))  # the switch
+    host_name: Mapped[str] = mapped_column(String(255), default="")  # as the source called it
+    port: Mapped[str] = mapped_column(String(64), default="")
+    vlan: Mapped[int | None] = mapped_column()
+    ip: Mapped[str] = mapped_column(String(45), default="")  # when the source knows it (a controller's client list)
+    name: Mapped[str] = mapped_column(String(255), default="")  # the client's name, when the source knows it
+    seen_at: Mapped[datetime] = mapped_column(default=lambda: utcnow())
+
+    host: Mapped[Host | None] = relationship(lazy="joined")
 
 
 class LinkSeen(db.Model):
@@ -521,6 +541,7 @@ class User(db.Model):
     username: Mapped[str] = mapped_column(String(64), unique=True)
     display_name: Mapped[str] = mapped_column(String(128), default="")
     password_hash: Mapped[str] = mapped_column(String(256), default="")  # empty = SSO only
+    oidc_subject: Mapped[str | None] = mapped_column(String(320), unique=True)  # "<issuer>|<sub>" once signed in with OIDC
     is_admin: Mapped[bool] = mapped_column(default=False)
     active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(default=utcnow)

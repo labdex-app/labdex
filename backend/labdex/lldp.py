@@ -16,8 +16,16 @@ LLDP_LOC_PORT = "1.0.8802.1.1.2.1.3.7.1"  # .3 id subtype? (.2 subtype, .3 id, .
 LLDP_REM = "1.0.8802.1.1.2.1.4.1.1"  # .column.timeMark.portNum.index
 LLDP_REM_MAN = "1.0.8802.1.1.2.1.4.2.1"  # .column.timeMark.portNum.index.addrSubtype.len.addr…
 CDP_CACHE = "1.3.6.1.4.1.9.9.23.1.2.1.1"  # .column.ifIndex.deviceIndex
+# forwarding tables: which MAC is behind which port
+BRIDGE_PORT_IFINDEX = "1.3.6.1.2.1.17.1.4.1.2"  # dot1dBasePortIfIndex.bridgePort = ifIndex
+BRIDGE_FDB_PORT = "1.3.6.1.2.1.17.4.3.1.2"  # dot1dTpFdbPort.<6 MAC octets> = bridgePort
+BRIDGE_FDB_STATUS = "1.3.6.1.2.1.17.4.3.1.3"  # .<mac> = 3 learned, 4 self, 5 mgmt
+QBRIDGE_FDB_PORT = "1.3.6.1.2.1.17.7.1.2.2.1.2"  # dot1qTpFdbPort.<fdbId>.<6 MAC octets> = bridgePort
+QBRIDGE_FDB_STATUS = "1.3.6.1.2.1.17.7.1.2.2.1.3"
+QBRIDGE_VLAN_FDB = "1.3.6.1.2.1.17.7.1.4.2.1.3"  # dot1qVlanFdbId.<timeMark>.<vlan> = fdbId
 WALKS = {"if_name": IF_NAME, "if_descr": IF_DESCR, "lldp_loc": LLDP_LOC_PORT, "lldp_rem": LLDP_REM,
-         "lldp_man": LLDP_REM_MAN, "cdp": CDP_CACHE}
+         "lldp_man": LLDP_REM_MAN, "cdp": CDP_CACHE, "bridge_ports": BRIDGE_PORT_IFINDEX, "fdb": BRIDGE_FDB_PORT,
+         "fdb_status": BRIDGE_FDB_STATUS, "qfdb": QBRIDGE_FDB_PORT, "qfdb_status": QBRIDGE_FDB_STATUS, "vlan_fdb": QBRIDGE_VLAN_FDB}
 
 
 def text(v) -> str:
@@ -112,4 +120,86 @@ def cdp(cache_walk, ifnames: dict[int, str]) -> list[dict]:
         out.append({"port": ifnames.get(idx[0], str(idx[0])), "protocol": "cdp", "name": dev.split("(")[0].split(".")[0],
                     "fqdn": dev, "remote_port": text(c.get(7)), "mac": "", "ip": ip, "description": "",
                     "platform": text(c.get(8))[:120]})
+    return out
+
+
+def _tail(oid: str, base: str) -> list[int]:
+    o = oid.lstrip(".")
+    if not o.startswith(base + "."):
+        return []
+    try:
+        return [int(x) for x in o[len(base) + 1:].split(".")]
+    except ValueError:
+        return []
+
+
+def fdb(bridge_ports=(), fdb_walk=(), fdb_status=(), qfdb_walk=(), qfdb_status=(), vlan_fdb=(), ifnames: dict[int, str] | None = None) -> list[dict]:
+    """The switch's forwarding table: [{"mac", "port", "vlan"}] for learned addresses.
+
+    Q-BRIDGE-MIB (per VLAN) when the switch has it, else BRIDGE-MIB. Bridge port numbers are
+    turned into interface names through dot1dBasePortIfIndex and ifName. The switch's own
+    addresses (status self/mgmt) are left out."""
+    ifnames = ifnames or {}
+    port_if = {}
+    for oid, v in bridge_ports:
+        t = _tail(oid, BRIDGE_PORT_IFINDEX)
+        if len(t) == 1:
+            try:
+                port_if[t[0]] = int(v)
+            except (TypeError, ValueError):
+                pass
+
+    def name(bport) -> str:
+        try:
+            b = int(bport)
+        except (TypeError, ValueError):
+            return ""
+        if b <= 0:
+            return ""
+        ifx = port_if.get(b, b)
+        return ifnames.get(ifx) or str(ifx)
+
+    fid_vlan = {}
+    for oid, v in vlan_fdb:
+        t = _tail(oid, QBRIDGE_VLAN_FDB)
+        if len(t) == 2:
+            try:
+                fid_vlan[int(v)] = t[1]
+            except (TypeError, ValueError):
+                pass
+    out, seen = [], set()
+
+    def status_of(walk, base, size):
+        st = {}
+        for oid, v in walk:
+            t = _tail(oid, base)
+            if len(t) == size:
+                try:
+                    st[tuple(t)] = int(v)
+                except (TypeError, ValueError):
+                    pass
+        return st
+
+    qst = status_of(qfdb_status, QBRIDGE_FDB_STATUS, 7)
+    for oid, v in qfdb_walk:
+        t = _tail(oid, QBRIDGE_FDB_PORT)
+        if len(t) != 7 or qst.get(tuple(t), 3) not in (3,):
+            continue
+        m = ":".join(f"{b:02x}" for b in t[1:])
+        p = name(v)
+        if p and (m, p) not in seen:
+            seen.add((m, p))
+            out.append({"mac": m, "port": p, "vlan": fid_vlan.get(t[0], t[0] if 1 <= t[0] <= 4094 else None)})  # an FDB id is often the VLAN
+    if out:
+        return out
+    st = status_of(fdb_status, BRIDGE_FDB_STATUS, 6)
+    for oid, v in fdb_walk:
+        t = _tail(oid, BRIDGE_FDB_PORT)
+        if len(t) != 6 or st.get(tuple(t), 3) not in (3,):
+            continue
+        m = ":".join(f"{b:02x}" for b in t)
+        p = name(v)
+        if p and (m, p) not in seen:
+            seen.add((m, p))
+            out.append({"mac": m, "port": p, "vlan": None})
     return out

@@ -51,7 +51,7 @@ const changelog = computed(() => render((data.value?.changelog || '').replace(/^
       <aside>
         <div v-if="data.update_check" class="card">
           <h3>Updates</h3>
-          <p v-if="!data.update_check.latest" class="faint" style="margin: 0">Couldn't ask GitHub ({{ data.update_check.repo }}).</p>
+          <p v-if="!data.update_check.latest" class="faint" style="margin: 0">No answer from <a :href="data.update_check.project" target="_blank" rel="noopener">{{ data.update_check.project.replace('https://', '') }}</a>: {{ data.update_check.error || 'unknown' }}.</p>
           <p v-else-if="data.update_check.newer" style="margin: 0">
             <strong>{{ data.update_check.latest.tag }}</strong> is out.
             <a :href="data.update_check.latest.url" target="_blank" rel="noopener">Release notes ↗</a>

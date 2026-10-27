@@ -1,0 +1,26 @@
+# Dependency updates as pull requests (they run the full CI). Weekly, grouped so a week's
+# small updates arrive as one pull request per ecosystem.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: {interval: weekly, day: monday}
+    groups: {actions: {patterns: ["*"]}}
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: {interval: weekly, day: monday}
+    groups:
+      npm-minor: {update-types: [minor, patch]}
+  - package-ecosystem: pip
+    directory: /backend
+    schedule: {interval: weekly, day: monday}
+    groups:
+      python-minor: {update-types: [minor, patch]}
+  - package-ecosystem: docker
+    directory: /
+    schedule: {interval: weekly, day: monday}
+  # the shipped plugins: a new commit on a plugin repository's main branch
+  - package-ecosystem: gitsubmodule
+    directory: /
+    schedule: {interval: daily}
+    groups: {plugins: {patterns: ["*"]}}

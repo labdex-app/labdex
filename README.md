@@ -10,7 +10,7 @@ integrations, keeps your firewall, DNS server and monitoring in step with it.
 It's the lightweight middle ground between a spreadsheet and NetBox: one
 container, SQLite, under 100 MB of RAM, and a YAML file you can keep in git.
 
-![Hosts view](docs/hosts.png)
+![The hosts list](docs/screenshots/hosts.png)
 
 **Docs:** <https://reykimedev.github.io/labdex/> (built from `docs/`) · **Plugins:** <https://github.com/reykimedev/labdex-plugins> ·
 **Try it:** `docker run -p 8080:8080 -e LABDEX_DEMO=1 ghcr.io/reykimedev/labdex:1`
@@ -28,7 +28,7 @@ container, SQLite, under 100 MB of RAM, and a YAML file you can keep in git.
 | | |
 | --- | --- |
 | **Inventory & IPAM** | Networks (VLAN, IPv4/IPv6 prefix, gateway, DHCP range), hosts with interfaces and services, what runs on which hypervisor. Next-free-address per network that skips the gateway, used addresses and the DHCP pool. |
-| **Zones** | Every network (segment) and host belongs to a zone `<AREA>_<TRUST>`, e.g. `DC_TC` (datacenter, trusted-compliant) or `CA_UT` (campus, untrusted). Areas and trust levels are yours to create under Admin → Zones; nothing is predefined (an example set is one click away). |
+| **Zones** | Every network (segment) and host belongs to a zone `<AREA>_<TRUST>`, e.g. `DC_TC` (datacenter, trusted-compliant) or `CA_UT` (campus, untrusted). Areas and trust levels are yours to create under Settings → Zones; nothing is predefined (an example set is one click away). |
 | **Naming rules** | Functional hostnames `<category>-<type>-<role>-<nn>` (`srv-vm-dns-01`), picked from editable lists with the next free number filled in, plus any number of memorable *fun names* (`unown`, `resolver`), each a DNS CNAME; the first shows up in the prompt. |
 | **Firewall aliases** | Generated per network, zone, area and host (`N4_ZONE_DC_TC_SRV`, `NG_ZONE_DC`, `H_ZONE_DC_TC_SRV_VM_DNS_01`), plus your own groups with any readable name whose members reference hosts, networks, zones or other aliases. On the firewall each alias gets an id of at most 32 characters (the name if it fits, else a stable shortened form, or one you set); the full name goes into the description. |
 | **DNS** | `A`/`AAAA` per interface (`<host>.<network>.<domain>`), CNAMEs for short, fun and service names, `SRV`/`TXT` per service. As a zone file or JSON. |
@@ -90,7 +90,7 @@ For UI development run `labdex run --debug` (port 5000) and `npm run dev` in
 | `LABDEX_DEMO` | `false` | Demo mode: a sample lab, reset every night (see below). Never on a real instance: it wipes the database |
 
 Conventions (domain, alias length, hostname categories, DMZ area, the
-octet-equals-VLAN check) are edited under Admin → Conventions.
+octet-equals-VLAN check) are edited under Settings → Conventions.
 
 ### Database: SQLite or PostgreSQL
 
@@ -273,7 +273,7 @@ Every backup carries a portable `database.json` (and on SQLite also the raw
 
 ### Installing plugins
 
-Under Admin → Plugins: upload a `.zip`, or add a signed repository and install
+Under Settings → Plugins: upload a `.zip`, or add a signed repository and install
 from it. labdex unpacks the archive, validates the manifest and checks
 the signature **before any plugin code runs**, then shows you what you're
 about to install:
@@ -512,4 +512,16 @@ each release brought.
 
 ## License
 
-MIT
+labdex is **free and open source software** under the [GNU Affero General Public License
+v3.0](LICENSE) (AGPL-3.0), with a [plugin exception](NOTICE):
+
+- **Use it for free**, for anything, at home, at school or at work.
+- **Change it and share it**, as long as your version stays under the AGPL, keeps the
+  credit to the original (the [NOTICE](NOTICE) file), and comes with its source.
+- **Running a changed labdex for others** (a hosted service, say) counts as sharing it: you
+  have to offer them its source too. Nobody can turn labdex into a closed product.
+- **Plugins** may use any licence they like. The official plugins in the `labdex-plugin-*`
+  repositories are AGPL-3.0 too.
+
+Versions up to and including 1.23.1 were released under the MIT licence; copies of those
+keep it.

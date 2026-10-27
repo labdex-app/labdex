@@ -26,6 +26,8 @@ under IPv4 the main address and any more; under IPv6 an interface ID (used in ev
 prefix of the network) or an explicit address, and any more. The main ones are in DNS
 and used for monitoring; the others count for firewall aliases, IPAM and Discovery.
 
+![A host: its details, tabs for network, services and history](../screenshots/host.png)
+
 **A host's dashboard.** An existing host opens on **Dashboard**: its status and what
 monitors say, its addresses, where it sits (zone, hypervisor, guests, cables), links to
 its services, and what plugins show for it. The form is under **Overview**.
@@ -60,6 +62,8 @@ dashed lines from a guest to the bridge it sits on. A guest whose interface does
 what it sits on is joined to its hypervisor's bridge in the same network, drawn fainter:
 a guess until you set it. VIPs aren't drawn here (they're addresses, not boxes with
 cables).
+
+![The physical topology with cables, colours and port names](../screenshots/topology.png)
 
 **Networks (L3 / VLANs).** Networks are nodes and every host is joined to the networks it
 has an address in; hosts in several networks are diamonds. A VIP is joined to the hosts
@@ -99,6 +103,16 @@ ports where a switch sees something else than the cable on record: keep the reco
 what's seen (the old cable goes). *Neighbours labdex doesn't know* can become hosts with a
 click, prefilled with the address and MAC. A cable both ends report shows once; port
 names match whatever their case.
+
+![Tracing a cable run through a patch panel](../screenshots/cable-trace.png)
+
+**Patch panels.** A patch panel is a host whose front ports pass straight through to its rear
+ports: on an interface, *Passes through to* names the port on the other side (set on one,
+both get it). *Several* adds a whole panel at once: tick *Patch panel* and every port gets a
+rear port (`1` ↔ `r1`, `2` ↔ `r2` …). **Trace** (on a host's port, a cable on the Cables page
+or a cable on the topology) follows a cable end to end through any number of panels:
+server `eth0` → panel A `1` … `r1` → panel B `r3` … `3` → switch `ge-0/0/5`, with each
+cable's label, colour and length.
 
 A host with four ports or more shows a **front panel** on its Dashboard and Network tab:
 its ports in order, odd ones on top, RJ45 and SFP-style cages apart, a cabled one in its
@@ -144,6 +158,16 @@ nmap scans, the OPNsense ARP table, Kea leases, DNS records, Tailscale, UniFi
 clients and Proxmox guests the inventory doesn't have feed Discovery: unknown addresses, undocumented open ports, declared services
 that don't answer. One click adds a port to its host or an address to an existing
 host.
+
+**Where is …?** (Discovery's last tab, or type a MAC or an address in the search with
+Ctrl K) finds the switch port behind any MAC, IP address or host: from the switches'
+forwarding tables, which the *SNMP neighbours* plugin reads (BRIDGE-MIB and Q-BRIDGE-MIB,
+per VLAN) and *UniFi* reports for its clients (wired: the switch port; Wi-Fi: the access
+point). A MAC shows on its own port and on every link between switches on the way; labdex
+pins the likely one (the fewest other MACs, not cabled to another switch). A host's Network
+tab shows that port next to each interface with a MAC and no cable on record.
+
+![Where is this MAC: the switch port a host was seen on](../screenshots/where-is.png)
 
 A service is *answering* when a scan saw its port open on an address it listens on, and
 *not answering* only when a scan checked that port and found it closed. nmap checks the

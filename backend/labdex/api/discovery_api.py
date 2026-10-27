@@ -216,3 +216,16 @@ def forget_address(ip):
     db.session.execute(db.delete(DiscoveredHost).where(DiscoveredHost.ip == ip))
     db.session.commit()
     return "", 204
+
+
+@bp.get("/discovery/where")
+def discovery_where():
+    """?q=<MAC, IP or host>: which switch port its MAC addresses were seen on (switch MAC tables)."""
+    from .. import macs
+    _need_view()
+    p = g.principal
+    visible = {e["host"]["name"] for e in store.host_index() if p.can("host", "view", e["facts"])}
+    q = (request.args.get("q") or "").strip()
+    if not q:
+        return err(422, "validation failed", [{"field": "q", "message": "a MAC, an IP address or a host"}])
+    return jsonify(macs.where(q, visible))

@@ -19,7 +19,7 @@ them marked. (An Ansible run is one change and can't be applied in part.)
 
 ## Approval policies
 
-Admin → Approvals & windows. Policies are matched top to bottom by integration name,
+Settings → Approvals & windows. Policies are matched top to bottom by integration name,
 the zones of the hosts a plan touches and how it was started (by someone, a hook, a
 schedule). A policy sets:
 
