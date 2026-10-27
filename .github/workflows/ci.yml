@@ -177,3 +177,17 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r docs/requirements.txt && mkdocs build --strict
+
+  # The one check branch protection requires: jobs a change doesn't need are skipped and
+  # never report, so this waits for all of them and fails if any of them failed.
+  ci-passed:
+    name: CI passed
+    if: always()
+    needs: [changes, backend, frontend-e2e-perf, docs]
+    runs-on: ubuntu-24.04
+    steps:
+      - env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          echo "$NEEDS" | jq -e 'all(.[]; .result == "success" or .result == "skipped")' > /dev/null
