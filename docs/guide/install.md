@@ -7,7 +7,7 @@ folder. PostgreSQL is optional.
 
 ```sh
 docker run -d --name labdex -p 8080:8080 -v labdex-data:/data \
-  -e LABDEX_COOKIE_SECURE=true ghcr.io/OWNER/labdex:1
+  -e LABDEX_COOKIE_SECURE=true ghcr.io/reykimedev/labdex:1
 ```
 
 Open <http://127.0.0.1:8080>. On an empty database the first visit asks you to create
@@ -27,7 +27,7 @@ The repository's `docker-compose.yml` starts labdex, and with
 in their own container ([Jobs and the worker](../operate/jobs.md)).
 
 ```sh
-git clone https://github.com/OWNER/labdex && cd labdex
+git clone https://github.com/reykimedev/labdex && cd labdex
 docker compose up -d
 docker compose exec labdex labdex import --yes /app/examples/homelab.yaml   # optional sample data
 ```

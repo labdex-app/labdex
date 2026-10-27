@@ -6,6 +6,13 @@ your conventions and generates what the rest of the lab needs (firewall aliases,
 DNS records, an Ansible inventory, DHCP reservations, login banners) and, through
 plugins, keeps your firewall, DNS server and monitoring in step with it.
 
+!!! warning "Built with AI, for home labs only"
+    labdex was written largely with an AI coding assistant (Claude), directed and reviewed
+    by a human. It has a test suite and was security-reviewed, but it has not had an
+    independent audit and may contain security problems. Run it in a home lab on a trusted
+    network, behind your own access controls; don't expose it to the internet or use it for
+    production or business infrastructure.
+
 It sits between a spreadsheet and NetBox: one container, SQLite (or PostgreSQL),
 well under 100 MB of RAM, and a YAML file you can keep in git.
 

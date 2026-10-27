@@ -10,6 +10,8 @@ retries failures a few times. Events labdex itself sends:
     backup.failed   a backup failed
     host.down       a host stopped answering (sent by status integrations)
     host.up         … and came back
+    plugins.update  a plugin update is available (once per version)
+    plugins.updated / plugins.update_failed / plugins.withdrawn   see plugins/updates.py
     test            the "Send a test" button
 
 Plugins emit their own with `ctx.notify(event, title, body)`; those are named
@@ -40,6 +42,10 @@ EVENTS = [
     ("backup.failed", "A backup failed"),
     ("host.down", "A host stopped answering"),
     ("host.up", "A host answers again"),
+    ("plugins.update", "A plugin update is available"),
+    ("plugins.updated", "A plugin updated itself (official updates)"),
+    ("plugins.update_failed", "An automatic plugin update failed"),
+    ("plugins.withdrawn", "An installed plugin version was withdrawn"),
 ]
 RETRY = [60, 300, 900, 3600]  # seconds before attempts 2..5
 TIMEOUT = 10

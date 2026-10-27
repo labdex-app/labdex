@@ -12,7 +12,16 @@ container, SQLite, under 100 MB of RAM, and a YAML file you can keep in git.
 
 ![Hosts view](docs/hosts.png)
 
-**Docs:** <https://OWNER.github.io/labdex/> (built from `docs/`) · **Try it:** `docker run -p 8080:8080 -e LABDEX_DEMO=1 ghcr.io/OWNER/labdex:1`
+**Docs:** <https://reykimedev.github.io/labdex/> (built from `docs/`) · **Plugins:** <https://github.com/reykimedev/labdex-plugins> ·
+**Try it:** `docker run -p 8080:8080 -e LABDEX_DEMO=1 ghcr.io/reykimedev/labdex:1`
+
+> [!WARNING]
+> **Built with AI, for home labs only.** labdex was written largely with an AI coding
+> assistant (Claude), directed and reviewed by a human. It has a test suite and was
+> security-reviewed, but it has not had an independent audit and may well contain
+> security problems. Run it in a home lab, on a trusted network, behind your own access
+> controls. Don't expose it to the internet, and don't use it for production or
+> business infrastructure. No warranty (see [LICENSE](LICENSE)).
 
 ## What it does
 
@@ -489,8 +498,7 @@ the upgrade gate (a 0.5 database started on the current release, `tests/test_upg
 Tagging `v*` publishes signed multi-arch images (amd64, arm64) to `ghcr.io/<owner>/labdex`
 and a GitHub release with signed archives, wheel and SBOMs (`release.yml`). `docs.yml`
 publishes the docs and the official plugin repository (signed with the
-`LABDEX_OFFICIAL_KEY` secret) to GitHub Pages; both workflows fill in the repository's
-owner where the sources say `OWNER`.
+`LABDEX_OFFICIAL_KEY` secret) to GitHub Pages.
 
 The OPNsense and Technitium plugins are checked against OPNsense 26.1 (Kea
 inside OPNsense) and Technitium DNS Server 15.6.2; `tests/test_contracts.py`

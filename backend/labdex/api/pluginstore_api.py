@@ -234,9 +234,71 @@ def marketplace_install():
     if r is None or not r.enabled:
         return err(422, "no such repository")
     try:
-        return jsonify(installer.install_from_repository(r, str(data.get("id", ""))))
+        return jsonify(installer.install_from_repository(r, str(data.get("id", "")), str(data.get("version") or "") or None))
     except installer.InstallError as exc:
         return _install_error(exc)
+
+
+# ------------------------------------------------------------------ updates
+@bp.post("/plugins/<pid>/rollback")
+def rollback_plugin(pid):
+    """Back to the version the last update replaced (kept on disk); again to undo."""
+    _admin()
+    spec = current_app.extensions["labdex"]["registry"].get(pid)
+    was = str(spec.manifest.get("version", "")) if spec else ""
+    try:
+        r = installer.rollback(pid)
+    except installer.InstallError as exc:
+        return _install_error(exc)
+    audit.record("update", "plugin", pid, {"version": was}, {"version": r["version"]}, summary=f"rolled {pid} back from {was} to {r['version']}")
+    db.session.commit()
+    return jsonify(r)
+
+
+@bp.put("/plugins/<pid>/hold")
+def hold_plugin(pid):
+    """{"version": "1.2"} stays on that version (no update offered or installed); {"version": null} lets it go."""
+    from ..plugins import updates
+    _admin()
+    spec = current_app.extensions["labdex"]["registry"].get(pid)
+    if spec is None:
+        return err(404, f"no plugin '{pid}'")
+    v = str(body().get("version") or "").strip()[:40] or None
+    updates.hold(pid, v)
+    audit.record("update", "plugin", pid, summary=f"holds {spec.name} at {v}" if v else f"lets {spec.name} update again")
+    db.session.commit()
+    return jsonify({"id": pid, "held": v or ""})
+
+
+@bp.get("/plugin-updates")
+def get_plugin_updates():
+    from ..plugins import updates
+    if not g.principal.can_any("integration", "view"):
+        return err(403, "you lack integration:view")
+    return jsonify({"mode": updates.mode(), "modes": list(updates.MODES), "holds": updates.holds(),
+                    "checked": updates._get(updates.LAST, ""), "can_edit": bool(g.principal.is_admin)})
+
+
+@bp.put("/plugin-updates")
+def put_plugin_updates():
+    from ..plugins import updates
+    _admin()
+    m = str(body().get("mode", ""))
+    try:
+        updates.set_mode(m)
+    except ValueError as exc:
+        return err(422, "validation failed", [{"field": "mode", "message": str(exc)}])
+    audit.record("update", "setting", "plugin updates", summary=f"plugin updates: {m}")
+    db.session.commit()
+    return get_plugin_updates()
+
+
+@bp.post("/plugin-updates/check")
+def check_plugin_updates():
+    """Check now (also installs official updates in "official" mode)."""
+    from ..plugins import updates
+    _admin()
+    return jsonify(updates.check(force=True))
 
 
 # ------------------------------------------------------------------ pages

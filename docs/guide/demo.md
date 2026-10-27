@@ -3,7 +3,7 @@
 `LABDEX_DEMO=1` turns an instance into a public playground.
 
 ```sh
-docker run -d -p 8080:8080 -e LABDEX_DEMO=1 ghcr.io/OWNER/labdex:1
+docker run -d -p 8080:8080 -e LABDEX_DEMO=1 ghcr.io/reykimedev/labdex:1
 ```
 
 - On an empty database, and every night at 03:00 UTC, everything is **wiped** and the

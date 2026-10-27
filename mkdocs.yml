@@ -1,6 +1,6 @@
 site_name: labdex
 site_description: A small homelab inventory with zones, naming rules, IPAM, plans you approve and plugins.
-repo_url: https://github.com/OWNER/labdex
+repo_url: https://github.com/reykimedev/labdex
 edit_uri: edit/main/docs/
 docs_dir: docs
 site_dir: site

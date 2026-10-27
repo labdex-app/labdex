@@ -1,13 +1,13 @@
-name: Docs and official plugins
+name: Docs
 
-# Builds the docs (MkDocs Material) and the official plugin repository (signed with the
-# project key from the LABDEX_OFFICIAL_KEY secret) and publishes both to GitHub Pages:
-#   https://<owner>.github.io/<repo>/            the docs
-#   https://<owner>.github.io/<repo>/plugins/    index.json + plugin archives
+# Builds the docs (MkDocs Material) and publishes them to GitHub Pages:
+#   https://<owner>.github.io/<repo>/
+# The official plugin Marketplace is its own repository (labdex-plugins), built from the
+# plugins' own repositories.
 on:
   push:
     branches: [main]
-    paths: ["docs/**", "mkdocs.yml", "CHANGELOG.md", "backend/labdex/official_plugins/**", ".github/workflows/docs.yml"]
+    paths: ["docs/**", "mkdocs.yml", "CHANGELOG.md", ".github/workflows/docs.yml"]
   workflow_dispatch:
 
 permissions:
@@ -24,6 +24,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive  # the shipped plugins live in their own repositories
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -39,18 +41,6 @@ jobs:
         run: |
           pip install -r docs/requirements.txt
           mkdocs build --strict
-      - name: Build the official plugin repository
-        env:
-          LABDEX_OFFICIAL_KEY: ${{ secrets.LABDEX_OFFICIAL_KEY }}
-        run: |
-          if [ -z "$LABDEX_OFFICIAL_KEY" ]; then echo "::warning::no LABDEX_OFFICIAL_KEY secret: the plugin repository is not published"; exit 0; fi
-          pip install -e backend
-          umask 077; printf '%s\n' "$LABDEX_OFFICIAL_KEY" > "$RUNNER_TEMP/official.pem"
-          export LABDEX_DATA="$RUNNER_TEMP/labdex-data"
-          cp -r backend/labdex/official_plugins "$RUNNER_TEMP/official_plugins"
-          labdex plugin repo "$RUNNER_TEMP/official_plugins" site/plugins --key "$RUNNER_TEMP/official.pem" \
-            --name "labdex official" --description "Official labdex plugins, signed with the project key"
-          rm -f "$RUNNER_TEMP/official.pem"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

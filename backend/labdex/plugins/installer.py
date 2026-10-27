@@ -173,7 +173,7 @@ def confirm(token: str, accept_unsigned: bool) -> dict:
     dest = _plugin_dir() / info["id"]
     backup = None
     if dest.exists():
-        backup = dest.with_name(f".{info['id']}.previous")
+        backup = dest.with_name(f".{info['id']}.replacing")
         shutil.rmtree(backup, ignore_errors=True)
         dest.rename(backup)
     shutil.move(info["dir"], dest)
@@ -187,9 +187,51 @@ def confirm(token: str, accept_unsigned: bool) -> dict:
             backup.rename(dest)
         reload_registry()
         raise InstallError(f"installed, but it didn't load: {spec.error if spec else 'not found'}; rolled back")
-    if backup is not None:
-        shutil.rmtree(backup, ignore_errors=True)
+    if backup is not None:  # kept as the version to roll back to (one step)
+        prev = previous_dir(info["id"])
+        shutil.rmtree(prev, ignore_errors=True)
+        prev.parent.mkdir(parents=True, exist_ok=True)
+        backup.rename(prev)
     return {**info, "installed": True}
+
+
+def previous_dir(pid: str) -> Path:
+    return _plugin_dir() / ".previous" / pid
+
+
+def previous_version(pid: str) -> str | None:
+    """The version an update replaced, kept to roll back to; None if there's none."""
+    f = previous_dir(pid) / "plugin.yaml"
+    if not f.is_file():
+        return None
+    try:
+        return str((yaml.safe_load(f.read_text()) or {}).get("version", "")) or "?"
+    except yaml.YAMLError:
+        return None
+
+
+def rollback(pid: str) -> dict:
+    """Swap the installed copy with the one it replaced. The swapped-out copy becomes the
+    previous one, so a rollback can be undone the same way. The old copy's signature is
+    checked when it loads, like any other."""
+    prev, dest = previous_dir(pid), _plugin_dir() / pid
+    if not (prev / "plugin.yaml").is_file():
+        raise InstallError(f"no earlier version of '{pid}' is kept")
+    if not dest.is_dir():
+        raise InstallError(f"'{pid}' isn't installed here")
+    hold = dest.with_name(f".{pid}.replacing")
+    shutil.rmtree(hold, ignore_errors=True)
+    dest.rename(hold)
+    prev.rename(dest)
+    reg = reload_registry()
+    spec = reg.get(pid)
+    if spec is None or spec.error:
+        dest.rename(prev)
+        hold.rename(dest)
+        reload_registry()
+        raise InstallError(f"the earlier version doesn't load: {spec.error if spec else 'not found'}; nothing changed")
+    hold.rename(prev)
+    return {"id": pid, "version": str(spec.manifest.get("version", "")), "previous": previous_version(pid)}
 
 
 def uninstall(pid: str, force: bool = False) -> None:
@@ -209,6 +251,7 @@ def uninstall(pid: str, force: bool = False) -> None:
     if not target.is_relative_to(root) or target == root:
         raise InstallError("plugin isn't in the plugin folder")
     shutil.rmtree(target)
+    shutil.rmtree(previous_dir(pid), ignore_errors=True)
     reload_registry()
 
 
@@ -268,7 +311,7 @@ def marketplace(fetch: bool = True) -> dict:
     """Everything that can be installed, one entry per plugin: what ships with labdex (installed
     or not, nothing to download) and what the enabled repositories offer. A repository entry for a
     plugin that ships with labdex is the same entry, with the repository's version."""
-    from . import CAPABILITIES, catalog
+    from . import CAPABILITIES, catalog, updates
     reg = current_app.extensions["labdex"]["registry"]
     out: dict[str, dict] = {}
     errors = []
@@ -288,8 +331,10 @@ def marketplace(fetch: bool = True) -> dict:
             "schedules": sum(1 for f in spec.settings if f["key"].startswith("schedule_")),
             "actions": [a.get("label") or a["id"] for a in m.get("actions") or []][:30], "pages": [p.get("label") or p["id"] for p in spec.pages],
             "widgets": len(m.get("widgets") or []), "per_host": spec.per_host,
+            "changes": changes_for((spec.path / "CHANGELOG.md").read_text(), str(m.get("version", ""))) if (spec.path / "CHANGELOG.md").is_file() else "",
         }
     repos = db.session.scalars(db.select(PluginRepository).where(PluginRepository.enabled.is_(True)).order_by(PluginRepository.name)) if fetch else []
+    holds = updates.holds()
     for repo in repos:
         try:
             idx = fetch_repository(repo)
@@ -300,26 +345,46 @@ def marketplace(fetch: bool = True) -> dict:
             if not isinstance(p, dict) or not p.get("id"):
                 continue
             pid = str(p["id"])
-            ok, why = compatibility(p)
             cur = reg.get(pid)
             entry = out.get(pid) or {
                 "id": pid, "name": p.get("name", pid), "description": p.get("description", ""), "author": p.get("author", ""),
                 "tags": p.get("tags") or [], "capabilities": p.get("capabilities") or [], "kind": p.get("kind", "integration"),
                 "bundled": False, "installed": False, "installed_version": None, "settings": [], "schedules": 0, "actions": [], "pages": [],
                 "widgets": 0, "per_host": False, "source": repo.name}
-            newer = str(p.get("version", ""))
-            installed = entry["installed"]
+            if entry.get("repository_id"):  # offered by an earlier repository already: the first one wins
+                continue
+            vers = versions_of(p)
+            best = best_version(p)
+            latest = vers[0] if vers else {"version": str(p.get("version", "")), "labdex": str(p.get("labdex") or ""), "yanked": "", "changes": ""}
+            ok, why = compatibility({"labdex": latest["labdex"]} if latest["labdex"] else {})
             have = entry["installed_version"] or (str(cur.manifest.get("version", "")) if cur else "")
+            target = best["version"] if best else ""
+            installed = entry["installed"]
+            mine = next((v for v in vers if v["version"] == have), None) if installed else None
             entry.update({
-                "repository": repo.name, "repository_id": repo.id, "official": entry.get("official") or repo.official,
-                "repo_version": newer, "requires": str(p.get("labdex") or entry.get("requires") or ""), "compatible": ok, "incompatible_reason": why,
-                "supported": bool(p.get("supported")),
-                "update": bool(installed and have and _newer(newer, have) and not (cur and cur.builtin)),
+                "repository": repo.name, "repository_id": repo.id, "official": entry.get("official") or repo.official, "official_signed": bool(repo.official),
+                "repo_version": target or latest["version"], "latest_version": latest["version"],
+                "requires": str((best or latest).get("labdex") or entry.get("requires") or ""), "compatible": bool(best) or ok,
+                "incompatible_reason": "" if best else why or ("every version is withdrawn" if vers and all(v["yanked"] for v in vers) else ""),
+                "supported": bool(p.get("supported")), "source_url": str(p.get("source") or "") if str(p.get("source") or "").startswith("https://") else "",
+                "versions": [{k: v[k] for k in ("version", "labdex", "changes", "yanked", "date")}
+                             | {"compatible": compatibility({"labdex": v["labdex"]} if v["labdex"] else {})[0]} for v in vers],
+                "withdrawn": (mine or {}).get("yanked", "") if installed else "",
+                "update": bool(installed and have and target and _newer(target, have) and not (cur and cur.builtin) and pid not in holds),
+                # what's new since the installed version, newest first
+                "changes": "\n\n".join(f"{v['version']}: {v['changes']}" for v in vers if v["changes"] and (not have or _newer(v["version"], have)))[:4000]
+                if installed else (latest.get("changes") or ""),
             })
-            entry.setdefault("version", newer)
             if not entry.get("version"):
-                entry["version"] = newer
+                entry["version"] = target or latest["version"]
             out[pid] = entry
+    for e in out.values():
+        e["held"] = holds.get(e["id"], "")
+        e["previous"] = previous_version(e["id"]) if e["installed"] else None  # kept to roll back to
+        e.setdefault("versions", [])
+        e.setdefault("withdrawn", "")
+        e.setdefault("changes", "")
+        e.setdefault("official_signed", False)
     return {"plugins": sorted(out.values(), key=lambda e: e["name"].lower()), "errors": errors, "capability_labels": CAPABILITIES}
 
 
@@ -332,9 +397,16 @@ def ensure_official_repository() -> None:
     from .. import naming, store
     from .trust import official_index_url, official_keys, public_b64
     url = official_index_url()
+    keys = official_keys()
+    if url and keys:  # the official repository follows the address and key this labdex ships with (a moved or re-keyed Marketplace)
+        kid, (_, pub) = next(iter(keys.items()))
+        for r in db.session.scalars(db.select(PluginRepository).where(PluginRepository.official.is_(True))):
+            if (r.url, r.key_id) != (url, kid) and not db.session.scalar(db.select(PluginRepository).where(PluginRepository.url == url, PluginRepository.id != r.id)):
+                r.url, r.key_id, r.public_key, r.error, r.fetched_at = url, kid, public_b64(pub), "", None
+                _index_cache.clear()
+        db.session.commit()
     if not url or naming.get_setting(OFFICIAL_SEEDED) == "true":
         return
-    keys = official_keys()
     if keys and db.session.scalar(db.select(PluginRepository).where(PluginRepository.url == url)) is None:
         kid, (_, pub) = next(iter(keys.items()))
         db.session.add(PluginRepository(name="labdex official", url=url, key_id=kid, public_key=public_b64(pub), official=True,
@@ -351,12 +423,47 @@ def _newer(a: str, b: str) -> bool:
         return a != b
 
 
-def install_from_repository(repo: PluginRepository, pid: str) -> dict:
+def versions_of(entry: dict) -> list[dict]:
+    """Every version a repository offers for one plugin, newest first. Old indexes list only
+    the current one; newer ones also have `versions` (each with url, sha256, labdex, changes, yanked)."""
+    out, seen = [], set()
+    for v in [entry, *(entry.get("versions") or [])]:
+        if not isinstance(v, dict) or not v.get("version") or str(v["version"]) in seen:
+            continue
+        seen.add(str(v["version"]))
+        out.append({"version": str(v["version"]), "url": v.get("url", ""), "sha256": v.get("sha256", ""), "labdex": str(v.get("labdex") or ""),
+                    "changes": str(v.get("changes") or "")[:4000], "yanked": str(v.get("yanked") or "")[:300], "date": str(v.get("date") or "")})
+    return sorted(out, key=lambda v: _vkey(v["version"]), reverse=True)
+
+
+def _vkey(v: str):
+    from packaging.version import InvalidVersion, Version
+    try:
+        return (1, Version(v))
+    except InvalidVersion:
+        return (0, Version("0"))
+
+
+def best_version(entry: dict) -> dict | None:
+    """The newest version that isn't withdrawn and works with this labdex."""
+    for v in versions_of(entry):
+        if not v["yanked"] and compatibility({"labdex": v["labdex"]} if v["labdex"] else {})[0]:
+            return v
+    return None
+
+
+def install_from_repository(repo: PluginRepository, pid: str, version: str | None = None) -> dict:
     from urllib.parse import urljoin
     idx = fetch_repository(repo)
-    entry = next((p for p in idx["plugins"] if isinstance(p, dict) and str(p.get("id")) == pid), None)
-    if entry is None:
+    top = next((p for p in idx["plugins"] if isinstance(p, dict) and str(p.get("id")) == pid), None)
+    if top is None:
         raise InstallError(f"'{pid}' isn't in {repo.name}")
+    if version:
+        entry = next((v for v in versions_of(top) if v["version"] == str(version)), None)
+        if entry is None:
+            raise InstallError(f"{repo.name} doesn't offer {pid} {version}")
+    else:
+        entry = best_version(top) or versions_of(top)[0]
     zurl = urljoin(repo.url, str(entry.get("url", "")))
     if not entry.get("sha256"):
         raise InstallError("the index has no checksum for this plugin")
@@ -374,6 +481,118 @@ def install_from_repository(repo: PluginRepository, pid: str) -> dict:
     return info
 
 
+def build_index_from_sources(sources: dict, out: Path, private_pem: bytes, name: str = "", description: str = "",
+                             token: str = "", api: str = "https://api.github.com", get=None) -> dict:
+    """For a Marketplace whose plugins live in their own git repositories (sources.yaml):
+
+        name: labdex official
+        description: …
+        plugins:
+          - repo: owner/labdex-plugin-opnsense        # GitHub: its releases are the versions
+            withdrawn: {"1.2": "breaks on OPNsense 26.1"}
+          - index: https://example.org/plugins/index.json   # or another signed index, taken as is
+            key_id: 3f9a…                                     #   (pinned: only this key)
+
+    Every release asset named <id>-<version>.zip is downloaded and checked: its checksum, its
+    SIGNATURE.json (signed with this key, or the plugin is skipped) and that its manifest's id
+    and version match the name. The index points at the assets where they are (nothing is
+    copied), with the release notes as each version's changes. The index is signed with the key.
+    A plugin signed with someone else's key belongs in that author's own repository (index),
+    which people add next to this one: labdex pins one key per repository."""
+    import tempfile
+    from cryptography.hazmat.primitives import serialization
+    from .trust import key_id, sign_index
+    get = get or requests.get
+    key = serialization.load_pem_private_key(private_pem, password=None)
+    mine = {key_id(key.public_key()): ("this repository", key.public_key())}
+    hdr = {"Accept": "application/vnd.github+json", **({"Authorization": f"Bearer {token}"} if token else {})}
+    plugins, problems = [], []
+    for src in sources.get("plugins") or []:
+        repo = str(src.get("repo") or "")
+        withdrawn = {str(k): str(v) for k, v in (src.get("withdrawn") or {}).items()}
+        try:
+            rel = get(f"{api}/repos/{repo}/releases?per_page=100", headers=hdr, timeout=30)
+            rel.raise_for_status()
+            releases = [r for r in rel.json() if not r.get("draft") and not r.get("prerelease")]
+        except Exception as exc:
+            problems.append(f"{repo}: {exc}")
+            continue
+        versions, top = [], None
+        for r in releases:
+            for a in r.get("assets") or []:
+                if not str(a.get("name", "")).endswith(".zip"):
+                    continue
+                try:
+                    blob = get(a["browser_download_url"], timeout=60).content
+                    with tempfile.TemporaryDirectory() as tmp:
+                        pdir = _safe_extract(blob, Path(tmp) / "x")
+                        m = yaml.safe_load((pdir / "plugin.yaml").read_text()) or {}
+                        if a["name"] != f"{m.get('id')}-{m.get('version')}.zip":
+                            raise InstallError(f"{a['name']} holds {m.get('id')} {m.get('version')}")
+                        t = verify(pdir, m, mine)
+                        if t["status"] not in ("official", "community") or t.get("key_id") not in mine:
+                            raise InstallError(f"not signed with this repository's key ({t['detail']})")
+                        problem = _validate(m, pdir)
+                        if problem:
+                            raise InstallError(problem)
+                except Exception as exc:
+                    problems.append(f"{repo} {a.get('name')}: {exc}")
+                    continue
+                ver = str(m["version"])
+                v = {"version": ver, "url": a["browser_download_url"], "sha256": hashlib.sha256(blob).hexdigest(),
+                     **({"labdex": str(m["labdex"])} if m.get("labdex") else {}),
+                     "changes": str(r.get("body") or "").strip()[:4000], "date": str(r.get("published_at") or "")[:10],
+                     **({"yanked": withdrawn[ver]} if ver in withdrawn else {})}
+                versions.append(v)
+                if top is None or _vkey(ver) > _vkey(top[0]["version"]):
+                    top = (v, m)
+        if top is None:
+            problems.append(f"{repo}: no release with a signed plugin")
+            continue
+        v, m = top
+        versions.sort(key=lambda x: _vkey(x["version"]), reverse=True)
+        plugins.append({"id": m["id"], "name": m.get("name", m["id"]), "description": m.get("description", ""), "author": m.get("author", ""),
+                        "tags": m.get("tags") or [], "capabilities": capabilities_of(m), "supported": bool(m.get("supported")),
+                        "source": f"https://github.com/{repo}", **v, "versions": versions})
+    out.mkdir(parents=True, exist_ok=True)
+    doc = sign_index({"name": name or sources.get("name") or "plugins", "description": description or sources.get("description") or "",
+                      "generated": datetime.now(UTC).isoformat(timespec="seconds"), "plugins": sorted(plugins, key=lambda p: p["id"])}, private_pem)
+    (out / "index.json").write_text(json.dumps(doc, indent=2) + "\n")
+    return {**doc, "problems": problems}
+
+
+def changes_for(changelog: str, version: str) -> str:
+    """The notes for one version from a plugin's CHANGELOG.md (a `## <version>` heading)."""
+    import re
+    m = re.search(rf"^##+\s*\[?v?{re.escape(version)}\]?\b[^\n]*\n(.*?)(?=^##+\s|\Z)", changelog, re.M | re.S)
+    return m.group(1).strip()[:4000] if m else ""
+
+
+def yank(out: Path, private_pem: bytes, pid: str, version: str, reason: str) -> dict:
+    """For publishers: mark one version as withdrawn (or, with reason '', not any more) and re-sign the index."""
+    from .trust import sign_index
+    doc = json.loads((out / "index.json").read_text())
+    entry = next((p for p in doc.get("plugins") or [] if str(p.get("id")) == pid), None)
+    if entry is None:
+        raise InstallError(f"no plugin '{pid}' in this index")
+    hit = False
+    for v in [entry, *(entry.get("versions") or [])]:
+        if str(v.get("version")) == version:
+            hit = True
+            if reason:
+                v["yanked"] = reason[:300]
+            else:
+                v.pop("yanked", None)
+    if not hit:
+        raise InstallError(f"the index has no {pid} {version}")
+    for k in ("signature", "key_id", "public_key"):
+        doc.pop(k, None)
+    doc["generated"] = datetime.now(UTC).isoformat(timespec="seconds")
+    doc = sign_index(doc, private_pem)
+    (out / "index.json").write_text(json.dumps(doc, indent=2) + "\n")
+    return doc
+
+
 def discard_stage(token: str) -> None:
     if token.isalnum():
         shutil.rmtree(_stage_root() / token, ignore_errors=True)
@@ -384,6 +603,12 @@ def build_repository(src: Path, out: Path, private_pem: bytes, name: str, descri
     from .trust import sign, sign_index
     out.mkdir(parents=True, exist_ok=True)
     plugins = []
+    old = {}  # what the index already had: older versions stay offered while their zip is still there
+    if (out / "index.json").is_file():
+        try:
+            old = {str(p["id"]): p for p in json.loads((out / "index.json").read_text()).get("plugins") or [] if isinstance(p, dict) and p.get("id")}
+        except (ValueError, KeyError):
+            old = {}
     for d in sorted(p for p in src.iterdir() if (p / "plugin.yaml").is_file()):
         m = yaml.safe_load((d / "plugin.yaml").read_text()) or {}
         problem = _validate(m, d)
@@ -398,11 +623,22 @@ def build_repository(src: Path, out: Path, private_pem: bytes, name: str, descri
                 if f.is_file() and not any(part == "__pycache__" or part.endswith(".pyc") for part in rel.parts):
                     zf.write(f, f"{m['id']}/{rel.as_posix()}")
         (out / zname).write_bytes(buf.getvalue())
-        plugins.append({"id": m["id"], "name": m.get("name", m["id"]), "version": str(m.get("version", "")),
-                        "description": m.get("description", ""), "author": m.get("author", ""), "tags": m.get("tags") or [],
-                        "capabilities": capabilities_of(m), "supported": bool(m.get("supported")),
-                        **({"labdex": str(m["labdex"])} if m.get("labdex") else {}),
-                        "url": zname, "sha256": hashlib.sha256(buf.getvalue()).hexdigest()})
+        ver = str(m.get("version", ""))
+        log = (d / "CHANGELOG.md").read_text() if (d / "CHANGELOG.md").is_file() else ""
+        prev = old.get(str(m["id"])) or {}
+        history = [v for v in versions_of(prev) if v["version"] != ver and v["url"] and (out / v["url"]).is_file()] if prev else []
+        for v in history:  # a version's notes may have been written after it was published
+            v["changes"] = v["changes"] or changes_for(log, v["version"])
+        date = next((v["date"] for v in versions_of(prev) if v["version"] == ver and v["date"]), "") if prev else ""
+        current = {"version": ver, "url": zname, "sha256": hashlib.sha256(buf.getvalue()).hexdigest(),
+                   **({"labdex": str(m["labdex"])} if m.get("labdex") else {}), "changes": changes_for(log, ver) or str(m.get("changes") or ""),
+                   "date": date or datetime.now(UTC).date().isoformat()}
+        plugins.append({"id": m["id"], "name": m.get("name", m["id"]), "description": m.get("description", ""), "author": m.get("author", ""),
+                        "tags": m.get("tags") or [], "capabilities": capabilities_of(m), "supported": bool(m.get("supported")), **current,
+                        "versions": [current, *[{k: v for k, v in h.items() if v or k in ("version", "url", "sha256")} for h in history]]})
+    for pid, prev in old.items():  # a plugin whose folder is gone stays offered as it was (yank it to withdraw it)
+        if not any(p["id"] == pid for p in plugins):
+            plugins.append(prev)
     doc = sign_index({"name": name, "description": description, "generated": datetime.now(UTC).isoformat(timespec="seconds"),
                       "plugins": plugins}, private_pem)
     (out / "index.json").write_text(json.dumps(doc, indent=2) + "\n")

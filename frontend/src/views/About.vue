@@ -38,6 +38,9 @@ const changelog = computed(() => render((data.value?.changelog || '').replace(/^
 <template>
   <div class="page">
     <div class="page-head"><h1>About labdex</h1><span class="sub">{{ data?.version || state.meta.version }}</span></div>
+    <div class="warnbox small" style="margin-bottom: 16px"><b>Built with AI, for home labs only.</b> labdex was written largely with an AI coding
+      assistant (Claude), directed and reviewed by a human. It hasn't had an independent security audit and may contain security problems:
+      run it on a trusted home network, not on the internet or for production.</div>
     <div v-if="data" class="split">
       <div class="card changelog">
         <h2>Changelog</h2>

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "labdex"
-version = "1.22.0"
+version = "1.23.0"
 description = "Small homelab inventory with zones, naming rules, IPAM, RBAC, change history, discovery and integration plugins"
 license = { text = "MIT" }
 requires-python = ">=3.11"

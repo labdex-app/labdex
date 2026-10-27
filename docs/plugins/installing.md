@@ -20,7 +20,9 @@ Its key signs the index and every plugin in it. When you add one, labdex shows i
 name and key id: compare it with the one the publisher gives you. The key is pinned
 from then on; a re-signed index or a plugin signed with another key is refused.
 
-The **official repository** is published with the docs and trusted out of the box.
+The **official Marketplace** ([labdex-plugins](https://github.com/reykimedev/labdex-plugins))
+is trusted out of the box. Every official plugin lives in its own git repository; its signed
+releases are the versions you can install.
 
 Every plugin labdex ships (OPNsense, Technitium, Proxmox, Ansible, Backup, …) is an
 official plugin: it works from the first start without a download, and a fix for one
@@ -34,6 +36,32 @@ never replaces a working copy.
 A plugin names the labdex versions it works with (`labdex: ">=1.0,<2"`). labdex
 refuses to install one outside its range, doesn't load an installed one that falls
 outside after an upgrade, and the Marketplace marks it as needing another labdex.
+
+A plugin's details in the Marketplace show **what's new** since the version you have,
+and every version its repository offers, with its notes: install any of them, newer or
+older (each goes through the same signature check). Updates go to the newest version that
+isn't withdrawn and works with your labdex.
+
+- **Switch back**: after an update the version it replaced is kept, so you can go back to
+  it in one step (and forward again the same way), even offline.
+- **Stay on a version**: a held plugin isn't offered updates and never updates by itself.
+- **Withdrawn versions**: a publisher can withdraw a version (a serious bug, say). If you
+  have it, the Marketplace says so, with the reason, and offers a way off it; updates
+  skip it.
+
+## Updates
+
+Admin › Plugins › **Updates** decides what happens when a repository has something new
+(labdex looks every six hours, or when you press *Check now*):
+
+| Setting | Does |
+| --- | --- |
+| Tell me (default) | a notification for each new version, once (event `plugins.update`); nothing is installed |
+| Install official updates | updates signed with the labdex project key install by themselves and land in History (`plugins.updated`, or `plugins.update_failed`); others are announced |
+| Off | no checks, no notifications; the Marketplace still shows updates when you open it |
+
+An installed version that gets withdrawn is announced too (`plugins.withdrawn`). Route
+these events to ntfy, Matrix, email or a webhook under Admin › Notifications.
 
 ## Isolation
 

@@ -11,9 +11,47 @@ labdex plugin pack ./pihole -o pihole-0.1.zip
 People trust your key under Plugins → Signing keys (paste `my.pem.pub`); then your
 plugin installs as *community*.
 
-## A repository
+## A plugin in its own git repository
 
-Put each plugin in its own folder and build a repository:
+That's how labdex's own plugins live (`labdex-plugin-<id>`): the plugin at the root of a
+repository, released by tagging. Start one from a plugin folder:
+
+```sh
+python3 backend/tools/plugin_repo/make_plugin_repo.py ./pihole ../labdex-plugin-pihole --community
+```
+
+It adds a README from the manifest, the MIT licence, a CHANGELOG and the release workflow.
+Set the repository secret `LABDEX_SIGNING_KEY` to your private key. Then each release is:
+bump `version` in `plugin.yaml`, add a `## <version>` section to `CHANGELOG.md`, commit,
+`git tag v<version> && git push --tags`. The workflow checks the tag against the manifest,
+signs exactly what's committed, and attaches `<id>-<version>.zip` to a GitHub release with
+that CHANGELOG section as its notes.
+
+## A Marketplace from plugin repositories
+
+A Marketplace is a repository with a `plugins.yaml`:
+
+```yaml
+name: My plugins
+description: Plugins by me
+plugins:
+  - repo: me/labdex-plugin-pihole
+    withdrawn: {"0.3": "loses the blocklists on restart"}
+```
+
+`labdex plugin build-index plugins.yaml site --key my.pem` reads every listed repository's
+releases (with `GITHUB_TOKEN` set it can make more API calls), checks each archive's
+checksum and that it's signed with *your* key, and writes a signed `site/index.json` that
+points at the release assets. Every release is a version people can install, update to or
+go back to, with its notes; a `withdrawn` version stays installable on purpose but warns
+everyone who has it, and updates skip it. Publish `site/` on GitHub Pages: the
+[labdex-plugins](https://github.com/reykimedev/labdex-plugins) repository is a ready-made
+example (it rebuilds every six hours, when `plugins.yaml` changes, and on a
+`plugin-released` dispatch from a plugin's release workflow).
+
+## A repository from plugin folders
+
+Or put each plugin in its own folder and build a repository with the archives in it:
 
 ```sh
 labdex plugin repo ./plugins ./public --key my.pem --name "My plugins" --description "…"
@@ -26,14 +64,26 @@ from the marketplace. The key is pinned: changing it means people add the reposi
 again.
 
 Each index entry carries the plugin's `labdex` range, so the marketplace only offers
-plugins that work with the labdex looking at it.
+plugins that work with the labdex looking at it. Building into a folder that already has
+an index keeps the older versions whose archives are still there, so people can go back
+to them; `labdex plugin fetch-repo <url> <folder> --key my.pem` downloads what's published
+first. A plugin folder's `CHANGELOG.md` (`## <version>` sections) gives each version its notes.
 
-## The official repository
+Withdraw a version (or undo it) and re-sign the index:
 
-The official repository is built from `plugins/` in the labdex repository by the docs
-workflow, signed with the project key (a CI secret), and published with this site
-under `/plugins/`. labdex trusts it out of the box. Contributions are welcome: see
-[Contributing](contributing.md).
+```sh
+labdex plugin yank ./public pihole 0.3 --key my.pem --reason "loses the blocklists on restart"
+labdex plugin yank ./public pihole 0.3 --key my.pem          # offered again
+```
+
+## The official Marketplace
+
+Every plugin that ships with labdex lives in its own repository
+(`reykimedev/labdex-plugin-<id>`), included in labdex as a git submodule pinned to a
+release. [labdex-plugins](https://github.com/reykimedev/labdex-plugins) lists them; its
+index is signed with the project key and published at
+`https://reykimedev.github.io/labdex-plugins/index.json`, which labdex trusts out of the
+box. Contributions are welcome: see [Contributing](contributing.md).
 
 ## labdex's own versions
 

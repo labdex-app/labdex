@@ -598,6 +598,12 @@ def _tick(app: Flask) -> None:
             except Exception:
                 db.session.rollback()
                 app.logger.exception("starting scheduled templates failed")
+            try:
+                from . import updates
+                updates.check()  # every few hours; announces updates, installs official ones if asked to
+            except Exception:
+                db.session.rollback()
+                app.logger.exception("checking for plugin updates failed")
             reg = ext(app)["registry"]
             now = utcnow()
             for integ in db.session.scalars(db.select(Integration).where(Integration.enabled.is_(True))):

@@ -32,10 +32,24 @@ async function load() {
   keys.value = k
   repos.value = await api.get('/api/plugin-repos')
 }
+const upd = ref(null)
+async function loadUpd() { try { upd.value = await api.get('/api/plugin-updates') } catch { /* */ } }
+async function setMode(m) {
+  try { upd.value = await api.put('/api/plugin-updates', { mode: m }); toast('Saved') } catch (e) { toast(e.message, 'error') }
+}
+async function checkNow() {
+  busy.value = true
+  try {
+    const r = await api.post('/api/plugin-updates/check')
+    const n = (r.announced?.length || 0) + (r.installed?.length || 0)
+    toast(r.installed?.length ? `Installed ${r.installed.join(', ')}` : n ? `${n} update${n === 1 ? '' : 's'} announced` : 'Nothing new')
+    await loadUpd()
+  } catch (e) { toast(e.message, 'error') } finally { busy.value = false }
+}
 async function loadMarket() {
   try { market.value = await api.get('/api/marketplace') } catch (e) { toast(e.message, 'error') }
 }
-onMounted(async () => { await load(); if (repos.value.repositories.length) loadMarket() })
+onMounted(async () => { loadUpd(); await load(); if (repos.value.repositories.length) loadMarket() })
 
 const shown = computed(() => {
   const n = q.value.trim().toLowerCase()
@@ -134,6 +148,23 @@ async function removeKey(k) {
     <p v-if="isolation" class="small iso-line" :class="`lvl-${isolation.level}`">
       <b>Isolation:</b> {{ isolation.detail }}. Official and built-in plugins run inside labdex.</p>
     <div v-if="loadErrors.length" class="errbox"><div v-for="e in loadErrors" :key="e.path" class="small"><code>{{ e.path }}</code> {{ e.error }}</div></div>
+
+    <div v-if="upd" class="card">
+      <h2>Updates</h2>
+      <div class="seg" role="radiogroup" aria-label="Plugin updates">
+        <button v-for="[k, l] in [['notify', 'Tell me'], ['official', 'Install official updates'], ['off', 'Off']]" :key="k" type="button" role="radio"
+                :aria-checked="upd.mode === k" :class="{ on: upd.mode === k }" @click="setMode(k)">{{ l }}</button>
+      </div>
+      <p class="small muted" style="margin: 8px 0 0">{{ {
+        notify: 'Every few hours labdex reads the repositories and sends a notification (plugins.update) for each new version once. Nothing is installed.',
+        official: 'Updates signed with the labdex project key install by themselves (and are in History); anything else is announced. Held plugins and withdrawn versions are skipped.',
+        off: 'No checks and no notifications. The Marketplace still shows updates when you open it.' }[upd.mode] }}</p>
+      <div class="row small" style="margin-top: 10px">
+        <button class="btn small" :disabled="busy" @click="checkNow">Check now</button>
+        <span class="faint">{{ upd.checked ? `checked ${ago(upd.checked)}` : 'not checked yet' }}</span>
+        <span v-if="Object.keys(upd.holds).length" class="faint">· held: {{ Object.entries(upd.holds).map(([k, v]) => `${k} ${v}`).join(', ') }}</span>
+      </div>
+    </div>
 
     <div class="card">
       <h2>Repositories</h2>

@@ -1,5 +1,40 @@
 # Changelog
 
+## 1.23.0
+
+### Plugin versions and updates
+- A plugin's details in the Marketplace show **what's new** since your version and
+  **every version** its repository offers, with release notes and dates. Install any of
+  them, newer or older.
+- **Switch back**: an update keeps the version it replaced, so going back is one click
+  (and works offline). Going forward again works the same way.
+- **Stay on a version**: a held plugin gets no update offers and never updates by itself.
+- **Withdrawn versions**: publishers can withdraw a version with a reason. Whoever has it
+  is warned in the Marketplace and by notification, and updates skip it.
+- **Update checks** every six hours (Admin › Plugins › Updates): *Tell me* (the default)
+  sends a notification per new version once; *Install official updates* installs updates
+  signed with the labdex project key by themselves, into History; *Off*. New notification
+  events: `plugins.update`, `plugins.updated`, `plugins.update_failed`, `plugins.withdrawn`.
+- Official plugins have a CHANGELOG, shown in the Marketplace.
+
+### Plugins in their own repositories
+- Every plugin that ships with labdex moves to a repository of its own
+  (`labdex-plugin-<id>`), included in labdex as a git submodule. Tagging a version there
+  signs it and attaches it to a GitHub release.
+- The official Marketplace is its own repository, **labdex-plugins**: it lists the plugin
+  repositories, checks every release's signature and publishes a signed index at
+  reykimedev.github.io/labdex-plugins, which labdex trusts out of the box.
+- For publishers: `labdex plugin build-index` (a Marketplace from plugin repositories),
+  `labdex plugin yank` (withdraw a version), `labdex plugin fetch-repo` (keep older versions
+  when rebuilding a repository), `tools/plugin_repo/make_plugin_repo.py` (start a plugin
+  repository with its release workflow). An index can now list several versions of a
+  plugin and point at archives anywhere.
+
+### Also
+- README, docs and the About page say plainly that labdex was built with AI and is meant
+  for home labs only.
+- Links point at the real addresses (github.com/reykimedev/labdex, its Pages and ghcr).
+
 ## 1.22.0
 
 ### Topology

@@ -218,6 +218,88 @@ def register_plugin_tools(app: Flask) -> None:
             click.echo(f"  {p['id']:<20} {p['version']:<8} {p['url']}")
         click.echo(f"Signed index for '{name}' with key {doc['key_id']}: {Path(output) / 'index.json'}")
 
+    @plugin_group.command("build-index")
+    @click.argument("sources", type=click.Path(dir_okay=False, exists=True))
+    @click.argument("output", type=click.Path(file_okay=False))
+    @click.option("--key", "key_path", type=click.Path(dir_okay=False, exists=True), required=True)
+    @click.option("--token", envvar="GITHUB_TOKEN", default="", help="A GitHub token (more API calls per hour); or set GITHUB_TOKEN.")
+    def plugin_build_index(sources, output, key_path, token):
+        """Build a signed Marketplace index from SOURCES (a YAML list of plugin git repositories
+        and other indexes): every signed release becomes a version. Writes OUTPUT/index.json."""
+        import yaml
+        from .plugins.installer import InstallError, build_index_from_sources
+        try:
+            doc = build_index_from_sources(yaml.safe_load(Path(sources).read_text()) or {}, Path(output), Path(key_path).read_bytes(), token=token)
+        except (InstallError, ValueError) as exc:
+            raise SystemExit(str(exc)) from exc
+        for p in doc["plugins"]:
+            click.echo(f"  {p['id']:<20} {p['version']:<8} {len(p.get('versions') or [])} version(s)")
+        for msg in doc["problems"]:
+            click.echo(f"  ! {msg}", err=True)
+        click.echo(f"Signed index '{doc['name']}' with key {doc['key_id']}: {Path(output) / 'index.json'}")
+        if doc["problems"] and not doc["plugins"]:
+            raise SystemExit(1)
+
+    @plugin_group.command("yank")
+    @click.argument("output", type=click.Path(file_okay=False, exists=True))
+    @click.argument("plugin_id")
+    @click.argument("version")
+    @click.option("--key", "key_path", type=click.Path(dir_okay=False, exists=True), required=True)
+    @click.option("--reason", default="", help="Why it's withdrawn, shown to people who have it. Leave out to un-withdraw.")
+    def plugin_yank(output, plugin_id, version, key_path, reason):
+        """Withdraw one version in a repository built with `plugin repo` (it stays downloadable;
+        installs warn, updates skip it) and re-sign OUTPUT/index.json."""
+        from .plugins.installer import InstallError, yank
+        try:
+            yank(Path(output), Path(key_path).read_bytes(), plugin_id, version, reason)
+        except (InstallError, ValueError, OSError) as exc:
+            raise SystemExit(str(exc)) from exc
+        click.echo(f"{plugin_id} {version}: {'withdrawn: ' + reason if reason else 'offered again'}")
+
+    @plugin_group.command("fetch-repo")
+    @click.argument("url")
+    @click.argument("output", type=click.Path(file_okay=False))
+    @click.option("--key", "key_path", type=click.Path(dir_okay=False, exists=True), required=True,
+                  help="Your private key: the published index must be signed with it.")
+    def plugin_fetch_repo(url, output, key_path):
+        """Download a published repository (index and every archive it lists) into OUTPUT, so the
+        next `plugin repo` keeps its older versions. Checks the signature and every checksum."""
+        import hashlib
+        from urllib.parse import urljoin
+        import requests
+        from cryptography.hazmat.primitives import serialization
+        from .plugins.installer import versions_of
+        from .plugins.trust import key_id, load_public, verify_index
+        mine = key_id(serialization.load_pem_private_key(Path(key_path).read_bytes(), password=None).public_key())
+        try:
+            r = requests.get(url, timeout=30)
+        except requests.RequestException as exc:
+            raise SystemExit(f"{url}: {exc}") from exc
+        if r.status_code == 404:
+            click.echo("Nothing published yet.")
+            return
+        r.raise_for_status()
+        doc = r.json()
+        pub = load_public(str(doc.get("public_key", "")))
+        verify_index(doc, pub)
+        if key_id(pub) != mine:
+            raise SystemExit(f"the published index is signed with {key_id(pub)}, not your key {mine}")
+        out = Path(output)
+        out.mkdir(parents=True, exist_ok=True)
+        n = 0
+        for p in doc.get("plugins") or []:
+            for v in versions_of(p):
+                if not v["url"] or "/" in v["url"] or (out / v["url"]).is_file():
+                    continue
+                z = requests.get(urljoin(url, v["url"]), timeout=60)
+                if z.status_code != 200 or hashlib.sha256(z.content).hexdigest() != v["sha256"]:
+                    click.echo(f"  skipped {v['url']} (missing or checksum differs)")
+                    continue
+                (out / v["url"]).write_bytes(z.content)
+                n += 1
+        (out / "index.json").write_text(r.text)
+        click.echo(f"Fetched the index and {n} archive(s) into {out}")
+
     @plugin_group.command("sign")
     @click.argument("directory", type=click.Path(file_okay=False, exists=True))
     @click.option("--key", "key_path", type=click.Path(dir_okay=False, exists=True), required=True)

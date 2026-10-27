@@ -36,11 +36,11 @@ Release images and archives are signed with cosign, keyless, from the release
 workflow, and come with an SPDX SBOM:
 
 ```sh
-cosign verify ghcr.io/OWNER/labdex:1 \
-  --certificate-identity-regexp 'https://github.com/OWNER/labdex/.github/workflows/release.yml@refs/tags/v.*' \
+cosign verify ghcr.io/reykimedev/labdex:1 \
+  --certificate-identity-regexp 'https://github.com/reykimedev/labdex/.github/workflows/release.yml@refs/tags/v.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 cosign verify-blob labdex-1.0.0.tar.gz --bundle labdex-1.0.0.tar.gz.bundle \
-  --certificate-identity-regexp 'https://github.com/OWNER/labdex/.*' \
+  --certificate-identity-regexp 'https://github.com/reykimedev/labdex/.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 

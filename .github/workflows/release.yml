@@ -23,10 +23,12 @@ jobs:
       digest: ${{ steps.build.outputs.digest }}
     steps:
       - uses: actions/checkout@v4
-      - name: Point labdex at this repository's official plugin index
+        with:
+          submodules: recursive  # the shipped plugins live in their own repositories
+      - name: Point labdex at this owner's official Marketplace (labdex-plugins)
         run: |
           owner="${GITHUB_REPOSITORY_OWNER}"; repo="${GITHUB_REPOSITORY#*/}"
-          echo "https://${owner}.github.io/${repo}/plugins/index.json" > backend/labdex/keys/official/index.url
+          echo "https://${owner}.github.io/labdex-plugins/index.json" > backend/labdex/keys/official/index.url
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - uses: sigstore/cosign-installer@v3
@@ -89,10 +91,12 @@ jobs:
     needs: image
     steps:
       - uses: actions/checkout@v4
-      - name: Point labdex at this repository's official plugin index
+        with:
+          submodules: recursive  # the shipped plugins live in their own repositories
+      - name: Point labdex at this owner's official Marketplace (labdex-plugins)
         run: |
           owner="${GITHUB_REPOSITORY_OWNER}"; repo="${GITHUB_REPOSITORY#*/}"
-          echo "https://${owner}.github.io/${repo}/plugins/index.json" > backend/labdex/keys/official/index.url
+          echo "https://${owner}.github.io/labdex-plugins/index.json" > backend/labdex/keys/official/index.url
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
