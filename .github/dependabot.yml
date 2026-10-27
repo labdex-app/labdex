@@ -10,6 +10,10 @@ updates:
     directory: /frontend
     schedule: {interval: weekly, day: monday}
     groups:
+      # packages that only work at matching major versions come together, majors included
+      # (vite 8 needs @vitejs/plugin-vue 6, vue-router 5 needs vite 7+, @eslint/js 10 needs eslint 10)
+      vite: {patterns: [vite, "@vitejs/*", vue-router]}
+      eslint: {patterns: [eslint, "@eslint/*", eslint-plugin-vue, vue-eslint-parser, globals]}
       npm-minor: {update-types: [minor, patch]}
   - package-ecosystem: pip
     directory: /backend
@@ -19,7 +23,7 @@ updates:
   - package-ecosystem: docker
     directory: /
     schedule: {interval: weekly, day: monday}
-  # the shipped plugins: a new commit on a plugin repository's main branch
+  # the official plugins in plugins/ (for the tests): a new commit on a plugin repository's main branch
   - package-ecosystem: gitsubmodule
     directory: /
     schedule: {interval: daily}

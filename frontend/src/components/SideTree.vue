@@ -7,9 +7,10 @@ import { state } from '../store'
 const route = useRoute()
 const q = ref('')
 const KEY = 'labdex-tree-open'
-let saved = {}
-try { saved = JSON.parse(localStorage.getItem(KEY) || '{}') } catch { saved = {} }
-const open = ref(saved)
+function savedOpen() {
+  try { return JSON.parse(localStorage.getItem(KEY) || '{}') } catch { return {} }
+}
+const open = ref(savedOpen())
 watch(open, (v) => { try { localStorage.setItem(KEY, JSON.stringify(v)) } catch { /* private mode */ } }, { deep: true })
 const toggle = (k) => { open.value = { ...open.value, [k]: !open.value[k] } }
 

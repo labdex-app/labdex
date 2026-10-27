@@ -84,7 +84,7 @@ jobs:
         working-directory: backend
         run: |
           sudo apt-get update && sudo apt-get install -y --no-install-recommends nmap snmpd  # snmpd: the SNMPv3 client is checked against net-snmp
-          pip install -e ".[server,postgres,test]" ruff pytest-testmon==2.1.4
+          pip install -e ".[server,postgres,uptimekuma,test]" ruff pytest-testmon==2.1.4
       - name: Lint
         working-directory: backend
         run: ruff check labdex tools tests
@@ -127,7 +127,7 @@ jobs:
       - name: Install
         working-directory: backend
         run: |
-          pip install -e ".[server,test]" playwright
+          pip install -e ".[server,uptimekuma,test]" playwright
           python -m playwright install --with-deps chromium
       - name: Browser tests
         if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.everything == 'true'
