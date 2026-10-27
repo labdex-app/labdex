@@ -1,9 +1,10 @@
 name: CI
 
+# The full run (tests on SQLite and PostgreSQL, browser tests, performance budget, the
+# image, the docs) on pull requests, and by hand. Every push gets the quick Lint workflow.
 on:
-  push:
-    branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read

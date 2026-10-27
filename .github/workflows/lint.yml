@@ -1,0 +1,46 @@
+name: Lint
+
+# On every push: the quick checks (a minute or so). Tests run on pull requests (CI).
+on:
+  push:
+    branches: ["**"]
+    tags-ignore: ["**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Python (ruff, and every file compiles)
+        run: |
+          pip install ruff
+          ruff check backend/labdex backend/tools backend/tests
+          python -m compileall -q backend/labdex backend/tools
+      - name: UI (eslint)
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund && npm run lint
+      - name: Workflows and YAML parse
+        run: |
+          pip install pyyaml
+          python - <<'PY'
+          import glob, yaml
+          for f in glob.glob(".github/workflows/*.yml") + ["examples/homelab.yaml", "mkdocs.yml"]:
+              yaml.safe_load(open(f)) if not f.endswith("mkdocs.yml") else yaml.load(open(f), Loader=yaml.BaseLoader)
+          print("ok")
+          PY
