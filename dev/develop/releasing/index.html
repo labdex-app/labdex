@@ -1835,8 +1835,11 @@ from their own repositories; a plugin fix never waits for labdex.</p>
 </tbody>
 </table>
 <p>Every change reaches <code>main</code> and <code>release/*</code> through a pull request. Pushes run the quick
-lint; pull requests run the full CI (tests on SQLite and PostgreSQL, browser tests, the
-performance budget, the image and the docs).</p>
+lint; pull requests run CI for what they touch: the backend tests on SQLite (only the tests
+the change affects), browser tests, the performance budget, the image and the docs. The
+tests also run on PostgreSQL when a change touches database code (models, migrations,
+queries, the driver), for every pull request into a <code>release/*</code> branch, when CI is run by
+hand, and every Monday on <code>main</code>.</p>
 <h2 id="making-a-release">Making a release<a class="headerlink" href="#making-a-release" title="Permanent link">&para;</a></h2>
 <ol>
 <li><strong>Cut the branch</strong> when <code>main</code> has what the release should have:
