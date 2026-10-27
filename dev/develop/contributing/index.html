@@ -1664,9 +1664,12 @@ pip<span class="w"> </span>install<span class="w"> </span>mkdocs-material<span c
 </code></pre></div>
 <p>Plugins for other systems are tested against small fake servers (<code>tests/fakes.py</code>)
 that follow the real API; <code>tests/test_contracts.py</code> pins the details that matter.</p>
-<p>Official plugins live in their own repositories (<code>labdex-plugin-&lt;id&gt;</code>, git submodules under
-<code>backend/labdex/official_plugins/</code>) and must have a <code>labdex</code> range, tests, and use nothing
-outside the <a href="../plugin-api/">plugin API</a>.</p>
+<p>Official plugins live in their own repositories (<code>labdex-plugin-&lt;id&gt;</code>) and must have a
+<code>labdex</code> range, tests, and use nothing outside the <a href="../plugin-api/">plugin API</a>. They aren't part
+of labdex and don't go into its image: <code>plugins/</code> holds them as git submodules for development
+and the tests only (<code>git clone --recurse-submodules</code>). The tests load them through
+<code>LABDEX_DEV_PLUGINS=plugins</code> (set by <code>tests/conftest.py</code>); set it yourself to run a
+development server with them.</p>
 
 
 

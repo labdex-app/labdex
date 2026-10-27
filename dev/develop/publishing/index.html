@@ -1816,9 +1816,9 @@ first. A plugin folder's <code>CHANGELOG.md</code> (<code>## &lt;version&gt;</co
 labdex<span class="w"> </span>plugin<span class="w"> </span>yank<span class="w"> </span>./public<span class="w"> </span>pihole<span class="w"> </span><span class="m">0</span>.3<span class="w"> </span>--key<span class="w"> </span>my.pem<span class="w">          </span><span class="c1"># offered again</span>
 </code></pre></div>
 <h2 id="the-official-marketplace">The official Marketplace<a class="headerlink" href="#the-official-marketplace" title="Permanent link">&para;</a></h2>
-<p>Every plugin that ships with labdex lives in its own repository
-(<code>reykimedev/labdex-plugin-&lt;id&gt;</code>), included in labdex as a git submodule pinned to a
-release. <a href="https://github.com/reykimedev/labdex-plugins">labdex-plugins</a> lists them; its
+<p>Every official plugin lives in its own repository (<code>reykimedev/labdex-plugin-&lt;id&gt;</code>); labdex
+has them as git submodules in <code>plugins/</code> for its tests, but doesn't ship them: users install
+them from the Marketplace. <a href="https://github.com/reykimedev/labdex-plugins">labdex-plugins</a> lists them; its
 index is signed with the project key and published at
 <code>https://reykimedev.github.io/labdex-plugins/index.json</code>, which labdex trusts out of the
 box. Contributions are welcome: see <a href="../contributing/">Contributing</a>.</p>

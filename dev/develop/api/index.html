@@ -1764,17 +1764,22 @@ takes a host or network name (<code>/api/hosts/&lt;name&gt;</code>, <code>/api/n
 <tr>
 <td>GET</td>
 <td><code>/api/marketplace</code> (<code>?offline=1</code> skips the repositories)</td>
-<td>Everything installable: what ships with labdex (<code>bundled</code>, <code>installed</code>) and what repositories offer (<code>update</code>, <code>repo_version</code>)</td>
+<td>Everything installable: what repositories offer (<code>installed</code>, <code>update</code>, <code>repo_version</code>), and development checkouts (<code>bundled</code>)</td>
 </tr>
 <tr>
 <td>POST</td>
-<td><code>/api/marketplace/install</code> <code>{id}</code> or <code>{repository_id, id}</code></td>
-<td>A plugin that ships with labdex installs at once; a repository plugin is staged for <code>/api/plugins/stage/&lt;token&gt;/confirm</code></td>
+<td><code>/api/marketplace/install</code> <code>{repository_id, id}</code></td>
+<td>Stages a repository plugin for <code>/api/plugins/stage/&lt;token&gt;/confirm</code> (a development checkout, <code>{id}</code>, installs at once)</td>
 </tr>
 <tr>
 <td>DELETE</td>
 <td><code>/api/plugins/&lt;id&gt;</code></td>
-<td>Uninstall (a shipped plugin is only hidden; 409 while it has instances)</td>
+<td>Uninstall (409 while it has instances)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/plugins/restore</code></td>
+<td>Install the plugins this labdex uses but doesn't have (after an upgrade from 1.24.0) from the official repository now: <code>{installed, failed, missing}</code>; <code>GET /api/plugins</code> lists them as <code>missing</code></td>
 </tr>
 <tr>
 <td>POST · DELETE</td>
