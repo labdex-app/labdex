@@ -23,7 +23,7 @@ through the Marketplace, signed with the project key.
 
 Please **don't open a public issue**. Report it privately on GitHub: the repository's
 *Security* tab › *Report a vulnerability*
-(<https://github.com/reykimedev/labdex/security/advisories/new>), for a plugin in that
+(<https://github.com/labdex-app/labdex/security/advisories/new>), for a plugin in that
 plugin's repository.
 
 Please include the version, what an attacker needs (network access, a user account and

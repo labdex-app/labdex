@@ -1,60 +1,60 @@
 [submodule "plugins/ansible"]
 	path = plugins/ansible
-	url = https://github.com/reykimedev/labdex-plugin-ansible
+	url = https://github.com/labdex-app/labdex-plugin-ansible
 [submodule "plugins/beszel"]
 	path = plugins/beszel
-	url = https://github.com/reykimedev/labdex-plugin-beszel
+	url = https://github.com/labdex-app/labdex-plugin-beszel
 [submodule "plugins/certificates"]
 	path = plugins/certificates
-	url = https://github.com/reykimedev/labdex-plugin-certificates
+	url = https://github.com/labdex-app/labdex-plugin-certificates
 [submodule "plugins/docker"]
 	path = plugins/docker
-	url = https://github.com/reykimedev/labdex-plugin-docker
+	url = https://github.com/labdex-app/labdex-plugin-docker
 [submodule "plugins/exports"]
 	path = plugins/exports
-	url = https://github.com/reykimedev/labdex-plugin-exports
+	url = https://github.com/labdex-app/labdex-plugin-exports
 [submodule "plugins/k3s"]
 	path = plugins/k3s
-	url = https://github.com/reykimedev/labdex-plugin-k3s
+	url = https://github.com/labdex-app/labdex-plugin-k3s
 [submodule "plugins/motd"]
 	path = plugins/motd
-	url = https://github.com/reykimedev/labdex-plugin-motd
+	url = https://github.com/labdex-app/labdex-plugin-motd
 [submodule "plugins/nmap"]
 	path = plugins/nmap
-	url = https://github.com/reykimedev/labdex-plugin-nmap
+	url = https://github.com/labdex-app/labdex-plugin-nmap
 [submodule "plugins/opnsense"]
 	path = plugins/opnsense
-	url = https://github.com/reykimedev/labdex-plugin-opnsense
+	url = https://github.com/labdex-app/labdex-plugin-opnsense
 [submodule "plugins/prometheus-sd"]
 	path = plugins/prometheus-sd
-	url = https://github.com/reykimedev/labdex-plugin-prometheus-sd
+	url = https://github.com/labdex-app/labdex-plugin-prometheus-sd
 [submodule "plugins/proxmox"]
 	path = plugins/proxmox
-	url = https://github.com/reykimedev/labdex-plugin-proxmox
+	url = https://github.com/labdex-app/labdex-plugin-proxmox
 [submodule "plugins/routing"]
 	path = plugins/routing
-	url = https://github.com/reykimedev/labdex-plugin-routing
+	url = https://github.com/labdex-app/labdex-plugin-routing
 [submodule "plugins/snmp"]
 	path = plugins/snmp
-	url = https://github.com/reykimedev/labdex-plugin-snmp
+	url = https://github.com/labdex-app/labdex-plugin-snmp
 [submodule "plugins/tailscale"]
 	path = plugins/tailscale
-	url = https://github.com/reykimedev/labdex-plugin-tailscale
+	url = https://github.com/labdex-app/labdex-plugin-tailscale
 [submodule "plugins/technitium"]
 	path = plugins/technitium
-	url = https://github.com/reykimedev/labdex-plugin-technitium
+	url = https://github.com/labdex-app/labdex-plugin-technitium
 [submodule "plugins/traefik"]
 	path = plugins/traefik
-	url = https://github.com/reykimedev/labdex-plugin-traefik
+	url = https://github.com/labdex-app/labdex-plugin-traefik
 [submodule "plugins/unifi"]
 	path = plugins/unifi
-	url = https://github.com/reykimedev/labdex-plugin-unifi
+	url = https://github.com/labdex-app/labdex-plugin-unifi
 [submodule "plugins/uptimekuma"]
 	path = plugins/uptimekuma
-	url = https://github.com/reykimedev/labdex-plugin-uptimekuma
+	url = https://github.com/labdex-app/labdex-plugin-uptimekuma
 [submodule "plugins/victoriametrics"]
 	path = plugins/victoriametrics
-	url = https://github.com/reykimedev/labdex-plugin-victoriametrics
+	url = https://github.com/labdex-app/labdex-plugin-victoriametrics
 [submodule "plugins/yaml-mirror"]
 	path = plugins/yaml-mirror
-	url = https://github.com/reykimedev/labdex-plugin-yaml-mirror
+	url = https://github.com/labdex-app/labdex-plugin-yaml-mirror

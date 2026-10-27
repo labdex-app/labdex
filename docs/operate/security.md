@@ -36,11 +36,11 @@ Release images and archives are signed with cosign, keyless, from the release
 workflow, and come with an SPDX SBOM:
 
 ```sh
-cosign verify ghcr.io/reykimedev/labdex:1 \
-  --certificate-identity-regexp 'https://github.com/reykimedev/labdex/.github/workflows/release.yml@refs/tags/v.*' \
+cosign verify ghcr.io/labdex-app/labdex:1 \
+  --certificate-identity-regexp 'https://github.com/labdex-app/labdex/.github/workflows/release.yml@refs/tags/v.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 cosign verify-blob labdex-1.0.0.tar.gz --bundle labdex-1.0.0.tar.gz.bundle \
-  --certificate-identity-regexp 'https://github.com/reykimedev/labdex/.*' \
+  --certificate-identity-regexp 'https://github.com/labdex-app/labdex/.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
@@ -48,4 +48,4 @@ cosign verify-blob labdex-1.0.0.tar.gz --bundle labdex-1.0.0.tar.gz.bundle \
 
 Please report security problems privately through GitHub's *Report a vulnerability*
 on the repository, not in a public issue. What's supported, what happens after a report and
-what doesn't count: [SECURITY.md](https://github.com/reykimedev/labdex/blob/main/SECURITY.md).
+what doesn't count: [SECURITY.md](https://github.com/labdex-app/labdex/blob/main/SECURITY.md).

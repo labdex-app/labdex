@@ -2,6 +2,20 @@
 
 ## 1.24.1
 
+### labdex moved to labdex-app
+- labdex, its Marketplace and the official plugins now live in the GitHub organization
+  **[labdex-app](https://github.com/labdex-app)**. Old links redirect.
+- **The image is now `ghcr.io/labdex-app/labdex`.** Change it in your compose file once:
+  `ghcr.io/reykimedev/labdex` stays at 1.24.0 and gets no more updates.
+- The official Marketplace is at `https://labdex-app.github.io/labdex-plugins/index.json`;
+  labdex moves its official repository there by itself. The docs are at
+  <https://labdex-app.github.io/labdex/>. An instance that still has the old project address
+  (Settings › General) gets the new one; one you set yourself stays.
+
+### Faster
+- The services list is about 9× faster with 1000 hosts: permission checks no longer build
+  each host's full record (the same for DNS, racks, Discovery and the audit log).
+
 ### Plugins come from the Marketplace only
 - **No plugin ships with labdex any more**, the official ones included: the image and the
   wheel are labdex alone, and every plugin is installed from **Plugins › Marketplace** (or

@@ -65,9 +65,9 @@ def discovery_macs():
     """Interfaces without a MAC whose address Discovery saw with one (ARP, DHCP leases, nmap as root)."""
     _need_view()
     p = g.principal
-    rows = [m | {"can_edit": p.can("host", "edit", rbac.host_facts(store.host_to_dict(h)))}
+    rows = [m | {"can_edit": p.can("host", "edit", rbac.host_facts(store.host_access(h)))}
             for m in discovery.mac_suggestions()
-            if (h := discovery.store_host(m["host"])) is not None and p.can("host", "view", rbac.host_facts(store.host_to_dict(h)))]
+            if (h := discovery.store_host(m["host"])) is not None and p.can("host", "view", rbac.host_facts(store.host_access(h)))]
     return jsonify(_page(rows, ("host", "fun", "ip", "mac", "vendor", "network", "source")))
 
 
@@ -165,7 +165,7 @@ def adopt_service(sid):
     added_if = _ensure_interface(host, ds.ip)
     name = _add_service(host, ds, _service_name(data.get("name") or ds.service, ds.port))
     db.session.flush()
-    rbac.require("host", "edit", rbac.host_facts(store.host_to_dict(host)))  # still allowed where it ends up
+    rbac.require("host", "edit", rbac.host_facts(store.host_access(host)))  # still allowed where it ends up
     what = ([f"interface {ds.ip}"] if added_if else []) + ([f"service {name} ({ds.port}/{ds.proto})"] if name else [])
     audit.record("update", "host", host.name, before, store.host_to_dict(host),
                  summary=f"from discovery: {', '.join(what) or 'nothing new'}")
@@ -198,7 +198,7 @@ def assign_address():
             if n:
                 added.append(n)
     db.session.flush()
-    rbac.require("host", "edit", rbac.host_facts(store.host_to_dict(host)))
+    rbac.require("host", "edit", rbac.host_facts(store.host_access(host)))
     audit.record("update", "host", host.name, before, store.host_to_dict(host),
                  summary=f"from discovery: interface {ip}" + (f", services {', '.join(added)}" if added else ""))
     db.session.commit()

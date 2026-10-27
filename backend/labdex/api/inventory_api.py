@@ -7,7 +7,7 @@ from flask import current_app, g, jsonify, request
 
 from .. import audit, inventory, ipam, lint, naming, rbac, store
 from ..generators import aliases as galiases
-from ..models import AliasGroup, Host, Network, db
+from ..models import AliasGroup, Host, Interface, Network, db
 from ..plugins import jobs
 from . import body, bp, err
 
@@ -79,7 +79,7 @@ def get_network(name):
     used = []
     for ip, info in sorted(ipam.used(n).items(), key=lambda kv: _ip_key(kv[0])):
         host = db.session.scalar(db.select(Host).where(Host.name == info["host"])) if info["host"] else None
-        if host is not None and not p.can("host", "view", rbac.host_facts(store.host_to_dict(host))):
+        if host is not None and not p.can("host", "view", rbac.host_facts(store.host_access(host))):
             info = {"host": None, "fun": None, "label": "in use"}
         used.append({"ip": ip, **info})
     d["used"] = used
@@ -180,7 +180,7 @@ def network_map(name):
             if ad is None or not lo <= ad <= hi:
                 continue
             h = iface.host
-            visible = p.can("host", "view", rbac.host_facts(store.host_to_dict(h)))
+            visible = p.can("host", "view", rbac.host_facts(store.host_access(h)))
             owners.setdefault(a, []).append({"host": h.name if visible else None, "fun": (h.fun or "") if visible else "",
                                              "label": iface.label or "", "mac": (iface.mac or "").lower() if visible else "",
                                              "status": h.status if visible else ""})
@@ -334,7 +334,7 @@ def _host_detail(h: Host) -> dict:
     from .. import features
     d["features_expanded"] = features.expanded(h.features or [])
     d["merged_vars"] = features.host_vars(h)
-    d["guests"] = [n for n in d["guests"] if p.can("host", "view", rbac.host_facts(store.host_to_dict(_host(n))))]
+    d["guests"] = [n for n in d["guests"] if p.can("host", "view", rbac.host_facts(store.host_access(_host(n))))]
     from .. import discovery, health
     srcs = [x for x in health.sources().get(h.name, []) if p.can("integration", "view", rbac.named_facts(x["integration"]))]
     disc = discovery.live_status().get(h.name)
@@ -345,7 +345,7 @@ def _host_detail(h: Host) -> dict:
 @bp.get("/hosts/<name>")
 def get_host(name):
     h = _host(name)
-    if h is None or not g.principal.can("host", "view", rbac.host_facts(store.host_to_dict(h))):
+    if h is None or not g.principal.can("host", "view", rbac.host_facts(store.host_access(h))):
         return err(404, f"no host '{name}'")
     return jsonify(_host_detail(h))
 
@@ -579,7 +579,7 @@ def visible_issues(p) -> list[dict]:
         if key not in seen:
             if i["kind"] == "host":
                 h = hosts.get(i["ref"])
-                seen[key] = h is not None and p.can("host", "view", rbac.host_facts(store.host_to_dict(h)))
+                seen[key] = h is not None and p.can("host", "view", rbac.host_facts(store.host_access(h)))
             elif i["kind"] == "network":
                 n = nets.get(i["ref"])
                 seen[key] = n is not None and p.can("network", "view", rbac.network_facts(store.network_to_dict(n)))
@@ -617,8 +617,11 @@ def services():
                     if prev is None or st == "down":
                         monitored[hname][sname] = (st, x["integration"])
     out = []
-    for h in db.session.scalars(db.select(Host).where(Host.status != "offline").order_by(Host.name)):
-        if not p.can("host", "view", rbac.host_facts(store.host_to_dict(h))):
+    from sqlalchemy.orm import selectinload
+    q = (db.select(Host).where(Host.status != "offline").order_by(Host.name)
+         .options(selectinload(Host.interfaces).selectinload(Interface.network), selectinload(Host.services)))
+    for h in db.session.scalars(q):
+        if not p.can("host", "view", rbac.host_facts(store.host_access(h))):
             continue
         for s in h.services:
             addrs = store.service_addresses(h, s)

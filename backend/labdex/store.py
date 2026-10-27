@@ -258,6 +258,13 @@ def _validate_prefixes(data: dict, e, existing) -> list[dict]:
 
 
 # ======================================================================== hosts
+def host_access(h: Host) -> dict:
+    """What a permission check needs of a host (rbac.host_facts), without the rest of
+    host_to_dict: lists that check every host stay fast."""
+    return {"name": h.name, "zone": h.zone, "tags": list(h.tags or []), "fun": h.fun or "", "fun_names": h.fun_names,
+            "interfaces": [{"network": i.network.name if i.network else "", "zone": i.network.zone if i.network else ""} for i in h.interfaces]}
+
+
 def host_to_dict(h: Host, derived=False) -> dict:
     d = {
         "name": h.name, "fun": h.fun or "", "fun_names": h.fun_names, "zone": h.zone, "zone_pinned": bool(h.zone_pinned),

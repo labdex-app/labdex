@@ -192,7 +192,7 @@ def facts_for(path: str, host):
     plus its path as a name; any other entry by its path (name:wifi/*)."""
     from . import rbac, store
     if host is not None:
-        f = rbac.host_facts(store.host_to_dict(host))
+        f = rbac.host_facts(store.host_access(host))
         f.names = set(f.names) | {path}
         return f
     return rbac.named_facts(path)

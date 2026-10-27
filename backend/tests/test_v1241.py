@@ -79,3 +79,25 @@ def test_an_installed_backup_copy_gives_way_to_the_core_one(tmp_path):
     shutil.copytree(BUILTIN_DIR / "backup", tmp_path / "p" / "backup")
     reg = Registry(str(tmp_path / "p"))
     assert reg.get("backup").builtin and not reg.errors
+
+
+def test_a_moved_default_follows_unless_set(app):
+    """1.24.1: the project moved to labdex-app; instances with the old default follow it."""
+    from labdex import naming
+    from labdex.models import Setting
+    db.session.get(Setting, "project_url").value = "https://github.com/reykimedev/labdex"
+    db.session.commit()
+    naming.ensure_defaults_in_session()
+    assert naming.get_setting("project_url") == "https://github.com/labdex-app/labdex"
+    db.session.get(Setting, "project_url").value = "https://git.lab.example/me/labdex"
+    naming.ensure_defaults_in_session()
+    assert naming.get_setting("project_url") == "https://git.lab.example/me/labdex"
+
+
+def test_permission_checks_need_only_the_host_basics(admin):
+    """store.host_access gives rbac.host_facts what host_to_dict would."""
+    from labdex import rbac, store
+    from labdex.models import Host
+    for h in db.session.scalars(db.select(Host)):
+        a, b = rbac.host_facts(store.host_access(h)), rbac.host_facts(store.host_to_dict(h))
+        assert (a.name, a.names, a.zones, a.areas, a.networks, a.tags, a.seen_zones, a.seen_areas) == (b.name, b.names, b.zones, b.areas, b.networks, b.tags, b.seen_zones, b.seen_areas), h.name
