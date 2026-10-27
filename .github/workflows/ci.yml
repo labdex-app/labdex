@@ -3,12 +3,18 @@ name: CI
 # The full run (tests on SQLite and PostgreSQL, browser tests, performance budget, the
 # image, the docs) on pull requests, and by hand. Every push gets the quick Lint workflow.
 #
+# PostgreSQL: SQLite always runs; PostgreSQL only where it can differ, i.e. a change to database
+# code (models, migrations, queries, the driver), a pull request into a release branch, a run
+# by hand, and every Monday on main.
+#
 # Only what a change can affect runs: the jobs by the files a pull request touches, and the
 # backend tests by pytest-testmon (it knows which tests ran which code, from the PR's last run;
 # the first run of a pull request, a migration or a dependency change runs them all).
 # Run it by hand (Actions › CI › Run workflow) for everything.
 on:
   pull_request:
+  schedule:
+    - cron: "37 2 * * 1"  # Mondays: everything on main, PostgreSQL included
   workflow_dispatch:
     inputs:
       full: {description: "Every job and every test", type: boolean, default: true}
@@ -26,6 +32,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       backend: ${{ steps.f.outputs.backend }}
+      dbs: ${{ steps.f.outputs.dbs }}
       frontend: ${{ steps.f.outputs.frontend }}
       docs: ${{ steps.f.outputs.docs }}
       image: ${{ steps.f.outputs.image }}
@@ -49,6 +56,18 @@ jobs:
             has '^docs/|^mkdocs.yml|^CHANGELOG.md' && echo docs=true || echo docs=false
             has '^Dockerfile|^\.dockerignore|^backend/pyproject.toml|^frontend/package' && echo image=true || echo image=false
             echo everything=$everything; } | tee -a "$GITHUB_OUTPUT"
+          # PostgreSQL behaves differently from SQLite (case, types, ordering, JSON, migrations):
+          # test on it when the change touches database code, and before every release
+          pg=false
+          [ "$everything" = "true" ] && pg=true
+          case "$BASE" in release/*) pg=true ;; esac
+          has '^backend/labdex/(models\.py|schema\.py|store\.py|dbdump\.py|migrations/)|^backend/pyproject.toml' && pg=true
+          if [ "$pg" = "false" ] && [ "$files" != "*" ] && git diff -U0 "origin/$BASE...HEAD" -- 'backend/labdex/*.py' 'plugins/*.py' \
+               | grep -E '^[+-]' | grep -vE '^(\+\+\+|---) ' \
+               | grep -qE 'db\.(session|select|func|engine)|sa\.|sqlalchemy|mapped_column|relationship\(|\.where\(|\.filter|order_by|group_by|\.join\(|func\.|text\(|ilike|\.like\(|op\.'; then
+            pg=true
+          fi
+          if [ "$pg" = "true" ]; then echo 'dbs=["sqlite", "postgres"]'; else echo 'dbs=["sqlite"]'; fi | tee -a "$GITHUB_OUTPUT"
 
   backend:
     name: Tests (${{ matrix.db }})
@@ -58,7 +77,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        db: [sqlite, postgres]
+        db: ${{ fromJSON(needs.changes.outputs.dbs) }}
     services:
       postgres:
         image: postgres:17-alpine

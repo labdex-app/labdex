@@ -39,8 +39,11 @@ from their own repositories; a plugin fix never waits for labdex.
 | `dependabot/…` | dependency updates, weekly | no |
 
 Every change reaches `main` and `release/*` through a pull request. Pushes run the quick
-lint; pull requests run the full CI (tests on SQLite and PostgreSQL, browser tests, the
-performance budget, the image and the docs).
+lint; pull requests run CI for what they touch: the backend tests on SQLite (only the tests
+the change affects), browser tests, the performance budget, the image and the docs. The
+tests also run on PostgreSQL when a change touches database code (models, migrations,
+queries, the driver), for every pull request into a `release/*` branch, when CI is run by
+hand, and every Monday on `main`.
 
 ## Making a release
 
