@@ -28,7 +28,7 @@ def test_vault_roundtrip_and_refs():
     assert ansiblevault.replace(obj, str.upper)["b"][1]["c"] == "TWO"
 
 
-@pytest.mark.skipif(not shutil.which("ansible-vault"), reason="ansible not installed")
+@pytest.mark.skipif(not shutil.which("ansible-vault", path="/usr/local/bin:/usr/bin:/bin"), reason="ansible not installed where labdex runs it")
 def test_vault_matches_ansible(tmp_path):
     (tmp_path / "pass").write_text("pw\n")
     (tmp_path / "v.txt").write_text(ansiblevault.encrypt("from labdex", "pw", "lab") + "\n")

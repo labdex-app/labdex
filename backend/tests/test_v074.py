@@ -1,6 +1,8 @@
 """v0.7.4: Uptime Kuma."""
 import pytest
 
+pytest.importorskip("socketio", reason="the Uptime Kuma plugin needs the uptimekuma extra")
+
 from labdex import widgets
 from labdex.models import HostStatus, db
 

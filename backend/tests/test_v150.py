@@ -223,7 +223,8 @@ PLAYBOOK = """
 """
 
 
-@pytest.mark.skipif(not __import__("shutil").which("ansible-playbook"), reason="no ansible-playbook here")
+# the isolated plugin finds programs only on the sandbox's PATH (the image has ansible there)
+@pytest.mark.skipif(not __import__("shutil").which("ansible-playbook", path="/usr/local/bin:/usr/bin:/bin"), reason="no ansible-playbook on the sandbox's PATH")
 @needs_landlock
 def test_isolated_playbooks_run_isolated(admin, tmp_path, app):
     data = tmp_path / "data"
