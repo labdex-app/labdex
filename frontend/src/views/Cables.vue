@@ -2,7 +2,8 @@
 // Every cable in one list: what's printed on it, both ends, medium, speed, length, colour.
 // Pick some (or all shown) and print their labels: one wrap-around label per cable, both ends
 // written on it, so whichever end you hold tells you where the other goes.
-import { Pencil, Printer } from 'lucide-vue-next'
+import { Pencil, Printer, Route } from 'lucide-vue-next'
+import CableTrace from '../components/CableTrace.vue'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
@@ -14,6 +15,7 @@ import { useQuery } from '../query'
 import { toast } from '../store'
 
 const route = useRoute()
+const tracing = ref(null)
 const router = useRouter()
 const tab = computed(() => (route.query.tab === 'suggested' ? 'suggested' : 'list'))
 const setTab = (t) => router.replace({ query: { ...route.query, tab: t === 'list' ? undefined : t } })
@@ -81,7 +83,7 @@ const swatch = (c) => CABLE_COLOURS.find((x) => x.name === c)?.hex || (/^#[0-9a-
       <table>
         <thead><tr>
           <th style="width: 34px"><input type="checkbox" class="tick" :checked="allPicked" aria-label="Pick all shown" @change="toggleAll"></th>
-          <th>Label</th><th>From</th><th>To</th><th class="hide-m">Kind</th><th class="hide-m">Length</th><th class="hide-m">Notes</th><th v-if="canEdit" style="width: 40px"></th>
+          <th>Label</th><th>From</th><th>To</th><th class="hide-m">Kind</th><th class="hide-m">Length</th><th class="hide-m">Notes</th><th :style="{ width: canEdit ? '76px' : '40px' }"></th>
         </tr></thead>
         <tbody>
           <tr v-for="c in shown" :key="c.id">
@@ -92,7 +94,8 @@ const swatch = (c) => CABLE_COLOURS.find((x) => x.name === c)?.hex || (/^#[0-9a-
             <td class="hide-m small"><i v-if="speedStep(c.speed)" class="spd" :style="{ background: speedStep(c.speed).colour }"></i>{{ [c.medium, c.speed].filter(Boolean).join(' · ') }}</td>
             <td class="hide-m small">{{ c.length ? `${c.length} m` : '' }}</td>
             <td class="hide-m small muted ell">{{ c.notes }}</td>
-            <td v-if="canEdit"><button class="btn icon" :aria-label="`Edit ${c.label || 'cable'}`" @click="edit(c)"><Pencil :size="15" /></button></td>
+            <td class="nowrap"><button class="btn icon" :aria-label="`Trace ${c.label || 'cable'}`" title="Trace end to end, through patch panels" @click="tracing = c"><Route :size="15" /></button>
+              <button v-if="canEdit" class="btn icon" :aria-label="`Edit ${c.label || 'cable'}`" @click="edit(c)"><Pencil :size="15" /></button></td>
           </tr>
         </tbody>
       </table>
@@ -100,6 +103,9 @@ const swatch = (c) => CABLE_COLOURS.find((x) => x.name === c)?.hex || (/^#[0-9a-
     </template>
     <p v-if="tab === 'list'" class="hint">Each label wraps around the cable near one end and names both ends, so you print two per cable. Fits a 4-column A4 sheet or a label printer roll.</p>
 
+    <Modal v-if="tracing" :title="`Trace ${tracing.label || `${tracing.a_host} ${tracing.a_port}`}`" @close="tracing = null">
+      <CableTrace :host="tracing.a_uid || tracing.a_host" :port="tracing.a_port" />
+    </Modal>
     <Modal v-if="dlg" :title="`Cable ${dlg.c.a_host} ${dlg.c.a_port} – ${dlg.c.b_host} ${dlg.c.b_port}`" @close="dlg = null">
       <div class="g2">
         <Field label="Label" :error="dlg.errors.label" hint="What's printed on it">

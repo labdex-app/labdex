@@ -30,6 +30,8 @@ def meta():
     nets = [n for n in db.session.scalars(db.select(Network)) if p.can("network", "view", rbac.network_facts(store.network_to_dict(n)))]
     m["counts"] = {"hosts": len(hosts), "networks": len(nets)}
     m["version"] = current_app.config["LABDEX_VERSION"]
+    from .about_api import project_url
+    m["project_url"] = project_url()  # the top bar's link to the project, and Help
     m["permissions"] = p.summary()
     m["is_admin"] = p.is_admin
     from .. import demo

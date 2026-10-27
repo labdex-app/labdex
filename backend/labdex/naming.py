@@ -21,8 +21,9 @@ DEFAULT_SETTINGS = {
     "instance_name": "labdex",
     "marketplace_urls": "",
     "live_status_minutes": "1440",
-    "update_check": "false",  # About page: ask GitHub for the latest release
-    "update_check_repo": "",  # owner/repo
+    "update_check": "false",  # About page: ask the project's git platform for the latest release
+    "project_url": "https://github.com/reykimedev/labdex",  # where labdex lives: GitHub, GitLab, Gitea/Forgejo; help links and the release check
+    "update_check_repo": "",  # before 1.24: owner/repo on GitHub (read as https://github.com/<it>)
     "public_url": "",
     "status_stale_minutes": "15",  # a monitoring report older than this counts as unknown  # how people reach labdex, for links in notifications
     "fun_pools_seeded": "false",  # internal: built-in fun name pools were added once

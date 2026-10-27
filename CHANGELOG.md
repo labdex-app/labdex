@@ -1,5 +1,47 @@
 # Changelog
 
+## 1.24.0
+
+### Patch panels and cable traces
+- An interface can **pass through** to another port of the same host: a patch panel's front
+  port and its rear port (set on one side, both get it). *Several* adds a whole panel at once,
+  every port with its rear port.
+- **Trace** follows a cable end to end through any number of patch panels, with each cable's
+  label, colour and length: on a host's ports, on the Cables page and on a topology cable.
+
+### Where is this MAC?
+- Discovery › **Where is…** finds the switch port behind a MAC, an IP address or a host, from
+  the switches' forwarding tables; the likely port is pinned (an uplink to another switch
+  isn't). Typing a MAC or an address in the search offers it too, and a host's Network tab
+  shows the port next to each interface that has no cable on record.
+- **SNMP neighbours 1.1** reads BRIDGE-MIB and Q-BRIDGE-MIB (per VLAN); **UniFi 2.2** reports
+  every client's switch port (wired) or access point (Wi-Fi). Publish both from their
+  repositories.
+- For plugin authors: `ctx.discovery.record_macs(source, entries)`.
+
+### Sign in with OpenID Connect
+- Authentik, Keycloak, Authelia, Pocket ID, Zitadel …: authorization code flow with PKCE,
+  accounts created at the first sign-in (or only existing ones), groups from the provider
+  matched to labdex groups, administrators by group, the password form optional. Configured
+  through `LABDEX_OIDC_*`; Settings › Users shows the setup and the redirect URI.
+
+### The top bar
+- Help, the project's page, About, Settings and your account sit in a bar at the top; the
+  sidebar lost its duplicate Collapse, Admin and avatar. **Admin is now Settings.** A **Help**
+  page has the docs, issues, security reports, the keyboard and the details for a bug report.
+
+### Release check
+- The update check works with **GitHub, GitLab and Gitea/Forgejo** (Codeberg …) from the
+  project's address (Settings › General; default github.com/reykimedev/labdex), says why a
+  check failed, and tries again after ten minutes instead of six hours.
+
+### CI
+- Pushes get a quick lint; the full tests run on pull requests.
+- Release images are built on native amd64 and arm64 runners in parallel (no emulation) and
+  joined into one multi-arch image; each architecture keeps its own build cache.
+- Dependabot keeps GitHub Actions, npm, Python, the base image and the plugin submodules up
+  to date, as weekly pull requests.
+
 ## 1.23.1
 
 ### Faster image builds

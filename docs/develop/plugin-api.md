@@ -75,6 +75,7 @@ class Plugin(labdex.plugins.base.Plugin):
 | `notify(event, title, body="", link="", data=None)` | a notification (`plugin.<id>.<event>`; `host.down`/`host.up` as is) |
 | `discovery.record_scan(source, scanned, hosts)` | a port scan: `hosts` = `[{ip, hostname, mac, services: [{port, proto, service, product, version}]}]`; ports not found on scanned addresses are marked closed |
 | `discovery.record_neighbours(source, entries, mark_up=True)` | ARP/DHCP/DNS style data: `[{ip, mac, hostname, vendor}]` |
+| `discovery.record_macs(source, entries)` | A switch's forwarding table, replacing what `source` said before: `[{host or switch: {name, ip, mac}, port, mac, vlan, ip, name}]`; returns `{macs}`. Feeds Discovery › Where is (since 1.24; check with `hasattr`) |
 | `discovery.record_links(source, links)` | Links a switch sees, replacing what `source` said before: `[{host or device: {name, ip, mac}, port, remote: {name, ip, mac, platform}, remote_port, protocol}]`; returns `{links, matched_ends}`. They become suggested cables |
 | `data_dir` | a folder for caches: the instance's own when isolated, labdex's data folder otherwise (also callable: `data_dir()`) |
 | `log(message)` | a line in the job log |

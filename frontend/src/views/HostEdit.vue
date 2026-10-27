@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { getCached, setQueryData, useQuery } from '../query'
 import { api, ApiError } from '../api'
 import {
-  AppWindow, ArrowDownLeft, ArrowUpRight, Box, Cable, EthernetPort, ListPlus, Lock, Merge, Pencil, Plus, RotateCcw, Tag, Trash2, Waypoints, Wifi,
+  AppWindow, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Box, Cable, EthernetPort, ListPlus, Lock, MapPin, Merge, Pencil, Plus, RotateCcw, Route, Tag, Trash2, Waypoints, Wifi,
 } from 'lucide-vue-next'
 import { confirm } from '../confirm'
 import ChipInput from '../components/ChipInput.vue'
@@ -24,6 +24,7 @@ import ZoneChip from '../components/ZoneChip.vue'
 import { ago, changed, stamp, state, tagColour, toast, zoneHex } from '../store'
 import CableExtras from '../components/CableExtras.vue'
 import PortMap from '../components/PortMap.vue'
+import CableTrace from '../components/CableTrace.vue'
 import ColourPicker from '../components/ColourPicker.vue'
 import HostIcon from '../components/HostIcon.vue'
 import { ICONS } from '../icons'
@@ -71,7 +72,7 @@ const peers = computed(() => {
 // dialogs edit a copy; Done puts it into the form (saved with the host)
 const clone = (x) => JSON.parse(JSON.stringify(x))
 const ifDlg = ref(null)
-const blankIf = () => ({ network: '', label: '', kind: '', parent: '', connector: '', speed: '', extra_ips: [], ip4: '', ip6: '', ip6_token: '', ip6_overrides: {}, mac: '', primary: form.interfaces.length === 0, in_dns: null })
+const blankIf = () => ({ network: '', label: '', kind: '', parent: '', connector: '', speed: '', passthrough: '', extra_ips: [], ip4: '', ip6: '', ip6_token: '', ip6_overrides: {}, mac: '', primary: form.interfaces.length === 0, in_dns: null })
 function openIf(idx) { ifDlg.value = { idx, i: idx < 0 ? blankIf() : clone(form.interfaces[idx]) } }
 const ifErr = (k) => (ifDlg.value && ifDlg.value.idx >= 0 ? errors.value[`interfaces[${ifDlg.value.idx}].${k}`] : '')
 function saveIf() {
@@ -110,12 +111,15 @@ const ifGroups = computed(() => {
 const bulk = ref(null)
 const bulkNames = computed(() => (bulk.value ? expandRange(bulk.value.pattern) : []))
 const bulkNew = computed(() => bulkNames.value.filter((n) => !form.interfaces.some((i) => i.label === n)))
-function openBulk() { bulk.value = { pattern: '', kind: 'ethernet', connector: 'rj45', speed: '1G', network: '', parent: '' } }
+function openBulk() { bulk.value = { pattern: '', kind: 'ethernet', connector: 'rj45', speed: '1G', network: '', parent: '', panel: false, rear: 'r' } }
 function saveBulk() {
   const b = bulk.value
   for (const label of bulkNew.value) {
+    const panel = b.panel && isPhysical(b) && !form.interfaces.some((i) => i.label === `${b.rear}${label}`)
     form.interfaces.push({ ...blankIf(), primary: false, label, kind: b.kind, connector: isPhysical(b) ? b.connector : '', speed: isPhysical(b) ? b.speed : '',
-      network: b.network, parent: isPhysical(b) ? '' : b.parent })
+      network: b.network, parent: isPhysical(b) ? '' : b.parent, passthrough: panel ? `${b.rear}${label}` : '' })
+    // a patch panel: each front port has a rear port it passes straight through to
+    if (panel) form.interfaces.push({ ...blankIf(), primary: false, label: `${b.rear}${label}`, kind: b.kind, connector: b.connector, speed: b.speed, passthrough: label })
   }
   bulk.value = null
 }
@@ -170,6 +174,16 @@ const ruleDlg = ref(null)
 function openRule(idx, direction = 'in') { ruleDlg.value = { idx, r: idx < 0 ? { direction, peer: '', ports: [], description: '' } : clone(form.rules[idx]) } }
 function saveRule() { const { idx, r } = ruleDlg.value; if (idx < 0) form.rules.push(r); else form.rules[idx] = r; ruleDlg.value = null }
 const cableAt = (port) => form.cables.find((c) => c.port === port)
+// another physical port of this host to pass through to (a patch panel's front and rear)
+const throughChoices = (i) => form.interfaces.filter((x) => x !== i && x.label && isPhysical(x) && (!x.passthrough || x.passthrough === i.label)).map((x) => x.label)
+function setThrough(i, v) {
+  const old = form.interfaces.find((x) => x.label && x.label === i.passthrough)
+  if (old && old.passthrough === i.label) old.passthrough = ''
+  i.passthrough = v
+  const now = form.interfaces.find((x) => x.label === v)
+  if (now) now.passthrough = i.label
+}
+const traceOf = ref(null) // {port}: the trace dialog
 const tagList = ref([])
 api.get('/api/tags').then((t) => { tagList.value = t.map((x) => ({ value: x.name, label: x.description || (x.hosts ? `${x.hosts} host${x.hosts === 1 ? '' : 's'}` : '') })) }).catch(() => {})
 const errors = ref({})
@@ -774,6 +788,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
                 <div class="li-title">
                   <span class="mono">{{ r.i.label || r.i.network || `interface ${r.idx + 1}` }}</span>
                   <span v-if="r.i.kind" class="faint small">{{ r.i.kind }}</span>
+                  <span v-if="r.i.passthrough" class="small muted" :title="`Passes through to ${r.i.passthrough} (a patch panel's front and rear)`"><ArrowLeftRight :size="12" /> <span class="mono">{{ r.i.passthrough }}</span></span>
                   <span v-if="r.i.connector || r.i.speed" class="small"><i v-if="speedStep(r.i.speed)" class="spd" :style="{ background: speedStep(r.i.speed).colour }"></i>{{ [r.i.connector, r.i.speed].filter(Boolean).join(' · ') }}</span>
                   <span v-if="g.id === 'virtual' && r.depth === 0 && r.i.parent && !r.i.parent.includes(':')" class="small muted">on <span class="mono">{{ r.i.parent }}</span></span>
                   <ZoneChip v-if="zoneOf(r.i)" :zone="zoneOf(r.i)" />
@@ -790,6 +805,9 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
                   <span v-if="r.i.parent && r.i.parent.includes(':')">on <RouterLink :to="`/hosts/${r.i.parent.split(':')[0]}?tab=network`" class="mono">{{ r.i.parent }}</RouterLink></span>
                   <span v-if="cableAt(r.i.label)" class="cab"><Cable :size="13" /> <RouterLink :to="`/hosts/${cableAt(r.i.label).peer}?tab=network`">{{ cableAt(r.i.label).peer }}</RouterLink>
                     <span class="mono">{{ cableAt(r.i.label).peer_port }}</span></span>
+                  <RouterLink v-if="derived?.switch_ports?.[r.i.label || r.i.mac] && !cableAt(r.i.label)" class="seen"
+                              :to="`/discovery?tab=where&q=${encodeURIComponent(r.i.mac)}`" :title="`From the switch's MAC table (${derived.switch_ports[r.i.label || r.i.mac].source}), ${ago(derived.switch_ports[r.i.label || r.i.mac].seen_at)}`">
+                    <MapPin :size="12" /> on {{ derived.switch_ports[r.i.label || r.i.mac].switch }} <span class="mono">{{ derived.switch_ports[r.i.label || r.i.mac].port }}</span></RouterLink>
                   <template v-for="ip in ifaceIps(r.i)" :key="'s' + ip">
                     <span v-if="derived?.seen?.[ip]" class="seen" :title="`Discovery: ${derived.seen[ip].source} ${ago(derived.seen[ip].last_seen)}`">
                       <span class="dot" :class="derived.seen[ip].up ? 'up' : ''"></span>seen{{ derived.seen[ip].hostname ? ` as ${derived.seen[ip].hostname}` : '' }}{{ derived.seen[ip].vendor ? `, ${derived.seen[ip].vendor}` : '' }}</span>
@@ -797,6 +815,8 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
                 </div>
               </div>
               <div class="li-actions">
+                <button v-if="r.i.label && (cableAt(r.i.label) || r.i.passthrough) && !isNew" class="btn icon" :aria-label="`Trace ${r.i.label}`" title="Trace the cable end to end"
+                        @click="traceOf = { port: r.i.label }"><Route :size="15" /></button>
                 <button class="btn icon" :aria-label="`Edit ${r.i.label || r.i.network}`" @click="openIf(r.idx)"><Pencil :size="15" /></button>
                 <button class="btn icon" :aria-label="`Remove ${r.i.label || r.i.network}`" @click="removeIf(r.idx)"><Trash2 :size="15" /></button>
               </div>
@@ -1021,6 +1041,10 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
 
       <datalist id="port-speeds"><option v-for="x in SPEEDS" :key="x" :value="x" /></datalist>
       <!-- several interfaces from a pattern -->
+      <Modal v-if="traceOf" :title="`Trace ${traceOf.port}`" @close="traceOf = null">
+        <CableTrace :host="props.name" :port="traceOf.port" />
+        <p v-if="dirty" class="small faint" style="margin-bottom: 0">Shows what's saved; save the host to trace your changes.</p>
+      </Modal>
       <Modal v-if="bulk" title="Add several interfaces" wide @close="bulk = null">
         <Field label="Names" hint="Ranges in brackets: eth[0-3], 1/0/[1-48], swp[1-4]s[0-3]; a leading zero is kept (Gi1/0/[01-24])">
           <input v-model.trim="bulk.pattern" class="mono" placeholder="eth[0-3]" aria-label="Name pattern"></Field>
@@ -1033,11 +1057,15 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
           <Field v-else label="Sits on"><select v-model="bulk.parent"><option value="">—</option>
             <option v-for="pc in parentChoices({})" :key="pc.value" :value="pc.value">{{ pc.label }}</option></select></Field>
         </div>
+        <div v-if="isPhysical(bulk)" class="row panelrow">
+          <label class="check"><input v-model="bulk.panel" type="checkbox"> Patch panel: each port gets a rear port it passes through to</label>
+          <Field v-if="bulk.panel" label="Rear ports start with" style="width: 170px"><input v-model.trim="bulk.rear" class="mono" placeholder="r"></Field>
+        </div>
         <Field label="Network" hint="Optional; addresses are set one by one afterwards">
           <select v-model="bulk.network"><option value="">— none —</option><option v-for="net in netsFor(bulk)" :key="net.name" :value="net.name">{{ net.name }}</option></select></Field>
         <p v-if="bulkNames.length > 256" class="err">At most 256 at once.</p>
         <p v-else-if="bulkNames.length" class="small muted bulkprev">
-          {{ bulkNew.length }} new<template v-if="bulkNames.length > bulkNew.length">, {{ bulkNames.length - bulkNew.length }} there already</template>:
+          {{ bulkNew.length }} new<template v-if="bulk.panel && isPhysical(bulk)"> (plus their rear ports {{ bulk.rear }}{{ bulkNew[0] }} …)</template><template v-if="bulkNames.length > bulkNew.length">, {{ bulkNames.length - bulkNew.length }} there already</template>:
           <span class="mono">{{ bulkNew.slice(0, 12).join(', ') }}{{ bulkNew.length > 12 ? ` … ${bulkNew.at(-1)}` : '' }}</span></p>
         <template #foot>
           <span class="small faint left">Saved with the host</span>
@@ -1063,6 +1091,9 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
             <select :value="ifDlg.i.connector" @change="setConnector(ifDlg.i, $event.target.value)"><option value="">—</option><option v-for="c in CONNECTORS" :key="c" :value="c">{{ c }}</option></select></Field>
           <Field label="Speed" :error="ifErr('speed')" hint="What the port can do; a cable's speed is what it runs at">
             <input v-model.trim="ifDlg.i.speed" list="port-speeds" placeholder="1G"></Field>
+          <Field label="Passes through to" :error="ifErr('passthrough')" hint="On a patch panel: the port on the other side">
+            <select :value="ifDlg.i.passthrough || ''" @change="setThrough(ifDlg.i, $event.target.value)"><option value="">—</option>
+              <option v-for="x in throughChoices(ifDlg.i)" :key="x" :value="x">{{ x }}</option></select></Field>
         </div>
         <div class="g3">
           <Field label="Network" :error="ifErr('network')">

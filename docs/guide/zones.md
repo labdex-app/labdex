@@ -52,7 +52,7 @@ whose members reference hosts, networks, zones or other aliases:
 | `HG_…`, `MG_…`, `SG_…` | your host, MAC and port groups |
 
 On the firewall each alias gets a short uid (`ldx_3fa9c201`, stable for its name) or,
-if you prefer under Admin → Conventions, a readable id (the name if it fits, else a
+if you prefer under Settings → Conventions, a readable id (the name if it fits, else a
 shortened form); you can also set one per custom alias. The full name goes into the
 description. The OPNsense plugin can import the aliases you already have on the
 firewall.

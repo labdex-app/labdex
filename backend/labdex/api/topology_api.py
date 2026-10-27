@@ -398,6 +398,26 @@ def delete_view(uid):
     return "", 204
 
 
+# ------------------------------------------------------------- trace
+@bp.get("/cables/trace")
+def cable_trace():
+    """?host=&port=: the whole path through patch panels, end to end. Hosts you can't see show
+    as "a host you can't see"."""
+    from flask import request
+    h = store.find_host(str(request.args.get("host", "")))
+    port = str(request.args.get("port", "")).strip()
+    visible = set(_visible_hosts())
+    if h is None or h.name not in visible:
+        return err(404, "no such host")
+    if not port:
+        return err(422, "validation failed", [{"field": "port", "message": "which port"}])
+    t = cabling.trace(h, port)
+    for p in t["points"]:
+        if p["host"] not in visible:
+            p.update({"host": "", "uid": "", "hidden": True})
+    return jsonify(t)
+
+
 # ------------------------------------------------------------- what switches see
 @bp.get("/cables/suggestions")
 def cable_suggestions():

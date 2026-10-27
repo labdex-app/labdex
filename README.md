@@ -28,7 +28,7 @@ container, SQLite, under 100 MB of RAM, and a YAML file you can keep in git.
 | | |
 | --- | --- |
 | **Inventory & IPAM** | Networks (VLAN, IPv4/IPv6 prefix, gateway, DHCP range), hosts with interfaces and services, what runs on which hypervisor. Next-free-address per network that skips the gateway, used addresses and the DHCP pool. |
-| **Zones** | Every network (segment) and host belongs to a zone `<AREA>_<TRUST>`, e.g. `DC_TC` (datacenter, trusted-compliant) or `CA_UT` (campus, untrusted). Areas and trust levels are yours to create under Admin → Zones; nothing is predefined (an example set is one click away). |
+| **Zones** | Every network (segment) and host belongs to a zone `<AREA>_<TRUST>`, e.g. `DC_TC` (datacenter, trusted-compliant) or `CA_UT` (campus, untrusted). Areas and trust levels are yours to create under Settings → Zones; nothing is predefined (an example set is one click away). |
 | **Naming rules** | Functional hostnames `<category>-<type>-<role>-<nn>` (`srv-vm-dns-01`), picked from editable lists with the next free number filled in, plus any number of memorable *fun names* (`unown`, `resolver`), each a DNS CNAME; the first shows up in the prompt. |
 | **Firewall aliases** | Generated per network, zone, area and host (`N4_ZONE_DC_TC_SRV`, `NG_ZONE_DC`, `H_ZONE_DC_TC_SRV_VM_DNS_01`), plus your own groups with any readable name whose members reference hosts, networks, zones or other aliases. On the firewall each alias gets an id of at most 32 characters (the name if it fits, else a stable shortened form, or one you set); the full name goes into the description. |
 | **DNS** | `A`/`AAAA` per interface (`<host>.<network>.<domain>`), CNAMEs for short, fun and service names, `SRV`/`TXT` per service. As a zone file or JSON. |
@@ -90,7 +90,7 @@ For UI development run `labdex run --debug` (port 5000) and `npm run dev` in
 | `LABDEX_DEMO` | `false` | Demo mode: a sample lab, reset every night (see below). Never on a real instance: it wipes the database |
 
 Conventions (domain, alias length, hostname categories, DMZ area, the
-octet-equals-VLAN check) are edited under Admin → Conventions.
+octet-equals-VLAN check) are edited under Settings → Conventions.
 
 ### Database: SQLite or PostgreSQL
 
@@ -273,7 +273,7 @@ Every backup carries a portable `database.json` (and on SQLite also the raw
 
 ### Installing plugins
 
-Under Admin → Plugins: upload a `.zip`, or add a signed repository and install
+Under Settings → Plugins: upload a `.zip`, or add a signed repository and install
 from it. labdex unpacks the archive, validates the manifest and checks
 the signature **before any plugin code runs**, then shows you what you're
 about to install:

@@ -92,6 +92,7 @@ def main(src: str, dest: str, official: bool = True) -> None:
     (d / ".github" / "workflows").mkdir(parents=True, exist_ok=True)
     shutil.copy2(HERE / ".github" / "workflows" / "release.yml", d / ".github" / "workflows" / "release.yml")
     shutil.copy2(HERE / ".gitattributes", d / ".gitattributes")
+    shutil.copy2(HERE / ".github" / "dependabot.yml", d / ".github" / "dependabot.yml")
     if not (d / ".releaseignore").exists():
         shutil.copy2(HERE / ".releaseignore", d / ".releaseignore")
     (d / ".gitignore").write_text("__pycache__/\n*.pyc\nbuild/\n*.zip\n")

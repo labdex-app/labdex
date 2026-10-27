@@ -23,22 +23,73 @@ def changelog_text() -> str:
     return ""
 
 
-def latest_release(repo: str) -> dict | None:
-    """GitHub's latest release of owner/repo, cached for six hours. None when unreachable."""
-    hit = _release_cache.get(repo)
-    if hit and time.time() - hit[0] < 6 * 3600:
+DEFAULT_PROJECT = "https://github.com/reykimedev/labdex"
+
+
+def project_url() -> str:
+    """Where labdex lives (the setting), as https://host/owner/repo. An owner/repo from before 1.24 is GitHub."""
+    url = naming.get_setting("project_url").strip().rstrip("/").removesuffix(".git")
+    old = naming.get_setting("update_check_repo").strip()
+    if old and (not url or url == DEFAULT_PROJECT):
+        url = old if "://" in old else f"https://github.com/{old}"
+    return url or DEFAULT_PROJECT
+
+
+def release_api(url: str) -> list[tuple[str, str]]:
+    """Where to ask for the latest release, by platform: [(kind, api url)], most likely first.
+    github.com → api.github.com; a host named gitlab… → GitLab; anything else is tried as
+    Gitea/Forgejo (Codeberg …), then GitLab, then GitHub Enterprise."""
+    from urllib.parse import quote, urlsplit
+    u = urlsplit(url)
+    path = u.path.strip("/")
+    if not u.scheme or path.count("/") < 1:
+        raise ValueError("like https://github.com/owner/repo")
+    base = f"{u.scheme}://{u.netloc}"
+    gh = ("github", f"https://api.github.com/repos/{path}/releases/latest" if u.netloc in ("github.com", "www.github.com")
+          else f"{base}/api/v3/repos/{path}/releases/latest")
+    gl = ("gitlab", f"{base}/api/v4/projects/{quote(path, safe='')}/releases/permalink/latest")
+    gt = ("gitea", f"{base}/api/v1/repos/{path}/releases/latest")
+    if u.netloc in ("github.com", "www.github.com"):
+        return [gh]
+    if "gitlab" in u.netloc:
+        return [gl, gt]
+    return [gt, gl, gh]
+
+
+def latest_release(url: str) -> dict:
+    """The project's latest release: {tag, name, url, published} or {error}. Cached six hours
+    (a failure ten minutes). Only a GET to the platform's public API; nothing is sent."""
+    hit = _release_cache.get(url)
+    if hit and time.time() - hit[0] < (6 * 3600 if "tag" in hit[1] else 600):
         return hit[1]
     import requests
+    out: dict = {}
     try:
-        r = requests.get(f"https://api.github.com/repos/{repo}/releases/latest", timeout=5,
-                         headers={"Accept": "application/vnd.github+json"})
-        r.raise_for_status()
-        d = r.json()
-        out = {"tag": d.get("tag_name", ""), "name": d.get("name", ""), "url": d.get("html_url", ""), "published": d.get("published_at", "")}
-    except Exception:
-        out = None
-    _release_cache[repo] = (time.time(), out)
-    return out
+        tries = release_api(url)
+    except ValueError as exc:
+        tries, out = [], {"error": f"not a project address ({exc})"}
+    for kind, api in tries:
+        try:
+            r = requests.get(api, timeout=5, headers={"Accept": "application/json"})
+            if r.status_code == 404:
+                out = {"error": "no release published yet" if kind == tries[0][0] else out.get("error", "no release published yet")}
+                continue
+            r.raise_for_status()
+            d = r.json()
+            if kind == "gitlab":
+                out = {"tag": d.get("tag_name", ""), "name": d.get("name", ""), "url": (d.get("_links") or {}).get("self") or f"{url}/-/releases",
+                       "published": d.get("released_at", "")}
+            else:
+                out = {"tag": d.get("tag_name", ""), "name": d.get("name", ""), "url": d.get("html_url", "") or f"{url}/releases",
+                       "published": d.get("published_at", "")}
+            out["platform"] = kind
+            break
+        except requests.RequestException as exc:
+            out = {"error": f"can't reach {api.split('/')[2]} ({type(exc).__name__})"}
+        except ValueError:
+            out = {"error": "the answer wasn't a release"}
+    _release_cache[url] = (time.time(), out or {"error": "no answer"})
+    return _release_cache[url][1]
 
 
 def _newer(tag: str, mine: str) -> bool:
@@ -81,8 +132,10 @@ def about():
         "update_check": None,
         "jobs": _jobs_status(),
     }
-    repo = naming.get_setting("update_check_repo").strip()
-    if naming.get_setting("update_check") == "true" and repo:
-        rel = latest_release(repo)
-        out["update_check"] = {"repo": repo, "latest": rel, "newer": bool(rel and _newer(rel["tag"], version))}
+    out["project_url"] = project_url()
+    if naming.get_setting("update_check") == "true":
+        rel = latest_release(out["project_url"])
+        ok = "tag" in rel
+        out["update_check"] = {"project": out["project_url"], "latest": rel if ok else None, "error": rel.get("error", ""),
+                               "newer": bool(ok and _newer(rel["tag"], version))}
     return jsonify(out)

@@ -47,8 +47,12 @@ const results = computed(() => {
   const remote = found.value
   const pages = local.value.filter((p) => p.kind === 'page')
   const news = local.value.filter((p) => p.kind === 'new' || p.kind === 'theme')
+  // a MAC or an address: also "where is it plugged in?"
+  const t = q.value.trim()
+  const where = /^([0-9a-f]{2}[:-]?){5}[0-9a-f]{2}$|^[0-9a-f]{4}\.[0-9a-f]{4}\.[0-9a-f]{4}$|^\d{1,3}(\.\d{1,3}){3}$/i.test(t)
+    ? [{ kind: 'page', title: `Where is ${t}?`, link: `/discovery?tab=where&q=${encodeURIComponent(t)}`, sub: 'switch port from the MAC tables' }] : []
   // inventory first, pages after (unless nothing else matched), creating last
-  return [...remote, ...pages, ...news]
+  return [...remote, ...where, ...pages, ...news]
 })
 const groups = computed(() => {
   const out = []

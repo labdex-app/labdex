@@ -20,6 +20,7 @@ const GROUPS = [
 ]
 
 const users = ref([])
+const sso = ref(null)
 const groups = ref([])
 const roles = ref([])
 const types = ref([])
@@ -33,7 +34,7 @@ async function load() {
   users.value = u; groups.value = g; roles.value = r.roles; types.value = r.object_types; actions.value = r.actions
   bindings.value = b; grants.value = gr
 }
-onMounted(() => load().catch((e) => toast(e.message, 'error')))
+onMounted(() => { load().catch((e) => toast(e.message, 'error')); api.get('/api/admin/sso').then((d) => { sso.value = d }).catch(() => {}) })
 
 async function call(fn, ok) {
   errors.value = {}
@@ -158,7 +159,7 @@ const me = computed(() => state.auth.user.username)
 
 <template>
   <div class="page">
-    <div class="page-head"><h1>Administration</h1><span class="sub">labdex {{ state.meta.version }}</span></div>
+    <div class="page-head"><h1>Settings</h1><span class="sub">labdex {{ state.meta.version }}</span></div>
     <div class="adm">
     <nav class="subnav" aria-label="Admin sections">
       <template v-for="[g, items] in GROUPS" :key="g">
@@ -229,6 +230,21 @@ const me = computed(() => state.auth.user.username)
           <button form="user-new" class="btn primary">Create user</button>
         </template>
       </Modal>
+      <div v-if="sso" class="card ssocard">
+        <h3>Single sign-on</h3>
+        <dl v-if="sso.oidc.enabled" class="kv small">
+          <dt>OpenID Connect</dt><dd>{{ sso.oidc.name }} · <span class="mono">{{ sso.oidc.issuer }}</span></dd>
+          <dt>Client</dt><dd class="mono">{{ sso.oidc.client_id }}{{ sso.oidc.confidential ? ' (with a secret)' : ' (public, PKCE)' }}</dd>
+          <dt>Redirect URI</dt><dd class="mono">{{ sso.oidc.redirect_uri }}</dd>
+          <dt>Accounts</dt><dd>{{ sso.oidc.autocreate ? 'created at the first sign-in' : 'only existing ones (linked by user name the first time)' }};
+            groups from the <span class="mono">{{ sso.oidc.groups_claim }}</span> claim<template v-if="sso.oidc.admin_groups">; administrators: <span class="mono">{{ sso.oidc.admin_groups }}</span></template></dd>
+          <dt>Password sign-in</dt><dd>{{ sso.oidc.only ? 'hidden (LABDEX_OIDC_ONLY)' : 'still possible' }}</dd>
+        </dl>
+        <p v-else class="small muted" style="margin: 0">Not set up. Set <code>LABDEX_OIDC_ISSUER</code>, <code>LABDEX_OIDC_CLIENT_ID</code> and
+          <code>LABDEX_OIDC_CLIENT_SECRET</code> for sign-in with Authentik, Keycloak, Authelia, Pocket ID …; register
+          <span class="mono">{{ sso.oidc.redirect_uri }}</span> as the redirect URI there.</p>
+        <p v-if="sso.header" class="small muted" style="margin: 8px 0 0">Also: the SSO proxy header <span class="mono">{{ sso.header }}</span>.</p>
+      </div>
     </section>
 
     <!-- =========================================================== groups -->
@@ -454,10 +470,11 @@ const me = computed(() => state.auth.user.username)
         </label>
         <label class="check" style="margin-top: 8px">
           <input type="checkbox" :checked="settings.update_check === 'true'" @change="settings.update_check = $event.target.checked ? 'true' : 'false'">
-          Check GitHub for new releases (shown on the About page)
+          Check for new labdex releases (shown on the About page)
         </label>
-        <Field v-if="settings.update_check === 'true'" label="Repository" :error="errors.update_check_repo" hint="owner/repo of the labdex releases you follow">
-          <input v-model.trim="settings.update_check_repo" type="text" class="mono" placeholder="owner/labdex">
+        <Field label="Project" :error="errors.project_url" style="margin-top: 10px"
+               hint="Where labdex lives: GitHub, GitLab or Gitea/Forgejo (Codeberg). The release check asks its public API for the latest release; Help and the top bar link here.">
+          <input v-model.trim="settings.project_url" type="url" class="mono" placeholder="https://github.com/reykimedev/labdex">
         </Field>
         <div style="margin-top: 14px"><button class="btn primary" @click="saveSettings">Save</button></div>
       </div>
@@ -467,7 +484,7 @@ const me = computed(() => state.auth.user.username)
           <li><RouterLink to="/zones">Zones</RouterLink>: areas and trust levels (sidebar)</li>
           <li><RouterLink to="/naming">Naming</RouterLink>: hostname parts and fun name pools (sidebar)</li>
           <li><RouterLink to="/about">About</RouterLink>: version, database, plugins, changelog</li>
-          <li><RouterLink to="/plugins?tab=market">Plugins → Marketplace</RouterLink> installs plugins; <RouterLink to="/admin/plugins">Admin → Plugins</RouterLink> uploads, repositories and signing keys</li>
+          <li><RouterLink to="/plugins?tab=market">Plugins → Marketplace</RouterLink> installs plugins; <RouterLink to="/admin/plugins">Settings → Plugins</RouterLink> uploads, repositories and signing keys</li>
           <li><RouterLink to="/plugins">Automation → Plugins</RouterLink>: integrations, their settings, jobs and pages</li>
         </ul>
       </aside>
@@ -521,4 +538,6 @@ select[multiple] { padding: 4px; }
 .right { text-align: right; } .nowrap { white-space: nowrap; }
 .perm th, .perm td { padding: 4px 10px; text-align: center; border: 0; background: none; }
 .perm td:first-child { text-align: left; color: var(--muted); }
+.ssocard { margin-top: 16px; }
+.ssocard h3 { margin: 0 0 8px; }
 </style>

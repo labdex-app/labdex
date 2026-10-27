@@ -273,7 +273,8 @@ def host_to_dict(h: Host, derived=False) -> dict:
             {"network": i.network.name if i.network else "", "zone": i.network.zone if i.network else "", "label": i.label, "ip4": i.ip4,
              "ip6": i.ip6, "ip6_token": i.ip6_token or "", "ip6_overrides": dict(i.ip6_overrides or {}), "ip6_all": i.ip6s,
              "mac": i.mac, "primary": i.primary, "in_dns": i.in_dns, "kind": i.kind or "", "parent": i.parent or "",
-             "extra_ips": list(i.extra_ips or []), "connector": i.connector or "", "speed": i.speed or ""}
+             "extra_ips": list(i.extra_ips or []), "connector": i.connector or "", "speed": i.speed or "",
+             "passthrough": i.passthrough or ""}
             for i in h.interfaces
         ],
         "cables": host_links(h),
@@ -309,6 +310,8 @@ def host_to_dict(h: Host, derived=False) -> dict:
         d["guests"] = [g.name for g in db.session.scalars(db.select(Host).where(Host.runs_on_id == h.id).order_by(Host.name))]
         d["motd"] = hostfiles.motd(h)
         d["seen"] = seen_addresses(h)
+        from . import macs
+        d["switch_ports"] = macs.location_of(h)  # {interface: the switch port its MAC was seen on}
         d["links"] = [
             {"name": s.name, "url": service_url(h, s)} for s in h.services if service_url(h, s)
         ]
@@ -552,16 +555,34 @@ def save_host(data: dict, existing: Host | None = None) -> Host:
         if speed and not re.match(r"^\d{1,4}(\.\d{1,2})?[MGT]$", speed):
             e.add(f"{f}.speed", "like 1G, 2.5G, 10G or 100M")
         parent = _s(raw, "parent")
+        passthrough = _s(raw, "passthrough")[:32]
         if len(_s(raw, "label")) > 32:
             e.add(f"{f}.label", "at most 32 characters")
         ifaces.append({"network": net, "label": _s(raw, "label"), "ip4": ip4, "ip6": ip6, "kind": ikind, "parent": parent[:96],
-                       "connector": connector, "speed": speed,
+                       "connector": connector, "speed": speed, "passthrough": passthrough,
                        "extra_ips": extra,
                        "mac": mac, "primary": bool(raw.get("primary")),
                        "in_dns": None if in_dns is None else bool(in_dns), "ip6_token": token, "ip6_overrides": overrides})
     if sum(1 for i in ifaces if i["primary"]) > 1:
         e.add("interfaces", "only one interface can be primary")
     names = [i["label"] for i in ifaces if i["label"]]
+    # pass-through pairs (a patch panel's front and rear port): each names the other; one side is enough
+    by_label = {i["label"]: i for i in ifaces if i["label"]}
+    for idx, i in enumerate(ifaces):
+        pt = i["passthrough"]
+        if not pt:
+            continue
+        other = by_label.get(pt)
+        if not i["label"]:
+            e.add(f"interfaces[{idx}].passthrough", "name the port first")
+        elif other is None:
+            e.add(f"interfaces[{idx}].passthrough", f"no interface named '{pt}' on this host")
+        elif other is i:
+            e.add(f"interfaces[{idx}].passthrough", "a port can't pass through to itself")
+        elif other["passthrough"] and other["passthrough"] != i["label"]:
+            e.add(f"interfaces[{idx}].passthrough", f"'{pt}' already passes through to '{other['passthrough']}'")
+        else:
+            other["passthrough"] = i["label"]
     for idx, i in enumerate(ifaces):
         p = i["parent"]
         if not p:

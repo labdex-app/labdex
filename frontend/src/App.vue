@@ -3,8 +3,8 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { api, setUnauthorizedHandler } from './api'
 import {
-  AppWindow, Cable, ChevronRight, ChevronsLeft, ChevronsRight, CircleCheck, GitFork, Globe, History, KeyRound, LayoutDashboard, Layers, ListTree, Menu, Network, PanelLeftClose,
-  PanelLeftOpen, Plug, Radar, Rows4, Search, Server, Settings, Shield, Tags, Waypoints,
+  AppWindow, Cable, ChevronRight, CircleCheck, GitFork, Github, Globe, History, Info, KeyRound, LayoutDashboard, Layers, LifeBuoy, ListTree, Menu, Network,
+  PanelLeftClose, PanelLeftOpen, Plug, Radar, Rows4, Search, Server, Settings, Shield, Tags, Waypoints,
 } from 'lucide-vue-next'
 import CommandPalette from './components/CommandPalette.vue'
 import { setTheme, theme } from './theme'
@@ -57,16 +57,19 @@ const groups = computed(() => {
   ]
 })
 const palette = ref(null)
+const projectHost = computed(() => { try { return new URL(state.meta?.project_url || '').host } catch { return '' } })
+const projectName = computed(() => ({ 'github.com': 'GitHub', 'gitlab.com': 'GitLab', 'codeberg.org': 'Codeberg' }[projectHost.value] || 'Source'))
 const isMac = navigator.platform?.toLowerCase().includes('mac')
 const pages = computed(() => [
   { to: '/', label: 'Dashboard', group: '' },
   ...groups.value.flatMap((g) => g.items.map((i) => ({ to: i.to, label: i.label, group: g.label }))),
-  state.meta?.is_admin && { to: '/admin/general', label: 'Admin', group: '' },
-  state.meta?.is_admin && { to: '/admin/users', label: 'Users', group: 'Admin' },
+  state.meta?.is_admin && { to: '/admin/general', label: 'Settings', group: '' },
+  state.meta?.is_admin && { to: '/admin/users', label: 'Users', group: 'Settings' },
   { to: '/plugins?tab=market', label: 'Plugin Marketplace', group: 'Automation' },
-  state.meta?.is_admin && { to: '/admin/plugins', label: 'Plugin repositories & upload', group: 'Admin' },
-  state.meta?.is_admin && { to: '/admin/backup', label: 'Backup & restore', group: 'Admin' },
+  state.meta?.is_admin && { to: '/admin/plugins', label: 'Plugin repositories & upload', group: 'Settings' },
+  state.meta?.is_admin && { to: '/admin/backup', label: 'Backup & restore', group: 'Settings' },
   { to: '/account', label: 'Password & API tokens', group: 'Account' },
+  { to: '/help', label: 'Help', group: '' },
   { to: '/about', label: 'About labdex', group: '' },
 ].filter(Boolean))
 // One section open at a time: the one of the page you're on opens by itself and closes the others;
@@ -172,20 +175,28 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
           <SideTree v-if="treeOpen" />
         </section>
       </nav>
-      <div class="side-foot">
-        <button class="nl hide-m" :title="small ? 'Expand the sidebar (Ctrl B)' : 'Collapse the sidebar (Ctrl B)'" @click="small = !small">
-          <ChevronsRight v-if="small" class="ic" :size="17" /><ChevronsLeft v-else class="ic" :size="17" /><span class="lb">Collapse</span></button>
-        <RouterLink v-if="state.meta.is_admin" to="/admin" class="nl" :class="{ 'router-link-active': $route.path.startsWith('/admin') }" title="Admin">
-          <Settings class="ic" :size="17" /><span class="lb">Admin</span></RouterLink>
+    </aside>
+    <div class="scrim" @click="drawer = false"></div>
+    <ConfirmHost />
+    <CommandPalette ref="palette" :pages="pages" />
+    <main id="main" class="main" tabindex="-1">
+      <header class="tbar">
+        <button class="icon-btn show-m" aria-label="Menu" @click="drawer = true"><Menu :size="18" /></button>
+        <RouterLink to="/" class="brand show-m">lab<span>dex</span></RouterLink>
+        <span class="grow"></span>
+        <button class="icon-btn show-m" aria-label="Search" @click="palette?.show()"><Search :size="18" /></button>
+        <nav class="tlinks" aria-label="labdex">
+          <RouterLink to="/help" class="tl" title="Help"><LifeBuoy :size="16" /><span class="tlb">Help</span></RouterLink>
+          <a :href="state.meta.project_url" class="tl" target="_blank" rel="noopener" :title="`labdex on ${projectHost}`"><Github v-if="projectHost === 'github.com'" :size="16" /><GitFork v-else :size="16" /><span class="tlb">{{ projectName }}</span></a>
+          <RouterLink to="/about" class="tl" :title="`About labdex ${state.meta.version}`"><Info :size="16" /><span class="tlb">About</span></RouterLink>
+          <RouterLink v-if="state.meta.is_admin" to="/admin" class="tl" :class="{ on: $route.path.startsWith('/admin') }" title="Settings"><Settings :size="16" /><span class="tlb">Settings</span></RouterLink>
+        </nav>
         <div class="who">
-          <button class="nl" :aria-expanded="menu" @click="menu = !menu" :title="state.auth.user.display_name">
-            <span class="avatar">{{ state.auth.user.display_name.slice(0, 1).toUpperCase() }}</span>
-            <span class="lb">{{ state.auth.user.display_name }}</span>
-          </button>
-          <div v-if="menu" class="menu">
-            <div class="small faint" style="padding: 6px 12px">
-              {{ state.auth.user.username }} · {{ state.auth.user.is_admin ? 'administrator' : (state.auth.user.groups.join(', ') || 'user') }}
-            </div>
+          <button class="avbtn" :aria-expanded="menu" :aria-label="`Account: ${state.auth.user.display_name}`" :title="state.auth.user.display_name" @click="menu = !menu">
+            <span class="avatar">{{ state.auth.user.display_name.slice(0, 1).toUpperCase() }}</span></button>
+          <div v-if="menu" class="menu" @keydown.esc="menu = false">
+            <div class="mhead"><b>{{ state.auth.user.display_name }}</b>
+              <div class="small faint">{{ state.auth.user.username !== state.auth.user.display_name ? `${state.auth.user.username} · ` : '' }}{{ state.auth.user.is_admin ? 'administrator' : (state.auth.user.groups.join(', ') || 'user') }}</div></div>
             <div class="themes" role="radiogroup" aria-label="Theme">
               <span class="small faint">Theme</span>
               <div class="seg">
@@ -194,22 +205,14 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
               </div>
             </div>
             <RouterLink to="/account">Password &amp; API tokens</RouterLink>
-            <RouterLink to="/about">About labdex {{ state.meta.version }}</RouterLink>
+            <RouterLink class="show-m" to="/help">Help</RouterLink>
+            <RouterLink class="show-m" to="/about">About labdex {{ state.meta.version }}</RouterLink>
+            <RouterLink v-if="state.meta.is_admin" class="show-m" to="/admin">Settings</RouterLink>
             <button v-if="state.auth.user.via === 'session'" @click="logout">Sign out</button>
           </div>
         </div>
-      </div>
-    </aside>
-    <div class="scrim" @click="drawer = false"></div>
-    <ConfirmHost />
-    <CommandPalette ref="palette" :pages="pages" />
-    <main id="main" class="main" tabindex="-1">
-      <div class="mbar">
-        <button class="icon-btn" aria-label="Menu" @click="drawer = true"><Menu :size="18" /></button>
-        <RouterLink to="/" class="brand">lab<span>dex</span></RouterLink>
-        <span class="grow"></span>
-        <button class="icon-btn" aria-label="Search" @click="palette?.show()"><Search :size="18" /></button>
-      </div>
+      </header>
+      <div v-if="menu" class="menu-scrim" @click="menu = false"></div>
       <div v-if="state.meta.demo" class="demobar">Demo: a sample lab with a pretend DNS server and monitor. Resets {{ stamp(state.meta.demo.resets_at) }}.</div>
       <div v-if="state.nav && !state.nav.zones_defined && !($route.path.startsWith('/admin') || $route.path === '/zones')" class="page" style="padding-bottom: 0">
         <div class="warnbox">
@@ -281,11 +284,22 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 .nl.router-link-active .ic { color: var(--accent-soft); }
 .lb { flex: 1; overflow: hidden; text-overflow: ellipsis; }
 .count { color: var(--faint); font-weight: 400; font-size: 12px; font-variant-numeric: tabular-nums; }
-.side-foot { border-top: 1px solid var(--line); padding: 8px; }
-.who { position: relative; }
+.tbar { display: flex; align-items: center; gap: 6px; padding: 6px 16px 6px 20px; min-height: 46px; border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 12; background: var(--bar-bg, var(--bg)); }
+.tlinks { display: flex; align-items: center; gap: 2px; }
+.tl { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: var(--r-ctl); color: var(--muted); font-size: 13px; font-weight: 500; }
+.tl:hover { color: var(--ink); background: var(--raise); text-decoration: none; }
+.tl.router-link-active, .tl.on { color: var(--ink); background: var(--accent-faint); }
+.who { position: relative; margin-left: 6px; }
+.avbtn { background: none; border: 0; padding: 2px; border-radius: 50%; cursor: pointer; display: grid; }
+.avbtn:hover .avatar, .avbtn[aria-expanded="true"] .avatar { box-shadow: 0 0 0 3px var(--accent-faint); }
+.avbtn .avatar { width: 28px; height: 28px; font-size: 12.5px; margin: 0; }
+.mhead { padding: 8px 12px 6px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.menu-scrim { position: fixed; inset: 0; z-index: 11; }
+.show-m { display: none !important; }
 .avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; display: inline-grid; place-items: center;
   font-size: 11px; font-weight: 700; flex: none; margin-left: -2px; }
-.menu { position: absolute; left: 4px; bottom: 44px; min-width: 220px; background: var(--card); border: 1px solid var(--line);
+.menu { position: absolute; right: 0; top: 38px; z-index: 30; min-width: 240px; background: var(--card); border: 1px solid var(--line);
   border-radius: 10px; padding: 4px; box-shadow: 0 12px 30px var(--shadow); }
 .menu a, .menu button { display: block; width: 100%; text-align: left; font: inherit; color: var(--ink); background: none; border: 0;
   padding: 7px 12px; border-radius: 7px; cursor: pointer; }
@@ -297,7 +311,7 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 .small .grp:first-of-type { border-top: 0; }
 .small .side-head { padding: 12px 8px 8px; flex-direction: column; }
 .small .nl { justify-content: center; }
-.mbar, .scrim { display: none; }
+.scrim { display: none; }
 .main { min-width: 0; }
 .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 50; background: var(--accent); color: #fff;
   padding: 9px 16px; border-radius: 9px; font-weight: 600; box-shadow: 0 8px 24px var(--shadow); max-width: min(90vw, 640px); }
@@ -309,7 +323,9 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
   .drawer .scrim { display: block; position: fixed; inset: 0; background: var(--scrim); z-index: 15; }
   .small .lb, .small .count, .small .pill { display: initial; }
 
-  .mbar { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--line); border-top: 3px solid var(--accent);
-    position: sticky; top: 0; background: var(--bar-bg); z-index: 10; }
+  .tbar { padding: 8px 12px; border-top: 3px solid var(--accent); gap: 10px; }
+  .tlinks { display: none; }
+  .show-m { display: revert !important; }
+  .menu a.show-m { display: block !important; }
 }
 </style>
