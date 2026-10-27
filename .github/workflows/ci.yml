@@ -42,9 +42,9 @@ jobs:
           if [ "$FULL" = "true" ] || [ -z "$BASE" ]; then files="*"; else files="$(git diff --name-only "origin/$BASE...HEAD")"; fi
           echo "$files" | sed 's/^/  /'
           has() { [ "$files" = "*" ] || echo "$files" | grep -qE "$1"; }
-          everything=false; has '^backend/(pyproject.toml|labdex/migrations/)|^\.github/workflows/ci.yml' && everything=true
+          everything=false; has '^backend/(pyproject.toml|labdex/migrations/)|^plugins/|^\.gitmodules|^\.github/workflows/ci.yml' && everything=true
           [ "$files" = "*" ] && everything=true
-          { has '^backend/|^examples/|^\.gitmodules' && echo backend=true || echo backend=false
+          { has '^backend/|^examples/|^plugins/|^\.gitmodules' && echo backend=true || echo backend=false
             has '^frontend/|^backend/labdex/(api|static)/' && echo frontend=true || echo frontend=false
             has '^docs/|^mkdocs.yml|^CHANGELOG.md' && echo docs=true || echo docs=false
             has '^Dockerfile|^\.dockerignore|^backend/pyproject.toml|^frontend/package' && echo image=true || echo image=false
@@ -74,7 +74,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          submodules: recursive  # the shipped plugins live in their own repositories
+          submodules: recursive  # the official plugins (plugins/, their own repositories)
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -110,7 +110,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          submodules: recursive  # the shipped plugins live in their own repositories
+          submodules: recursive  # the official plugins (plugins/, their own repositories)
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
@@ -153,7 +153,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          submodules: recursive  # the shipped plugins live in their own repositories
+          submodules: recursive  # the official plugins (plugins/, their own repositories)
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"

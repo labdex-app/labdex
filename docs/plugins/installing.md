@@ -1,14 +1,14 @@
 # Installing plugins and trust
 
-Plugins › Marketplace installs what ships with labdex and what your repositories offer;
+Plugins › Marketplace installs what the official repository and your own repositories offer;
 Settings › Plugins uploads a `.zip` and manages repositories and keys. For a download, labdex
 unpacks the archive, validates the manifest, checks the labdex version range and the
 signature **before any plugin code runs**, then shows what you're about to install.
 
 | Trust | Means |
 | --- | --- |
-| built in | ships with labdex and only updates with it (just the demo lab) |
-| official | maintained by the labdex project: ships with labdex, and updates from the official repository signed with the project key |
+| built in | part of labdex and only updates with it (backups, the demo lab) |
+| official | maintained by the labdex project in its own repository, signed with the project key, from the official repository |
 | community | signed with the key of a repository you added, or an author key you trust |
 | unsigned | no signature: installs only after you tick "I trust its author" |
 | invalid | bad signature, unknown key or files changed after signing: never loaded |

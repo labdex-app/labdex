@@ -21,6 +21,9 @@ const updates = ref(0)
 const plugins = ref([])
 const caps = ref({})
 const loadErrors = ref([])
+const missing = ref([])
+const restoring = ref(false)
+const restoreErrors = ref({})
 const q = ref('')
 const show = ref('all')
 const cap = ref('')
@@ -34,6 +37,22 @@ async function load() {
   caps.value = p.capabilities
   loadErrors.value = p.errors
   available.value = p.available || 0
+  missing.value = p.missing || []
+}
+// plugins no longer ship with labdex (1.24.1): the ones an instance had come back from the Marketplace
+async function restore() {
+  restoring.value = true
+  restoreErrors.value = {}
+  try {
+    const r = await api.post('/api/plugins/restore', {})
+    restoreErrors.value = r.failed || {}
+    if (r.installed.length) toast(`Installed ${r.installed.join(', ')}`)
+  } catch (e) {
+    toast(e.message, 'error')
+  } finally {
+    restoring.value = false
+    await load().catch(() => {})
+  }
 }
 onMounted(() => load().catch((e) => toast(e.message, 'error')))
 
@@ -79,6 +98,17 @@ const dot = (i) => (!i.enabled ? 'off' : i.last_status === 'failed' ? 'bad' : 'o
 
     <Marketplace v-if="tab === 'market'" @changed="load" @updates="(n) => (updates = n)" />
     <template v-else>
+    <div v-if="missing.length" class="warnbox missing">
+      <p><b>{{ missing.length === 1 ? 'A plugin this labdex uses is' : `${missing.length} plugins this labdex uses are` }} not installed.</b>
+        Plugins no longer ship with labdex; they come from the Marketplace. labdex installs them again by itself when it can reach it; their
+        instances keep their settings meanwhile.</p>
+      <ul class="plain small">
+        <li v-for="m in missing" :key="m.id"><span class="mono">{{ m.id }}</span>
+          <span v-if="m.instances.length" class="faint"> · used by {{ m.instances.join(', ') }}</span>
+          <span v-if="restoreErrors[m.id]" class="err"> · {{ restoreErrors[m.id] }}</span></li>
+      </ul>
+      <button v-if="state.meta.is_admin" class="btn small" :disabled="restoring" @click="restore">{{ restoring ? 'Installing…' : 'Install them now' }}</button>
+    </div>
     <div class="filters">
       <FilterSelect v-model="show" label="Show" any="" :options="[{ value: 'all', label: 'all installed' }, { value: 'used', label: 'in use' }]" />
       <FilterSelect :model-value="cap" label="Brings" :options="usedCaps" @update:model-value="(v) => (cap = v || '')" />
@@ -109,8 +139,7 @@ const dot = (i) => (!i.enabled ? 'off' : i.last_status === 'failed' ? 'bad' : 'o
       </div>
       <p v-if="!shown.length" class="faint">No plugin matches.<template v-if="show === 'used'"> <a href="#" @click.prevent="show = 'all'">Show all plugins</a>.</template></p>
     </div>
-    <p v-if="available" class="small muted more">{{ available }} more plugin{{ available === 1 ? '' : 's' }} ship{{ available === 1 ? 's' : '' }} with labdex but {{ available === 1 ? "isn't" : "aren't" }} installed.
-      <a href="#" @click.prevent="setTab('market')">Browse the Marketplace</a></p>
+    <p class="small muted more">Firewalls, DNS, hypervisors, monitoring and more: <a href="#" @click.prevent="setTab('market')">find plugins in the Marketplace</a>.</p>
     </template>
     <div v-if="loadErrors.length" class="errbox" style="margin-top: 16px"><div v-for="e in loadErrors" :key="e.path" class="small"><code>{{ e.path }}</code> {{ e.error }}</div></div>
     <Modal v-if="adding" :title="`New ${adding.name || adding.id} instance`" @close="adding = null">
@@ -127,6 +156,9 @@ const dot = (i) => (!i.enabled ? 'off' : i.last_status === 'failed' ? 'bad' : 'o
 </template>
 
 <style scoped>
+.missing { margin-bottom: 16px; }
+.missing p { margin: 0 0 6px; }
+.missing ul { margin: 0 0 10px; }
 .pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
 .pcard { display: flex; flex-direction: column; gap: 6px; margin: 0; }
 .pname { font-weight: 650; font-size: 15px; color: var(--ink); }

@@ -145,7 +145,7 @@ def stage(blob: bytes, source: str = "upload") -> dict:
         raise InstallError(f"'{pid}' is a built-in plugin and can't be replaced")
     if cur is not None and (cur.bundled or cur.replaces_bundled) and trust.get("status") != "official":
         shutil.rmtree(root, ignore_errors=True)
-        raise InstallError(f"'{pid}' ships with labdex: only an update signed with the labdex project key can replace it")
+        raise InstallError(f"'{pid}' is a development checkout: only an update signed with the labdex project key can replace it")
     info = {
         "token": token, "id": pid, "name": manifest.get("name", pid), "version": str(manifest.get("version", "")),
         "description": manifest.get("description", ""), "author": manifest.get("author", ""),
@@ -242,7 +242,7 @@ def uninstall(pid: str, force: bool = False) -> None:
     if spec.builtin:
         raise InstallError("built-in plugins can't be removed; disable or delete their integrations instead")
     if spec.bundled:
-        raise InstallError("this plugin ships with labdex and can't be removed; disable or delete its integrations instead")
+        raise InstallError("this plugin is part of labdex (or a development checkout) and can't be removed; disable or delete its integrations instead")
     used = [i.name for i in db.session.scalars(db.select(Integration).where(Integration.plugin_id == pid))]
     if used and not force and not spec.replaces_bundled:  # removing an update falls back to the bundled copy
         raise InstallError(f"still used by {', '.join(used)}; delete those integrations first")
@@ -252,6 +252,8 @@ def uninstall(pid: str, force: bool = False) -> None:
         raise InstallError("plugin isn't in the plugin folder")
     shutil.rmtree(target)
     shutil.rmtree(previous_dir(pid), ignore_errors=True)
+    from . import catalog
+    catalog.forget(pid)  # removed on purpose: not one to put back after an upgrade
     reload_registry()
 
 
@@ -308,9 +310,9 @@ def fetch_repository(repo: PluginRepository, force: bool = False) -> dict:
 
 
 def marketplace(fetch: bool = True) -> dict:
-    """Everything that can be installed, one entry per plugin: what ships with labdex (installed
-    or not, nothing to download) and what the enabled repositories offer. A repository entry for a
-    plugin that ships with labdex is the same entry, with the repository's version."""
+    """Everything that can be installed, one entry per plugin: what the enabled repositories offer,
+    and development checkouts (LABDEX_DEV_PLUGINS; installed or not, nothing to download), which
+    share their entry with the repository's version."""
     from . import CAPABILITIES, catalog, updates
     reg = current_app.extensions["labdex"]["registry"]
     out: dict[str, dict] = {}
@@ -323,7 +325,7 @@ def marketplace(fetch: bool = True) -> dict:
             "id": spec.id, "name": spec.name, "version": str(m.get("version", "")), "description": m.get("description", ""),
             "author": m.get("author", "labdex" if spec.bundled else ""), "tags": m.get("tags") or [], "capabilities": spec.capabilities,
             "kind": spec.kind, "requires": str(m.get("labdex") or ""), "compatible": True, "incompatible_reason": "",
-            "source": "ships with labdex" if spec.bundled else spec.trust.get("detail") or "uploaded",
+            "source": "development checkout" if spec.bundled else spec.trust.get("detail") or "uploaded",
             "bundled": spec.bundled, "official": spec.bundled or spec.trust.get("status") == "official",
             "repository": "", "repository_id": None,
             "installed": catalog.is_installed(spec), "installed_version": str(m.get("version", "")) if catalog.is_installed(spec) else None,
@@ -346,6 +348,8 @@ def marketplace(fetch: bool = True) -> dict:
                 continue
             pid = str(p["id"])
             cur = reg.get(pid)
+            if cur is not None and cur.builtin:  # part of labdex now (backups): nothing to install
+                continue
             entry = out.get(pid) or {
                 "id": pid, "name": p.get("name", pid), "description": p.get("description", ""), "author": p.get("author", ""),
                 "tags": p.get("tags") or [], "capabilities": p.get("capabilities") or [], "kind": p.get("kind", "integration"),
@@ -463,6 +467,9 @@ def best_version(entry: dict) -> dict | None:
 
 def install_from_repository(repo: PluginRepository, pid: str, version: str | None = None) -> dict:
     from urllib.parse import urljoin
+    cur = current_app.extensions["labdex"]["registry"].get(pid)
+    if cur is not None and cur.builtin:
+        raise InstallError(f"'{pid}' is part of labdex: nothing to install")
     idx = fetch_repository(repo)
     top = next((p for p in idx["plugins"] if isinstance(p, dict) and str(p.get("id")) == pid), None)
     if top is None:
@@ -708,3 +715,58 @@ def build_repository(src: Path, out: Path, private_pem: bytes, name: str, descri
                       "plugins": plugins}, private_pem)
     (out / "index.json").write_text(json.dumps(doc, indent=2) + "\n")
     return doc
+
+
+# ------------------------------------------------- plugins to put back after an upgrade
+RESTORE_EVERY = 900  # seconds between tries while some are still missing (offline, say)
+_restore_tried: dict[str, float] = {}
+
+
+def missing() -> list[str]:
+    """Plugins this labdex should have but doesn't: listed as installed, or used by an
+    integration, and not loaded. After the upgrade from 1.24.0 (plugins no longer ship with
+    labdex) these are the official ones that were installed."""
+    from . import catalog
+    reg = current_app.extensions["labdex"]["registry"]
+    used = {i.plugin_id for i in db.session.scalars(db.select(Integration))}
+    return sorted(pid for pid in catalog.wanted() | used if reg.get(pid) is None)
+
+
+def restore_missing(force: bool = False) -> dict:
+    """Install the missing plugins from the official repository (signed with the project key
+    only), each at its held version if it has one. Tried again every RESTORE_EVERY while some
+    fail; their integrations keep their settings and state meanwhile."""
+    from .. import audit, notify
+    from . import catalog, updates
+    todo = missing()
+    out = {"missing": todo, "installed": [], "failed": {}}
+    key = current_app.config.get("LABDEX_DATA_DIR", "")
+    if not todo or (not force and time.time() - _restore_tried.get(key, 0) < RESTORE_EVERY):
+        return out
+    _restore_tried[key] = time.time()
+    repo = db.session.scalar(db.select(PluginRepository).where(PluginRepository.official.is_(True), PluginRepository.enabled.is_(True)))
+    if repo is None:
+        out["failed"] = dict.fromkeys(todo, "the official repository isn't set up or is disabled (Plugins › Repositories)")
+        return out
+    held = updates.holds()
+    for pid in todo:
+        try:
+            info = install_from_repository(repo, pid, held.get(pid))
+            if info["trust"]["status"] != "official":
+                raise InstallError("not signed with the labdex project key")
+            confirm(info["token"], accept_unsigned=False)
+            catalog.forget(pid)
+            audit.record("create", "plugin", pid, None, {"version": info["version"], "source": repo.name},
+                         summary=f"installed {info['name']} {info['version']} again from {repo.name} (plugins no longer ship with labdex)")
+            db.session.commit()
+            out["installed"].append(pid)
+        except Exception as exc:  # one failing must not stop the others
+            db.session.rollback()
+            out["failed"][pid] = str(exc)[:300]
+            current_app.logger.warning("installing %s again failed: %s", pid, exc)
+    if out["installed"]:
+        notify.emit("plugins.updated", f"Installed again from the Marketplace: {', '.join(out['installed'])}",
+                    "Plugins no longer ship with labdex (1.24.1); the ones you had were installed from the official Marketplace.",
+                    link="/plugins")
+    out["missing"] = missing()
+    return out

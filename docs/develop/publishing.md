@@ -85,9 +85,9 @@ labdex plugin yank ./public pihole 0.3 --key my.pem          # offered again
 
 ## The official Marketplace
 
-Every plugin that ships with labdex lives in its own repository
-(`reykimedev/labdex-plugin-<id>`), included in labdex as a git submodule pinned to a
-release. [labdex-plugins](https://github.com/reykimedev/labdex-plugins) lists them; its
+Every official plugin lives in its own repository (`reykimedev/labdex-plugin-<id>`); labdex
+has them as git submodules in `plugins/` for its tests, but doesn't ship them: users install
+them from the Marketplace. [labdex-plugins](https://github.com/reykimedev/labdex-plugins) lists them; its
 index is signed with the project key and published at
 `https://reykimedev.github.io/labdex-plugins/index.json`, which labdex trusts out of the
 box. Contributions are welcome: see [Contributing](contributing.md).

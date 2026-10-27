@@ -1,13 +1,16 @@
-"""1.3: every real plugin is an official one (bundled, updatable from the official repository)."""
+"""1.3: every real plugin is an official one, updatable from the official repository. Since
+1.24.1 they're not part of labdex: the tests load their checkouts (plugins/, LABDEX_DEV_PLUGINS)."""
 from pathlib import Path
 
 import yaml
 
-from labdex.plugins import BUILTIN_DIR, BUNDLED_DIR, Registry, compatibility
+from labdex.plugins import BUILTIN_DIR, Registry, compatibility, dev_dir
+
+BUNDLED_DIR = dev_dir()
 
 
-def test_only_the_demo_lab_is_built_in():
-    assert sorted(p.name for p in BUILTIN_DIR.iterdir() if (p / "plugin.yaml").is_file()) == ["demo-lab"]
+def test_only_backups_and_the_demo_lab_are_built_in():
+    assert sorted(p.name for p in BUILTIN_DIR.iterdir() if (p / "plugin.yaml").is_file()) == ["backup", "demo-lab"]
 
 
 def test_every_official_plugin_states_a_range_this_labdex_meets():
@@ -23,7 +26,7 @@ def test_every_official_plugin_states_a_range_this_labdex_meets():
 
 def test_formerly_built_in_plugins_load_as_official(admin):
     plugins = {p["id"]: p for p in admin.get("/api/plugins").get_json()["plugins"]}
-    for pid in ("opnsense", "technitium", "nmap", "backup", "exports", "ansible", "traefik", "docker", "proxmox"):
+    for pid in ("opnsense", "technitium", "nmap", "exports", "ansible", "traefik", "docker", "proxmox"):
         p = plugins[pid]
         assert p["bundled"] and not p["builtin"] and p["trust"]["status"] == "official" and not p["error"], pid
 
@@ -32,7 +35,7 @@ def test_official_plugins_use_no_private_core_names():
     """They update on their own, so they may only use names without a leading underscore."""
     import re
     rx = re.compile(r"from labdex[\w.]* import (?:[\w ]+, )*_\w+|labdex\.\w+\._\w+")
-    for py in BUNDLED_DIR.rglob("*.py"):
+    for py in [*BUNDLED_DIR.rglob("*.py"), *(BUILTIN_DIR / "backup").rglob("*.py")]:
         assert not rx.search(py.read_text()), py
 
 

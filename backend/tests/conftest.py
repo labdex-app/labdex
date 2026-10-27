@@ -22,6 +22,8 @@ def client(app, **environ):
 # (the database is wiped before each test). Default: a fresh SQLite file per test.
 # tests never reach the real official Marketplace (tests that need one set their own)
 os.environ.setdefault("LABDEX_OFFICIAL_INDEX", "")
+# the official plugins: checkouts of their repositories (git submodules in plugins/), loaded as official
+os.environ.setdefault("LABDEX_DEV_PLUGINS", str(Path(__file__).resolve().parents[2] / "plugins"))
 
 PG_URL = os.environ.get("LABDEX_TEST_DATABASE_URL", "")
 

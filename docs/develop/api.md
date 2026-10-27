@@ -50,9 +50,10 @@ takes a host or network name (`/api/hosts/<name>`, `/api/networks/<name>`, …) 
 | GET | `/api/events[?job=<id>]` | Server-Sent Events: plan count, `revision` on every change, job status and output |
 | POST · POST · DELETE | `/api/plugins/upload` · `/api/plugins/stage/<token>/confirm` · `/api/plugins/<id>` | Install, confirm, remove |
 | GET · POST | `/api/plugin-repos` (`/preview`) | Signed repositories |
-| GET | `/api/marketplace` (`?offline=1` skips the repositories) | Everything installable: what ships with labdex (`bundled`, `installed`) and what repositories offer (`update`, `repo_version`) |
-| POST | `/api/marketplace/install` `{id}` or `{repository_id, id}` | A plugin that ships with labdex installs at once; a repository plugin is staged for `/api/plugins/stage/<token>/confirm` |
-| DELETE | `/api/plugins/<id>` | Uninstall (a shipped plugin is only hidden; 409 while it has instances) |
+| GET | `/api/marketplace` (`?offline=1` skips the repositories) | Everything installable: what repositories offer (`installed`, `update`, `repo_version`), and development checkouts (`bundled`) |
+| POST | `/api/marketplace/install` `{repository_id, id}` | Stages a repository plugin for `/api/plugins/stage/<token>/confirm` (a development checkout, `{id}`, installs at once) |
+| DELETE | `/api/plugins/<id>` | Uninstall (409 while it has instances) |
+| POST | `/api/plugins/restore` | Install the plugins this labdex uses but doesn't have (after an upgrade from 1.24.0) from the official repository now: `{installed, failed, missing}`; `GET /api/plugins` lists them as `missing` |
 | POST · DELETE | `/api/discovery/addresses/assign` · `/api/discovery/addresses/<ip>` | Add a seen address to a host; forget it |
 | GET · PUT, DELETE | `/api/secrets` · `/api/secrets/<name>` | The older API for vault entries under `global/` (field `value`); writing needs the vault unsealed |
 | GET | `/api/vault/refs` | The fields you may point plugins and Ansible variables at: `vault:<path>#<field>` |

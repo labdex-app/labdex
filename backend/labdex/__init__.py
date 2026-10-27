@@ -12,7 +12,7 @@ from sqlalchemy import event
 
 from .models import db
 
-__version__ = "1.24.0"
+__version__ = "1.24.1"
 
 STATIC_DIR = Path(__file__).parent / "static"
 

@@ -16,9 +16,9 @@ def test_a_new_labdex_has_the_core_set(admin, make_user):
 
     m = admin.get("/api/marketplace?offline=1").get_json()
     opn = next(p for p in m["plugins"] if p["id"] == "opnsense")
-    assert (opn["installed"], opn["bundled"], opn["source"], opn["official"]) == (False, True, "ships with labdex", True)
+    assert (opn["installed"], opn["bundled"], opn["source"], opn["official"]) == (False, True, "development checkout", True)
     assert opn["actions"] and opn["settings"] and m["can_install"] is True
-    assert next(p for p in m["plugins"] if p["id"] == "backup")["installed"] is True
+    assert "backup" not in {p["id"] for p in m["plugins"]}  # part of labdex (1.24.1): nothing to install
 
     # viewers browse, only administrators install
     v = make_user("v", role="viewer")
