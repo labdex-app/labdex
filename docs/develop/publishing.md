@@ -14,7 +14,7 @@ plugin installs as *community*.
 ## A plugin in its own git repository
 
 That's how labdex's own plugins live (`labdex-plugin-<id>`): the plugin at the root of a
-repository, released by tagging. Start one from a plugin folder:
+repository, released by publishing a GitHub release. Start one from a plugin folder:
 
 ```sh
 python3 backend/tools/plugin_repo/make_plugin_repo.py ./pihole ../labdex-plugin-pihole --community
@@ -105,5 +105,8 @@ like `labdex: ">=1.9,<2"` take hotfixes as you'd expect. The image of 1.9.0-1 is
 `1.9.0-1`, `1.9.0`, `1.9`, `1` and `latest`: a hotfix replaces its release.
 
 To make one, `python backend/tools/bump.py sub|minor|major|patch` (or an exact version)
-writes the version everywhere and opens a changelog heading. The release workflow
-refuses a git tag that doesn't match the code's version.
+writes the version everywhere and opens a changelog heading. Push that to `main`, then
+publish a GitHub release tagged `v<version>` on it (`gh release create v1.23.0 --target main
+--notes ""`): the release workflow builds and signs the image and the files and attaches
+them, with the changelog section as notes if you left them empty. It refuses a tag that
+doesn't match the code's version.

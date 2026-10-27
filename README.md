@@ -495,7 +495,7 @@ python tools/big_inventory.py 1000 > big.yaml                # a large demo inve
 
 GitHub Actions runs all of it on every push (`ci.yml`), including a docs build and
 the upgrade gate (a 0.5 database started on the current release, `tests/test_upgrade_gate.py`).
-Tagging `v*` publishes signed multi-arch images (amd64, arm64) to `ghcr.io/<owner>/labdex`
+Publishing a GitHub release tagged `v<version>` publishes signed multi-arch images (amd64, arm64) to `ghcr.io/<owner>/labdex`
 and a GitHub release with signed archives, wheel and SBOMs (`release.yml`). `docs.yml`
 publishes the docs and the official plugin repository (signed with the
 `LABDEX_OFFICIAL_KEY` secret) to GitHub Pages.
