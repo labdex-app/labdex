@@ -1,0 +1,22 @@
+# Who reviews what. A pull request needs one approval from an owner of every path it
+# touches (the branch rules require code owner review). Teams of the labdex-app organization.
+
+*                                     @labdex-app/maintainers
+
+# trust, signing, sign-in, isolation and the release pipeline: a second pair of eyes
+/backend/labdex/keys/                 @labdex-app/security
+/backend/labdex/plugins/trust.py      @labdex-app/security
+/backend/labdex/plugins/sandbox*.py   @labdex-app/security
+/backend/labdex/auth.py               @labdex-app/security
+/backend/labdex/oidc.py               @labdex-app/security
+/backend/labdex/keyvault.py           @labdex-app/security
+/backend/labdex/secretstore.py        @labdex-app/security
+/.github/workflows/release.yml        @labdex-app/security
+/SECURITY.md                          @labdex-app/security
+
+# the official plugins (submodule pointers)
+/plugins/                             @labdex-app/plugin-maintainers @labdex-app/maintainers
+/.gitmodules                          @labdex-app/plugin-maintainers @labdex-app/maintainers
+
+# the docs
+/docs/                                @labdex-app/maintainers @labdex-app/docs
