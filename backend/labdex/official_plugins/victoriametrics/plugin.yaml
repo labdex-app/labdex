@@ -1,0 +1,26 @@
+id: victoriametrics
+name: VictoriaMetrics / Prometheus
+kind: integration
+tags: [monitoring, status]
+version: "1.0"
+labdex: ">=1.3,<2"
+description: Host status from the `up` metric (down when every target of a host is down), plus CPU and memory from node_exporter for the host page. Works with VictoriaMetrics and Prometheus (the Prometheus query API).
+settings:
+  - {key: url, label: URL, type: string, required: true, placeholder: "https://vm.lab.example.net", help: "Base URL of VictoriaMetrics (single node or vmselect …/select/0/prometheus) or Prometheus"}
+  - {key: auth, label: Authentication, type: select, default: none, options: [none, basic, bearer]}
+  - {key: username, label: User name, type: string}
+  - {key: password, label: Password, type: secret}
+  - {key: token, label: Bearer token, type: secret}
+  - {key: verify_tls, label: Check the TLS certificate, type: bool, default: true}
+  - {key: up_query, label: Status query, type: string, default: "up", help: "Returns 1 (up) or 0 (down) per target, e.g. up{job=~\"node|blackbox\"}"}
+  - {key: match_label, label: Label that names the host, type: string, default: instance, help: "Its value (address, name or FQDN, with or without :port) is matched to inventory hosts"}
+  - {key: cpu_query, label: CPU query, type: string, default: "100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])))", help: "Per host, in %; empty = no CPU"}
+  - {key: mem_query, label: Memory query, type: string, default: "100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)", help: "Per host, in %; empty = no memory"}
+actions:
+  - {id: test, label: Check connection, mode: run}
+  - {id: poll, label: Read host status, mode: run, schedulable: true, schedule_default: 2, description: "Asks for the status query and reports each matched host"}
+widgets:
+  - {id: targets, label: Targets down, where: dashboard, refresh: 60}
+  - {id: host, label: Metrics, where: host, size: wide, refresh: 60}
+host_view: false
+per_host: false

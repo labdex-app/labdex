@@ -1,0 +1,193 @@
+# Example labdex inventory: a two-person homelab with an OPNsense edge firewall,
+# a small out-of-band router, two Proxmox hosts, a k3s cluster and a public DMZ.
+#
+#   labdex import examples/homelab.yaml
+#
+# Public addresses use documentation ranges (RFC 5737 / RFC 3849).
+
+settings:
+  domain: lab.example.net
+  alias_max_length: '32'
+  categories: net,srv,dmz,sto,lab,pwr,cli,ext
+  octet_matches_vlan: 'true'
+  dmz_area: DMZ
+
+areas:
+  - {code: INET, name: Internet, colour: '#a3a3ab'}
+  - {code: CA, name: Campus, colour: '#60a5fa'}
+  - {code: RA, name: Remote access, colour: '#22d3ee'}
+  - {code: DC, name: Datacenter, colour: '#4ade80'}
+  - {code: DMZ, name: Perimeter DMZ, colour: '#f87171'}
+
+# Every area also has a default zone with its own code (INET, CA, …) for things not classified further.
+zones:
+  - {code: INET_TC, name: 'Internet, my VPS', rank: 4, colour: '#4ade80', description: Rented servers I manage}
+  - {code: INET_UT, name: Internet, rank: 1, description: Anything out there}
+  - {code: CA_ST, name: 'Campus, semi-trusted', rank: 2, description: 'Owner known, managed by someone else'}
+  - {code: CA_UT, name: 'Campus, untrusted (IoT, guests)', rank: 1, colour: '#a3a3ab', description: Owner or state unknown}
+  - {code: RA_ST, name: Remote access, rank: 2, description: Tailscale / Netbird clients}
+  - {code: DC_HT, name: 'Datacenter, highly trusted', rank: 5, colour: '#e879f9', description: 'Management: network gear, hypervisors, BMCs'}
+  - {code: DC_TC, name: 'Datacenter, trusted', rank: 4, description: Servers managed as code, updated automatically}
+  - {code: DMZ_TC, name: DMZ, rank: 4, description: Internet-facing}
+
+networks:
+  - {name: mgmt, vlan: 3, zone: DC_HT, prefix4: 10.10.3.0/24, prefix6: 'fd00:10:10:3::/64', gateway4: 10.10.3.254, notes: Network gear, hypervisors, NAS admin}
+  - {name: oob, vlan: 5, zone: DC_HT, prefix4: 10.10.5.0/24, gateway4: 10.10.5.254, notes: BMCs, UPS, console}
+  - {name: storage, vlan: 8, zone: DC_HT, prefix4: 10.10.8.0/24, in_dns: false, notes: L2 only, MTU 9000}
+  - {name: main, vlan: 10, zone: CA_ST, prefix4: 10.10.10.0/24, prefix6: 'fd00:10:10:10::/64', gateway4: 10.10.10.254, dhcp_start: 10.10.10.50, dhcp_end: 10.10.10.199, notes: Household devices}
+  - {name: srv, vlan: 100, zone: DC_TC, prefix4: 10.10.100.0/24, prefix6: 'fd00:10:10:100::/64', gateway4: 10.10.100.254, notes: Servers}
+  - {name: k8s, vlan: 128, zone: DC_TC, prefix4: 10.10.128.0/24, gateway4: 10.10.128.254, notes: k3s nodes; API VIP .10}
+  - {name: dmz, vlan: 150, zone: DMZ_TC, prefix4: 10.10.150.0/24, gateway4: 10.10.150.254, notes: Internet-facing}
+  - {name: iot, vlan: 201, zone: CA_UT, prefix4: 10.10.201.0/24, gateway4: 10.10.201.254, dhcp_start: 10.10.201.50, dhcp_end: 10.10.201.199}
+  - {name: guest, vlan: 231, zone: CA_UT, prefix4: 10.10.231.0/24, gateway4: 10.10.231.254, dhcp_start: 10.10.231.50, dhcp_end: 10.10.231.199}
+  - {name: tailnet, zone: RA_ST, prefix4: 100.64.0.0/10, in_dns: false, notes: Tailscale / Netbird clients}
+  - {name: internet, zone: INET_UT, in_dns: false, notes: Public addresses}
+
+hosts:
+  - name: net-fw-edge-01
+    fun: arcanine
+    zone: DC_HT
+    function: OPNsense edge firewall
+    hardware: 1U appliance
+    interfaces:
+      - {network: mgmt, ip4: 10.10.3.253, primary: true}
+      - {network: main, ip4: 10.10.10.254}
+      - {network: srv, ip4: 10.10.100.254}
+      - {network: k8s, ip4: 10.10.128.254}
+      - {network: dmz, ip4: 10.10.150.254}
+      - {network: iot, ip4: 10.10.201.254}
+      - {network: guest, ip4: 10.10.231.254}
+    services:
+      - {name: opnsense, port: 443, scheme: https}
+  - name: net-rt-oob-01
+    fun: noctowl
+    zone: DC_HT
+    function: Out-of-band router
+    interfaces:
+      - {network: mgmt, ip4: 10.10.3.254, primary: true}
+      - {network: oob, ip4: 10.10.5.254}
+  - name: net-sw-core-01
+    zone: DC_HT
+    function: Core switch
+    interfaces:
+      - {network: mgmt, ip4: 10.10.3.2, mac: '00:1a:2b:00:00:02'}
+  - name: srv-pm-pve-01
+    fun: snorlax
+    zone: DC_HT
+    function: Main Proxmox host
+    hardware: 2U server, 2x Xeon
+    interfaces:
+      - {network: mgmt, ip4: 10.10.3.11, primary: true}
+      - {network: oob, label: bmc, ip4: 10.10.5.11}
+      - {network: storage, ip4: 10.10.8.11}
+    services:
+      - {name: proxmox, port: 8006, scheme: https}
+  - name: srv-pm-pve-02
+    fun: munchlax
+    zone: DC_HT
+    function: Second Proxmox host
+    interfaces:
+      - {network: mgmt, ip4: 10.10.3.12, primary: true}
+      - {network: oob, label: bmc, ip4: 10.10.5.12}
+      - {network: storage, ip4: 10.10.8.12}
+  - name: srv-vm-dns-01
+    fun: unown
+    zone: DC_TC
+    function: DNS resolver
+    runs_on: srv-pm-pve-02
+    interfaces:
+      - {network: srv, ip4: 10.10.100.53, ip6: 'fd00:10:10:100::53'}
+    services:
+      - {name: dns, port: 53, proto: udp, publish_srv: true}
+      - {name: dns-admin, port: 5380, scheme: http, dns_name: dns}
+  - name: srv-vm-mon-01
+    fun: alakazam
+    zone: DC_TC
+    function: Monitoring (metrics, logs, dashboards)
+    runs_on: srv-pm-pve-02
+    interfaces:
+      - {network: srv, ip4: 10.10.100.20}
+    services:
+      - {name: grafana, port: 443, scheme: https, dns_name: grafana, publish_srv: true}
+  - name: srv-vm-ha-01
+    fun: rotom
+    zone: DC_TC
+    function: Home Assistant
+    runs_on: srv-pm-pve-01
+    interfaces:
+      - {network: srv, ip4: 10.10.100.30, primary: true}
+      - {network: iot, label: discovery, ip4: 10.10.201.30}
+    services:
+      - {name: homeassistant, port: 8123, scheme: http, dns_name: home}
+  - name: srv-vm-k3s-01
+    fun: vaporeon
+    zone: DC_TC
+    function: k3s node
+    runs_on: srv-pm-pve-01
+    interfaces:
+      - {network: k8s, ip4: 10.10.128.11}
+  - name: srv-vm-k3s-02
+    fun: jolteon
+    zone: DC_TC
+    function: k3s node
+    runs_on: srv-pm-pve-01
+    interfaces:
+      - {network: k8s, ip4: 10.10.128.12}
+  - name: dmz-vm-docker-01
+    fun: aegislash
+    zone: DMZ_TC
+    function: Public Docker host
+    runs_on: srv-pm-pve-02
+    interfaces:
+      - {network: dmz, ip4: 10.10.150.10}
+  - name: ext-vps-k3s-01
+    fun: eiger
+    zone: INET_TC
+    function: Public k3s node (VPS)
+    interfaces:
+      - {network: internet, label: public, ip4: 198.51.100.10, ip6: '2001:db8::10'}
+  - name: cli-pc-admin-01
+    zone: CA_ST
+    function: Admin workstation
+    tags: [admin]
+    interfaces:
+      - {network: main, ip4: 10.10.10.200, mac: '00:1a:2b:00:10:01'}
+  - name: cli-nb-admin-01
+    zone: CA_ST
+    function: Admin notebook
+    tags: [admin]
+    interfaces:
+      - {network: main, label: wired, ip4: 10.10.10.201, mac: '00:1a:2b:00:10:02'}
+      - {network: main, label: wifi, ip4: 10.10.10.202, mac: '00:1a:2b:00:10:03'}
+  - name: sonos-living
+    zone: CA_UT
+    status: legacy
+    function: Speaker
+    interfaces:
+      - {network: iot, ip4: 10.10.201.10, mac: '00:1a:2b:00:20:01'}
+
+aliases:
+  - name: HG_ZONE_CA_ST_ADMIN
+    type: host
+    members: ['host:cli-pc-admin-01', 'host:cli-nb-admin-01']
+    description: Admin hosts in MAIN (DHCP reservation + static ARP)
+  - name: HG_SPECIAL_ADMIN
+    type: host
+    members: ['alias:HG_ZONE_CA_ST_ADMIN']
+    description: Everything that may reach DC_HT
+  - name: MG_ZONE_CA_UT_SONOS
+    type: mac
+    members: ['host:sonos-living']
+    description: Sonos speakers
+  - name: NG_SPECIAL_INTERNAL
+    type: network
+    members: ['area:CA', 'area:RA', 'area:DC', 'area:DMZ']
+    description: Every internal range
+  - name: NG_SPECIAL_PRIVATE
+    type: network
+    members: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10, 'fc00::/7', 'fe80::/10']
+    description: Private space, used inverted for internet egress
+  - name: SG_DNS
+    type: port
+    members: ['53', '853']
+    description: DNS and DoT

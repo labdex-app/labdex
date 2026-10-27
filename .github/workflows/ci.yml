@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Tests (${{ matrix.db }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [sqlite, postgres]
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: labdex
+          POSTGRES_PASSWORD: labdex
+          POSTGRES_DB: labdex_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U labdex" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      LABDEX_TEST_DATABASE_URL: ${{ matrix.db == 'postgres' && 'postgresql://labdex:labdex@127.0.0.1:5432/labdex_test' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Install
+        working-directory: backend
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends nmap snmpd  # snmpd: the SNMPv3 client is checked against net-snmp
+          pip install -e ".[server,postgres,test]" ruff
+      - name: Lint
+        working-directory: backend
+        run: ruff check labdex tools tests
+      - name: Tests
+        working-directory: backend
+        run: pytest -q
+
+  frontend-e2e-perf:
+    name: UI build, browser tests, performance budget
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Build the UI
+        working-directory: frontend
+        run: npm ci && npm run lint && npm run build
+      - name: Install
+        working-directory: backend
+        run: |
+          pip install -e ".[server,test]" playwright
+          python -m playwright install --with-deps chromium
+      - name: Browser tests
+        working-directory: backend
+        env:
+          LABDEX_E2E: "1"
+        run: pytest -q tests/e2e
+      - name: Performance budget (1000 hosts)
+        working-directory: backend
+        env:
+          LABDEX_PERF: "1"
+        run: pytest -q -s tests/test_perf.py
+      - name: Docker image builds
+        run: docker build -t labdex:ci .
+
+  docs:
+    name: Docs build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r docs/requirements.txt && mkdocs build --strict

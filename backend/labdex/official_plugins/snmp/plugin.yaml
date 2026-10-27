@@ -1,0 +1,25 @@
+id: snmp
+name: SNMP neighbours
+kind: integration
+tags: [network, discovery, status]
+version: "1.0"
+labdex: ">=1.20,<2"
+description: Reads switches and routers over SNMP (v2c or v3) — who sits on which port, from LLDP and Cisco's CDP — and suggests those cables on the Cables page. Also reports whether each one answers. Read-only. Applies to hosts tagged snmp to start with.
+applies_to: ["tag:snmp"]
+settings:
+  - {key: version, label: SNMP version, type: select, default: v2c, options: [v2c, v3]}
+  - {key: community, label: Community, type: secret, required: true, when: {version: v2c}, help: "Read-only community, often public; pick it from the vault to share it"}
+  - {key: user, label: User, type: string, required: true, when: {version: v3}}
+  - {key: auth, label: Authentication, type: select, default: sha, options: [sha, sha256, sha512, md5, none], when: {version: v3}}
+  - {key: auth_pass, label: Authentication passphrase, type: secret, when: {version: v3, auth: [sha, sha256, sha512, md5]}}
+  - {key: priv, label: Privacy, type: select, default: aes, options: [aes, none], when: {version: v3, auth: [sha, sha256, sha512, md5]}, help: "AES-128"}
+  - {key: priv_pass, label: Privacy passphrase, type: secret, when: {version: v3, priv: aes, auth: [sha, sha256, sha512, md5]}}
+  - {key: port, label: Port, type: int, default: 161, min: 1, max: 65535}
+  - {key: timeout, label: Timeout (seconds), type: int, default: 3, min: 1, max: 30}
+host_settings:
+  - {key: address, label: Address for SNMP, type: string, help: "Default: the host's primary address"}
+actions:
+  - {id: test, label: Check the switches, mode: run, description: "Asks each host it applies to for its name"}
+  - {id: poll, label: Read neighbours, mode: run, schedulable: true, schedule_default: 30, description: "LLDP and CDP neighbours of every host it applies to; new cables show on the Cables page"}
+widgets:
+  - {id: host, label: Neighbours, where: host}

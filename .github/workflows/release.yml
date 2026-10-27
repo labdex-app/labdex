@@ -1,0 +1,134 @@
+name: Release
+
+# Tag a version (git tag v1.0.0 && git push --tags) to publish:
+#   ghcr.io/<owner>/labdex:1.0.0, :1.0, :1 and :latest for amd64 and arm64, signed with cosign
+#   (keyless, this workflow's identity) with an SPDX SBOM attached as an attestation;
+#   a GitHub release with the source archive, the Python wheel and sdist, their SBOM and a
+#   cosign bundle for each file.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+  attestations: write
+
+jobs:
+  image:
+    runs-on: ubuntu-24.04
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Point labdex at this repository's official plugin index
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER}"; repo="${GITHUB_REPOSITORY#*/}"
+          echo "https://${owner}.github.io/${repo}/plugins/index.json" > backend/labdex/keys/official/index.url
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: sigstore/cosign-installer@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # labdex versions are MAJOR.MINOR.SUB(-N): a "-N" hotfix comes after its release
+      # (SemVer would call it a pre-release and skip the floating tags), so the tags are ours
+      - id: version
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import importlib.util, os
+          spec = importlib.util.spec_from_file_location("v", "backend/labdex/versioning.py")
+          v = importlib.util.module_from_spec(spec); spec.loader.exec_module(v)
+          tag = os.environ["GITHUB_REF_NAME"].removeprefix("v")
+          code = open("backend/labdex/__init__.py").read()
+          assert f'__version__ = "{tag}"' in code, f"tag {tag} doesn't match labdex.__version__"
+          print("tags<<EOF")
+          print("\n".join(f"type=raw,value={t}" for t in v.docker_tags(tag)))
+          print("EOF")
+          PY
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/labdex
+          tags: ${{ steps.version.outputs.tags }}
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: ANSIBLE=1
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: SBOM of the image
+        uses: anchore/sbom-action@v0
+        with:
+          image: ghcr.io/${{ github.repository_owner }}/labdex@${{ steps.build.outputs.digest }}
+          format: spdx-json
+          output-file: labdex-image.spdx.json
+          upload-release-assets: false
+      - name: Sign the image and attach the SBOM
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/labdex@${{ steps.build.outputs.digest }}
+        run: |
+          cosign sign --yes "$IMAGE"
+          cosign attest --yes --type spdxjson --predicate labdex-image.spdx.json "$IMAGE"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: image-sbom
+          path: labdex-image.spdx.json
+
+  files:
+    runs-on: ubuntu-24.04
+    needs: image
+    steps:
+      - uses: actions/checkout@v4
+      - name: Point labdex at this repository's official plugin index
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER}"; repo="${GITHUB_REPOSITORY#*/}"
+          echo "https://${owner}.github.io/${repo}/plugins/index.json" > backend/labdex/keys/official/index.url
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: sigstore/cosign-installer@v3
+      - name: Build the UI, the wheel and the archives
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          (cd frontend && npm ci && npm run build)
+          pip install build
+          (cd backend && python -m build --outdir ../dist)
+          git archive --format=tar.gz --prefix="labdex-${version}/" -o "dist/labdex-${version}-source.tar.gz" HEAD
+      - name: SBOM of the Python package
+        uses: anchore/sbom-action@v0
+        with:
+          path: backend
+          format: spdx-json
+          output-file: dist/labdex-python.spdx.json
+          upload-release-assets: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: image-sbom
+          path: dist
+      - name: Sign every file
+        run: |
+          cd dist
+          for f in *; do cosign sign-blob --yes --bundle "$f.bundle" "$f" > /dev/null; done
+          sha256sum * > SHA256SUMS
+          cosign sign-blob --yes --bundle SHA256SUMS.bundle SHA256SUMS > /dev/null
+      - name: Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          notes="$(awk -v v="## ${GITHUB_REF_NAME#v}" '$0==v{f=1;next} /^## /{if(f)exit} f' CHANGELOG.md)"
+          gh release create "$GITHUB_REF_NAME" dist/* --title "labdex ${GITHUB_REF_NAME#v}" --notes "${notes:-See CHANGELOG.md}" --verify-tag

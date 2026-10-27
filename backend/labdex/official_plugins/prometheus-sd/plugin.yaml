@@ -1,0 +1,15 @@
+id: prometheus-sd
+name: Prometheus service discovery
+kind: module
+tags: [monitoring]
+version: "1.0"
+labdex: ">=1.3,<2"
+description: HTTP service-discovery endpoints for Prometheus / VictoriaMetrics, so monitoring follows the inventory.
+settings:
+  - {key: exporter_port, label: Node exporter port, type: int, default: 9100}
+  - {key: statuses, label: Host statuses to include, type: list, default: [active]}
+  - {key: zones, label: Only these zones, type: list, help: Empty = all zones}
+  - {key: use_dns, label: Use DNS names instead of IP addresses, type: bool, default: false}
+endpoints:
+  - {id: nodes, label: "Node exporter targets (http_sd_configs)"}
+  - {id: services, label: "Blackbox targets: every service with an http(s) link"}

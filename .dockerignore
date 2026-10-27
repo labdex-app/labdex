@@ -1,0 +1,11 @@
+**/__pycache__
+**/*.egg-info
+**/.pytest_cache
+.git
+data
+backend/data
+backend/labdex/static
+backend/tests
+frontend/node_modules
+frontend/dist
+*.db

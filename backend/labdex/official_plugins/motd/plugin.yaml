@@ -1,0 +1,19 @@
+id: motd
+name: Login banner & prompt (Ansible)
+kind: integration
+tags: [ansible]
+version: "1.0"
+labdex: ">=1.3,<2"
+description: Deploys the inventory's login banner and zone-coloured prompt to hosts over SSH. Plan = ansible --check --diff, apply = the real run.
+settings:
+  - {key: limit, label: Hosts, type: string, default: status_active, help: "Ansible pattern: a host, a group like zone_dc_tc or tag_admin, or status_active"}
+  - {key: ssh_user, label: SSH user, type: string}
+  - {key: ssh_private_key, label: SSH private key, type: secret}
+  - {key: connection, label: Connection, type: select, default: ssh, options: [ssh, local]}
+  - {key: become, label: Use sudo, type: bool, default: true}
+  - {key: host_key_checking, label: Check SSH host keys, type: bool, default: true}
+  - {key: motd_path, label: Banner file, type: string, default: /etc/motd}
+  - {key: prompt_path, label: Prompt file, type: string, default: /etc/profile.d/labdex-prompt.sh}
+actions:
+  - {id: deploy, label: Deploy banner and prompt, mode: plan, ansible: playbooks/motd.yml, schedulable: true}
+  - {id: deploy_host, label: Deploy to this host, mode: plan, scope: host, ansible: playbooks/motd.yml}

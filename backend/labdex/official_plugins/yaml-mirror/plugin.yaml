@@ -1,0 +1,15 @@
+id: yaml-mirror
+name: YAML mirror
+kind: module
+tags: [git, files]
+version: "1.0"
+labdex: ">=1.3,<2"
+description: Writes the whole inventory as YAML to a file after every change, optionally committing it to a git repository there.
+settings:
+  - {key: path, label: File path, type: string, required: true, default: /data/mirror/inventory.yaml, help: Inside the container; mount it as a volume}
+  - {key: git_commit, label: Commit to git, type: bool, default: false, help: The folder must already be a git repository}
+  - {key: git_author, label: Commit author, type: string, default: "labdex <labdex@localhost>"}
+actions:
+  - {id: write, label: Write now, mode: run}
+hooks:
+  - {events: ["host.*", "network.*", "alias.*", "setting.*", "inventory.*"], action: write}

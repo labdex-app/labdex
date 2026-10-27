@@ -1,0 +1,75 @@
+site_name: labdex
+site_description: A small homelab inventory with zones, naming rules, IPAM, plans you approve and plugins.
+repo_url: https://github.com/OWNER/labdex
+edit_uri: edit/main/docs/
+docs_dir: docs
+site_dir: site
+strict: true
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: deep purple
+      accent: purple
+      toggle: {icon: material/weather-sunny, name: Light}
+    - scheme: default
+      primary: deep purple
+      accent: purple
+      toggle: {icon: material/weather-night, name: Dark}
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - content.code.copy
+    - search.highlight
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc: {permalink: true}
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.snippets: {base_path: ["."], check_paths: true}
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Install: guide/install.md
+      - First steps: guide/first-steps.md
+      - Configuration: guide/configuration.md
+      - Demo mode: guide/demo.md
+  - Concepts:
+      - Zones and names: guide/zones.md
+      - Hosts, networks, services: guide/inventory.md
+      - Working fast: guide/working-fast.md
+      - DNS: guide/dns.md
+      - Zone policy and firewall: guide/policy.md
+      - Plans and approvals: guide/plans.md
+      - The vault: guide/vault.md
+      - Users, roles, history: guide/rbac.md
+  - Plugins:
+      - Overview: plugins/index.md
+      - Installing and trust: plugins/installing.md
+      - OPNsense: plugins/opnsense.md
+      - Technitium DNS: plugins/technitium.md
+      - Ansible and features: plugins/ansible.md
+      - Monitoring: plugins/monitoring.md
+      - Compute and network: plugins/compute.md
+  - Operating:
+      - Jobs and the worker: operate/jobs.md
+      - Notifications: operate/notifications.md
+      - Templates and Ansible Vault: operate/templates.md
+      - Backups: operate/backups.md
+      - Upgrading: operate/upgrading.md
+      - Security: operate/security.md
+      - Security review: operate/security-review.md
+  - Developing:
+      - Writing a plugin: develop/plugins.md
+      - Plugin API reference: develop/plugin-api.md
+      - Publishing plugins: develop/publishing.md
+      - REST API: develop/api.md
+      - CLI: develop/cli.md
+      - Contributing: develop/contributing.md
+  - Changelog: changelog.md

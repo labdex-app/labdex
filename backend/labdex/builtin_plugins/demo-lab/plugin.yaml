@@ -1,0 +1,18 @@
+id: demo-lab
+name: Demo lab
+kind: integration
+version: "1.0"
+demo_only: true
+tags: [demo, dns, status]
+description: Only in demo mode. A stand-in DNS server and monitor that live inside labdex, so plans, approvals, host status and widgets work without touching any network.
+pages:
+  - {id: lab, label: Demo lab}
+actions:
+  - {id: sync, label: Sync DNS records, mode: plan, description: "Simulated: compares the inventory's records with what the pretend DNS server has"}
+  - {id: poll, label: Read host status, mode: run, schedulable: true, schedule_default: 5}
+hooks:
+  - {events: ["host.*", "network.*", "setting.*"], action: sync}
+widgets:
+  - {id: traffic, label: Lab traffic, where: dashboard, size: wide, refresh: 60}
+  - {id: records, label: DNS records, where: dashboard, refresh: 30}
+  - {id: load, label: Load, where: host, refresh: 60}

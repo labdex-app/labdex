@@ -1,0 +1,16 @@
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.venv/
+data/
+backend/data/
+backend/labdex/static/
+frontend/node_modules/
+frontend/dist/
+*.db
+*.db-wal
+*.db-shm
+build/
+site/
+*.pem
+.ruff_cache/
