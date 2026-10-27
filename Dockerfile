@@ -1,7 +1,7 @@
 # ---- web UI ---------------------------------------------------------------
 # Built once on the build machine's own platform: the result is the same files for every
 # architecture, so an arm64 image doesn't build the UI under emulation.
-FROM --platform=$BUILDPLATFORM node:22.12-alpine AS ui
+FROM --platform=$BUILDPLATFORM node:26.12-alpine AS ui
 WORKDIR /src/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
