@@ -20,6 +20,9 @@ def client(app, **environ):
 
 # LABDEX_TEST_DATABASE_URL=postgresql://user@host:port/db runs every test on Postgres
 # (the database is wiped before each test). Default: a fresh SQLite file per test.
+# tests never reach the real official Marketplace (tests that need one set their own)
+os.environ.setdefault("LABDEX_OFFICIAL_INDEX", "")
+
 PG_URL = os.environ.get("LABDEX_TEST_DATABASE_URL", "")
 
 

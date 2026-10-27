@@ -5,7 +5,7 @@ import FilterSelect from '../components/FilterSelect.vue'
 import Field from '../components/Field.vue'
 import Modal from '../components/Modal.vue'
 import Marketplace from '../components/Marketplace.vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, ApiError } from '../api'
 import TrustBadge from '../components/TrustBadge.vue'
@@ -15,6 +15,7 @@ const router = useRouter()
 const route = useRoute()
 const tab = computed(() => (route.query.tab === 'market' ? 'market' : 'installed'))
 const setTab = (t) => router.replace({ query: { ...route.query, tab: t === 'installed' ? undefined : t } })
+watch(tab, (t) => { if (t === 'installed') load().catch(() => {}) }) // what the Marketplace changed
 const available = ref(0)
 const updates = ref(0)
 const plugins = ref([])

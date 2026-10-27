@@ -24,10 +24,30 @@ const busy = ref('')
 const kept = ref(new Set())
 watch(show, () => { kept.value = new Set() })
 
+// Answers can arrive out of order: reading the repositories is slow, the offline answer fast.
+// Each local change (install, uninstall, hold) starts a new generation; an answer asked for
+// before it is stale. An offline answer keeps what the repositories said (versions, updates).
+let gen = 0
+let shownGen = -1
+const REPO_FIELDS = ['repository', 'repository_id', 'repo_version', 'latest_version', 'versions', 'source_url', 'official_signed', 'supported', 'requires', 'compatible', 'incompatible_reason']
 async function load(offline = false) {
+  const asked = gen
   const d = await api.get(`/api/marketplace${offline ? '?offline=1' : ''}`)
-  // the offline answer comes first; never let it replace the full one
-  if (offline && data.value && !data.value.offline) return
+  if (asked < shownGen) return // something changed after this was asked
+  if (offline && data.value && !data.value.offline) {
+    if (asked === shownGen) return // the full answer for the same state is better
+    const full = Object.fromEntries(data.value.plugins.map((p) => [p.id, p]))
+    for (const p of d.plugins) {
+      const f = full[p.id]
+      if (!f?.repository_id) continue
+      for (const k of REPO_FIELDS) p[k] = f[k]
+      p.update = !!(p.installed && f.update && !p.held)
+    }
+    d.plugins.push(...data.value.plugins.filter((p) => !d.plugins.some((x) => x.id === p.id))) // offered only by a repository
+    d.errors = data.value.errors
+    offline = false
+  }
+  shownGen = asked
   data.value = { ...d, offline }
   emit('updates', d.plugins.filter((p) => p.update).length)
   if (open.value) open.value = d.plugins.find((p) => p.id === open.value.id) || null
@@ -76,8 +96,9 @@ async function install(p, version = null) {
     } else if (p.bundled && !p.installed) {
       await api.post('/api/marketplace/install', { id: p.id })
       kept.value = new Set([...kept.value, p.id])
+      mark(p.id, { installed: true, installed_version: p.version }) // right away: reading the repositories again can take a while
       toast(`Installed ${p.name}`)
-      await changed()
+      changed()
     } else {
       staged.value = await api.post('/api/marketplace/install', { repository_id: p.repository_id, id: p.id })
       open.value = null
@@ -92,8 +113,9 @@ async function uninstall(p) {
   busy.value = p.id
   try {
     await api.del(`/api/plugins/${p.id}`)
+    mark(p.id, { installed: false, installed_version: null, update: false, previous: null })
     toast(`Uninstalled ${p.name}`)
-    await changed()
+    changed()
   } catch (e) { toast(e.message, 'error') } finally { busy.value = '' }
 }
 async function rollback(p) {
@@ -110,7 +132,8 @@ async function setHold(p, on) {
   try {
     await api.put(`/api/plugins/${p.id}/hold`, { version: on ? p.installed_version : null })
     toast(on ? `${p.name} stays at ${p.installed_version}` : `${p.name} gets updates again`)
-    await load(data.value?.offline)
+    gen++
+    await load(true)
     emit('changed')
   } catch (e) { toast(e.message, 'error') } finally { busy.value = '' }
 }
@@ -122,10 +145,15 @@ function newer(p) {
   const i = p.installed ? vs.findIndex((v) => v.version === p.installed_version) : 1
   return vs.slice(0, i < 0 ? vs.length : i).filter((v) => !v.yanked && v.changes)
 }
+function mark(id, fields) {
+  for (const e of [data.value?.plugins?.find((x) => x.id === id), open.value?.id === id ? open.value : null]) if (e) Object.assign(e, fields)
+}
 async function changed() {
   staged.value = null
-  await Promise.all([load(data.value?.offline), loadNav()])
-  emit('changed')
+  gen++
+  emit('changed') // the Installed tab reloads whatever happens here
+  await Promise.allSettled([load(true), loadNav()]) // fast; the repositories are read again after
+  load().catch(() => {})
 }
 </script>
 
