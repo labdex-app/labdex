@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Turn a plugin folder into a git repository of its own (the layout every labdex plugin
-repository uses): the plugin at the root, a README written from its manifest, the MIT
-licence, and the release workflow that signs it and attaches it to a GitHub release.
+repository uses): the plugin at the root, a README written from its manifest, a licence
+(labdex's for official plugins, MIT for your own), and the release workflow that signs it and attaches it to a GitHub release.
 
     python3 tools/plugin_repo/make_plugin_repo.py labdex/official_plugins/opnsense ../labdex-plugin-opnsense
 """
