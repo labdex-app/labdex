@@ -31,7 +31,7 @@ jobs:
       image: ${{ steps.f.outputs.image }}
       everything: ${{ steps.f.outputs.everything }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - id: f
@@ -72,10 +72,10 @@ jobs:
     env:
       LABDEX_TEST_DATABASE_URL: ${{ matrix.db == 'postgres' && 'postgresql://labdex:labdex@127.0.0.1:5432/labdex_test' || '' }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           submodules: recursive  # the shipped plugins live in their own repositories
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -89,7 +89,7 @@ jobs:
         working-directory: backend
         run: ruff check labdex tools tests
       # which test ran which code, from this pull request's last run
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: backend/.testmondata
           key: testmon-${{ matrix.db }}-${{ github.head_ref || github.ref_name }}-${{ github.sha }}
@@ -108,15 +108,15 @@ jobs:
     if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.backend == 'true' || needs.changes.outputs.image == 'true' || needs.changes.outputs.everything == 'true'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           submodules: recursive  # the shipped plugins live in their own repositories
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -151,10 +151,10 @@ jobs:
     if: needs.changes.outputs.docs == 'true' || needs.changes.outputs.everything == 'true'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           submodules: recursive  # the shipped plugins live in their own repositories
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: pip install -r docs/requirements.txt && mkdocs build --strict
