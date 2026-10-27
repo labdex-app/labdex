@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.23.1
+
+### Faster image builds
+- The UI is built once on the runner's own platform instead of again under arm64
+  emulation; system packages and Python dependencies are a layer that only changes with
+  `pyproject.toml`; layers are cached in the registry (`:buildcache`) between releases.
+- CI uses actions that run on Node 24.
+
 ## 1.23.0
 
 ### Plugin versions and updates
@@ -29,6 +37,16 @@
   when rebuilding a repository), `tools/plugin_repo/make_plugin_repo.py` (start a plugin
   repository with its release workflow). An index can now list several versions of a
   plugin and point at archives anywhere.
+
+### Releases
+- labdex and every plugin are released by **publishing a GitHub release** (tag
+  `v<version>`); the workflow checks the tag against the code with a clear message,
+  builds, signs and attaches everything to that release.
+- A release's description gets that version's CHANGELOG section (below anything written
+  by hand), and `CHANGELOG.md` is attached. The source archive includes the plugins.
+- Plugin repositories: `.releaseignore` keeps files out of the release zip
+  (`labdex plugin prune`); the Marketplace finds new `labdex-plugin-*` repositories by
+  itself and checks for new releases every hour.
 
 ### Also
 - README, docs and the About page say plainly that labdex was built with AI and is meant
