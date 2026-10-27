@@ -1,8 +1,10 @@
 """Plugin registry: finds plugin folders, validates manifests, loads Python code,
 and handles instance settings (with encrypted secrets).
 
-Official plugins ship in labdex/official_plugins/ and update on their own from the official
-repository; labdex/builtin_plugins/ only holds the demo lab. Your own live in LABDEX_PLUGIN_DIR
+Plugins aren't part of labdex: every one, the official ones too, is installed from a
+repository (the Marketplace) or uploaded, into LABDEX_PLUGIN_DIR. labdex/builtin_plugins/ holds
+what is part of the core (backups) and the demo lab. For development, LABDEX_DEV_PLUGINS
+points at a folder of plugin checkouts (the repository's plugins/) that load as official. Your own live in LABDEX_PLUGIN_DIR
 (default /data/plugins). Plugin code runs inside labdex with full access to
 the inventory: only install plugins you trust.
 """
@@ -21,9 +23,15 @@ SETTING_TYPES = {"string", "secret", "bool", "int", "select", "text", "networks"
 COLUMN_TYPES = {"string", "int", "bool", "select"}
 MODES = {"run", "plan", "export"}
 BUILTIN_DIR = Path(__file__).parent.parent / "builtin_plugins"
-# official plugins that ship with labdex but update on their own from the official repository:
-# an installed newer copy in the plugin folder takes their place
-BUNDLED_DIR = Path(__file__).parent.parent / "official_plugins"
+DEV_ENV = "LABDEX_DEV_PLUGINS"
+
+
+def dev_dir() -> Path | None:
+    """Plugin checkouts for development and the tests (LABDEX_DEV_PLUGINS), loaded as official
+    plugins; an installed newer copy in the plugin folder takes their place. Never set in the image."""
+    import os
+    v = os.environ.get(DEV_ENV, "").strip()
+    return Path(v) if v else None
 
 
 def compatibility(m: dict) -> tuple[bool, str]:
@@ -50,7 +58,7 @@ class Spec:
     id: str
     path: Path
     builtin: bool
-    bundled: bool = False  # ships with labdex in official_plugins/ (and can be updated from the official repository)
+    bundled: bool = False  # a development checkout from LABDEX_DEV_PLUGINS (can be updated from the official repository)
     replaces_bundled: str = ""  # an installed copy of a bundled plugin: the bundled version it stands in for
     isolated: bool = False  # its code runs in a locked-down process of its own (plugins/sandbox.py)
     manifest: dict = field(default_factory=dict)
@@ -266,10 +274,10 @@ def _load_dir(path: Path, builtin: bool, community: dict | None = None, bundled:
     if spec.error:
         return spec
     if builtin:
-        spec.trust = {"status": "builtin", "signer": "labdex", "key_id": "", "detail": "ships with labdex"}
+        spec.trust = {"status": "builtin", "signer": "labdex", "key_id": "", "detail": "part of labdex"}
     elif bundled:
         spec.trust = {"status": "official", "signer": "labdex", "key_id": "",
-                      "detail": "ships with labdex; updates come from the official repository"}
+                      "detail": "development checkout (LABDEX_DEV_PLUGINS)"}
     else:
         ok, why = compatibility(spec.manifest)
         if not ok:
@@ -312,17 +320,19 @@ class Registry:
         self.sandbox = sandbox
         self.specs: dict[str, Spec] = {}
         self.errors: list[dict] = []
-        dirs = [(BUILTIN_DIR, "builtin"), (BUNDLED_DIR, "bundled")]
+        dirs = [(BUILTIN_DIR, "builtin"), (dev_dir(), "bundled")]
         if extra_dir:
             dirs.append((Path(extra_dir), "installed"))
         for base, kind in dirs:
-            if not base.is_dir():
+            if base is None or not base.is_dir():
                 continue
             for sub in sorted(p for p in base.iterdir() if p.is_dir() and not p.name.startswith(("_", "."))):
                 spec = _load_dir(sub, kind == "builtin", community, bundled=kind == "bundled", sandbox=sandbox)
                 if spec is None or (spec.manifest.get("demo_only") and not demo):
                     continue
                 cur = self.specs.get(spec.id)
+                if cur is not None and cur.builtin and kind == "installed":
+                    continue  # an installed copy of what is part of labdex now (backup until 1.24.0): the core one counts
                 if cur is not None and cur.bundled and kind == "installed":
                     if spec.error:  # a broken update never takes the working bundled copy's place
                         self.errors.append({"path": str(sub), "error": f"{spec.id}: {spec.error}; using the bundled version"})

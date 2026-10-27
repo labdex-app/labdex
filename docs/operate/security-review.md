@@ -30,7 +30,7 @@ This page records what was looked at, what changed, and what is left by design.
 | Archive extraction | absolute paths, `..`, drive letters and symlinks refused; entries count and size capped. **Fixed**: the size is now counted while unpacking, so a zip whose directory lies about sizes can't fill the disk. |
 | Before code runs | manifest, labdex version range and signature are checked before any plugin code is imported; a plugin whose files changed after signing isn't loaded |
 | Repositories | the key is pinned when added; index and plugins must be signed with it; downloads must match the index's SHA-256 |
-| Bundled official plugins | ship inside the package like built-ins; an update from the official repository must be signed with the official key, and a broken update never replaces the working copy |
+| Official plugins | not part of the package (1.24.1+): installed from the official repository, signed with the project key, like any repository plugin |
 | What a plugin can do | official and built-in plugins: anything labdex can. Community and unsigned plugins (1.5+) run in a process of their own with an empty environment, locked by Landlock to Python, their own folder, a data folder of their own and a private temporary folder; they get the plugin API over a pipe, with only their own instance's settings. Their Ansible playbooks run inside the same lock. labdex's own process is non-dumpable, so no plugin can read its memory. Unsigned plugins still need an administrator's explicit OK. |
 | Demo mode | plugins can't make HTTP requests or run Ansible, only the demo plugins can have instances |
 

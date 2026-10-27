@@ -12,7 +12,7 @@ from sqlalchemy import event
 
 from .models import db
 
-__version__ = "1.24.0"
+__version__ = "1.24.1"
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -117,7 +117,11 @@ def create_app(config: dict | None = None) -> Flask:
         from .plugins import installer
         installer.reload_registry(app)
         if not testing and not app.config["LABDEX_DEMO"]:
-            installer.ensure_official_repository()
+            try:
+                installer.ensure_official_repository()
+            except Exception:  # never worth not starting over
+                db.session.rollback()
+                app.logger.exception("setting up the official plugin repository failed")
         if app.config.get("LABDEX_AUTO_BACKUP", not testing) and not app.config["LABDEX_DEMO"]:
             _ensure_backup_module(app)
         _bootstrap_admin()

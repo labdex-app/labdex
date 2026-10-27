@@ -76,7 +76,7 @@ async function installed() {
 async function uninstall(p) {
   const upd = !!p.replaces_bundled
   if (!(await confirm({ title: upd ? `Remove the ${p.name} update?` : `Remove the plugin ${p.name}?`,
-    body: upd ? `labdex goes back to the version it ships with (${p.replaces_bundled}); integrations keep running.` : 'Its files are deleted.', action: 'Remove', danger: true }))) return
+    body: upd ? `labdex goes back to the development checkout (${p.replaces_bundled}); integrations keep running.` : 'Its files are deleted.', action: 'Remove', danger: true }))) return
   try { await api.del(`/api/plugins/${p.id}`); toast(`Removed ${p.name}`); await Promise.all([load(), loadNav()]) } catch (e) { toast(e.message, 'error') }
 }
 async function previewRepo() {
@@ -139,7 +139,7 @@ async function removeKey(k) {
               <td><TrustBadge :trust="p.trust" />
                 <span v-if="p.isolated" class="iso" :title="isolation?.detail">isolated</span></td>
               <td><span v-for="t in p.tags" :key="t" class="tag" style="margin-right: 4px">{{ t }}</span></td>
-              <td class="right"><button v-if="!p.builtin && !p.bundled" class="btn small ghost" :title="p.replaces_bundled ? `Go back to the version that ships with labdex (${p.replaces_bundled})` : ''" @click="uninstall(p)">{{ p.replaces_bundled ? 'Remove update' : 'Remove' }}</button></td>
+              <td class="right"><button v-if="!p.builtin && !p.bundled" class="btn small ghost" :title="p.replaces_bundled ? `Go back to the development checkout (${p.replaces_bundled})` : ''" @click="uninstall(p)">{{ p.replaces_bundled ? 'Remove update' : 'Remove' }}</button></td>
             </tr>
           </tbody>
         </table>

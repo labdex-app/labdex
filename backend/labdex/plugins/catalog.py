@@ -1,8 +1,10 @@
-"""Which of the plugins that ship with labdex are installed.
+"""Which plugins this labdex is meant to have.
 
-Every official plugin ships in official_plugins/ and is loaded, so installing one is instant
-and works offline; only installed ones show on the Plugins page and can get instances. A new
-labdex starts with CORE. Plugins from a repository or an upload are installed by being there.
+Plugins from a repository or an upload are installed by being in the plugin folder. Up to
+1.24.0 the official plugins shipped inside labdex and were "installed" by being listed in the
+setting below; since 1.24.1 they come from the Marketplace like every other plugin, and the
+list is what to put back after the upgrade (installer.restore_missing). Development checkouts
+(LABDEX_DEV_PLUGINS) still use it the old way.
 """
 from __future__ import annotations
 
@@ -43,6 +45,20 @@ def _save(ids: set[str]) -> None:
 
 def install(pid: str) -> None:
     _save(installed_bundled() | {pid})
+
+
+def wanted() -> set[str]:
+    """The plugins listed as installed (not the defaults of a database that never decided)."""
+    row = db.session.get(Setting, SETTING)
+    try:
+        return set(json.loads(row.value or "[]")) if row is not None else set()
+    except ValueError:
+        return set()
+
+
+def forget(pid: str) -> None:
+    if pid in wanted():
+        _save(wanted() - {pid})
 
 
 def uninstall(pid: str) -> None:

@@ -21,6 +21,7 @@ categories, the DMZ area) are edited in the UI under Settings → Conventions.
 | `LABDEX_SCHEDULER` | `true` | Run scheduled actions and templates |
 | `LABDEX_WORKER` | `inline` | `external`: only queue jobs for `labdex worker` |
 | `LABDEX_DEMO` | `false` | [Demo mode](demo.md). Wipes the database: never on a real instance |
+| `LABDEX_DEV_PLUGINS` | | Development only: a folder of plugin checkouts (the repository's `plugins/`) loaded as official plugins. Never on a real instance |
 
 ## Single sign-on with OpenID Connect
 
