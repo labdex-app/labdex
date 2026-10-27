@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.24.1
+
+### Plugins come from the Marketplace only
+- **No plugin ships with labdex any more**, the official ones included: the image and the
+  wheel are labdex alone, and every plugin is installed from **Plugins › Marketplace** (or
+  uploaded), downloaded and signature-checked like any other.
+- **Backups are part of labdex**: the backup plugin moved into the core, so every instance
+  has its daily backup from the first start, as before. The Marketplace no longer offers it.
+- **Upgrading from 1.24.0**: labdex installs the official plugins you had (installed, or with
+  an instance) from the official Marketplace by itself, at their held version if you held
+  one, a few seconds after the start. Offline, it tries again every 15 minutes, and the
+  Plugins page lists what's missing with an **Install them now** button; instances keep
+  their settings and history meanwhile. A plugin you uninstall isn't put back.
+- The demo only has the plugins of its own image (the demo lab and backups).
+- For development: the official plugins are git submodules in `plugins/` (not in the
+  package); `LABDEX_DEV_PLUGINS` loads such checkouts, the tests set it.
+
+### Fixes
+- labdex 1.24.0 didn't start when the official Marketplace had been added by hand before
+  (under its name or address): it now takes that entry over. A problem setting up the
+  official repository can no longer stop labdex from starting.
+- The release's source archive is labdex alone (it included the plugins).
+
 ## 1.24.0
 
 ### Licence

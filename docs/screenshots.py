@@ -67,7 +67,8 @@ def seed_macs(data: Path) -> None:
             "with app.app_context():\n h=store.find_host('srv-vm-dns-01')\n m=next((i.mac for i in h.interfaces if i.mac), '') or '00:1a:2b:00:00:53'\n if not h.interfaces[0].mac: h.interfaces[0].mac=m\n"
             " macs.record('snmp core', [{'host':'net-sw-core-01','port':'ge-0/0/2','mac':m,'vlan':30},{'host':'net-sw-core-01','port':'ge-0/0/24','mac':m,'vlan':30},"
             "{'host':'net-sw-core-01','port':'ge-0/0/24','mac':'aa:aa:aa:aa:aa:01'},{'host':'net-sw-core-01','port':'ge-0/0/24','mac':'aa:aa:aa:aa:aa:02'}])\n db.session.commit()\n")
-    subprocess.run([sys.executable, "-c", code], cwd=ROOT / "backend", env={**os.environ, "LABDEX_DATA": str(data), "LABDEX_DEMO": "1", "LABDEX_SCHEDULER": "0"}, check=True)
+    subprocess.run([sys.executable, "-c", code], cwd=ROOT / "backend", env={**os.environ, "LABDEX_DATA": str(data), "LABDEX_DEMO": "1", "LABDEX_SCHEDULER": "0",
+                                                     "LABDEX_DEV_PLUGINS": str(ROOT / "plugins")}, check=True)
 
 
 def main() -> None:
@@ -75,7 +76,8 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         port, data = free_port(), Path(tmp)
-        env = {**os.environ, "LABDEX_DATA": str(data), "LABDEX_DEMO": "1", "LABDEX_SCHEDULER": "0", "LABDEX_OFFICIAL_INDEX": ""}
+        env = {**os.environ, "LABDEX_DATA": str(data), "LABDEX_DEMO": "1", "LABDEX_SCHEDULER": "0", "LABDEX_OFFICIAL_INDEX": "",
+               "LABDEX_DEV_PLUGINS": str(ROOT / "plugins")}  # the official plugins, as if from the Marketplace
         srv = subprocess.Popen([sys.executable, "-m", "flask", "--app", "labdex:create_app()", "run", "--port", str(port)], cwd=ROOT / "backend", env=env,
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         base = f"http://127.0.0.1:{port}"

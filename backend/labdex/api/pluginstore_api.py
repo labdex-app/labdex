@@ -55,7 +55,7 @@ def uninstall_plugin(pid):
             catalog.uninstall(pid)
         except ValueError as exc:
             return err(409, str(exc))
-        audit.record("delete", "plugin", pid, summary=f"uninstalled {spec.name} (it still ships with labdex)")
+        audit.record("delete", "plugin", pid, summary=f"uninstalled {spec.name} (a development checkout: it stays on disk)")
         db.session.commit()
         return "", 204
     try:
@@ -210,7 +210,7 @@ def _404():
 
 @bp.get("/marketplace")
 def marketplace():
-    """What can be installed: what ships with labdex, and what the repositories offer."""
+    """What can be installed: development checkouts, and what the repositories offer."""
     if not g.principal.can_any("integration", "view"):
         return err(403, "you lack integration:view")
     return jsonify(installer.marketplace(fetch=request.args.get("offline") != "1") | {"can_install": bool(g.principal.is_admin)})
@@ -222,12 +222,12 @@ def marketplace_install():
     data = body()
     pid = str(data.get("id", ""))
     spec = current_app.extensions["labdex"]["registry"].get(pid)
-    if spec is not None and spec.bundled and not data.get("repository_id"):  # ships with labdex: nothing to download
+    if spec is not None and spec.bundled and not data.get("repository_id"):  # a development checkout: nothing to download
         if catalog.is_installed(spec):
             return jsonify({"id": pid, "installed": True})
         catalog.install(pid)
-        audit.record("create", "plugin", pid, None, {"version": str(spec.manifest.get("version", "")), "source": "ships with labdex"},
-                     summary=f"installed {spec.name} {spec.manifest.get('version', '')} (ships with labdex)")
+        audit.record("create", "plugin", pid, None, {"version": str(spec.manifest.get("version", "")), "source": "development checkout"},
+                     summary=f"installed {spec.name} {spec.manifest.get('version', '')} (development checkout)")
         db.session.commit()
         return jsonify({"id": pid, "installed": True, "name": spec.name}), 201
     r = db.session.get(PluginRepository, int(data.get("repository_id") or 0))
@@ -291,6 +291,13 @@ def put_plugin_updates():
     audit.record("update", "setting", "plugin updates", summary=f"plugin updates: {m}")
     db.session.commit()
     return get_plugin_updates()
+
+
+@bp.post("/plugins/restore")
+def restore_plugins():
+    """Install the plugins this labdex uses but doesn't have (after the upgrade from 1.24.0) now."""
+    _admin()
+    return jsonify(installer.restore_missing(force=True))
 
 
 @bp.post("/plugin-updates/check")

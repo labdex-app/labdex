@@ -1,10 +1,14 @@
 # Plugins
 
-A new labdex installs four plugins: Backup, File exports, Ansible runner and nmap. The
-others ship with labdex too and wait in **Plugins › Marketplace**: installing one takes a
-click and downloads nothing. Uninstalling one is refused while it has instances; it
-stays part of labdex and can be installed again any time. Upgrading from a version before
-1.21 keeps every plugin you have an instance of.
+labdex itself has no plugins installed apart from backups, which are part of it. Every
+other plugin, the official ones too, comes from **Plugins › Marketplace**: installing one
+downloads it from its repository and checks its signature first. Uninstalling one is refused
+while it has instances.
+
+**Upgrading from 1.24.0 or older**, where the official plugins shipped inside labdex: labdex
+installs the ones you had from the official Marketplace by itself, right after the upgrade.
+If it can't reach the Marketplace, the Plugins page lists them (with an **Install them now**
+button); their instances keep their settings and history meanwhile.
 
 The Marketplace also lists what your [repositories](installing.md#repositories) offer,
 with a filter for updates. Anyone who can see integrations can browse it; administrators

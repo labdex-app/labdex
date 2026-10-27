@@ -56,7 +56,7 @@ async function create() {
       </div>
       <p class="muted" style="margin-top: -6px">{{ d.description }}</p>
       <div v-if="d.installed === false" class="warnbox row" style="margin-bottom: 16px">
-        <span class="grow">Not installed. It ships with labdex; install it to add instances.</span>
+        <span class="grow">Not installed. It's a development checkout; install it to add instances.</span>
         <button v-if="d.can_install" class="btn primary small" @click="install">Install</button>
       </div>
       <div v-if="d.error" class="errbox" style="margin-bottom: 16px">The plugin failed to load: <code>{{ d.error }}</code></div>
@@ -127,7 +127,7 @@ async function create() {
             <dl class="kv small">
               <dt>version</dt><dd class="mono">{{ d.version || '—' }}</dd>
               <template v-if="d.requires"><dt>works with</dt><dd class="mono">labdex {{ d.requires }}</dd></template>
-              <dt>source</dt><dd>{{ d.builtin ? 'built in' : d.bundled ? 'ships with labdex; updates from the official repository' : d.replaces_bundled ? `installed update (labdex ships ${d.replaces_bundled})` : 'installed' }}{{ d.isolated ? '; runs isolated' : '' }}</dd>
+              <dt>source</dt><dd>{{ d.builtin ? 'part of labdex' : d.bundled ? 'development checkout' : d.replaces_bundled ? `installed update (the checkout is ${d.replaces_bundled})` : 'installed' }}{{ d.isolated ? '; runs isolated' : '' }}</dd>
               <dt>signature</dt><dd>{{ d.trust.detail || d.trust.status }}</dd>
               <dt v-if="d.author">author</dt><dd v-if="d.author">{{ d.author }}</dd>
               <dt v-if="d.homepage">homepage</dt><dd v-if="d.homepage"><a :href="d.homepage" target="_blank" rel="noopener">{{ d.homepage }}</a></dd>

@@ -265,7 +265,7 @@ const minutes = (m) => (!m ? 'off' : m % 1440 === 0 ? `every ${m / 1440} d` : m 
             <dl class="kv small">
               <dt>id</dt><dd class="mono">{{ d.plugin_id }}</dd>
               <dt>version</dt><dd>{{ spec?.version || '—' }}</dd>
-              <dt>source</dt><dd>{{ spec?.builtin ? 'built in' : spec?.bundled ? 'ships with labdex' : spec?.replaces_bundled ? 'update from the repository' : 'plugin folder' }}</dd>
+              <dt>source</dt><dd>{{ spec?.builtin ? 'part of labdex' : spec?.bundled ? 'development checkout' : spec?.replaces_bundled ? 'update from the repository' : 'plugin folder' }}</dd>
               <dt>code</dt><dd>{{ [spec?.python && 'Python', spec?.actions?.some((a) => a.ansible) && 'Ansible'].filter(Boolean).join(' + ') || 'manifest only' }}</dd>
             </dl>
           </div>

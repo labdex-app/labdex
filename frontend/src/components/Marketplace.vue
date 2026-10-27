@@ -1,6 +1,6 @@
 <script setup>
-// Everything that can be installed: what ships with labdex (installs instantly, nothing is downloaded)
-// and what the trusted repositories offer (downloaded, signature checked, then confirmed).
+// Everything that can be installed: what the trusted repositories offer (downloaded, signature checked,
+// then confirmed), and development checkouts (LABDEX_DEV_PLUGINS: nothing to download).
 import { Check, Download, History, PackageOpen, RefreshCw, Undo2 } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
@@ -85,7 +85,7 @@ const shown = computed(() => {
 })
 const canInstall = computed(() => !!data.value?.can_install)
 const capLabel = (c) => data.value?.capability_labels?.[c] || c
-const from = (p) => (p.bundled ? 'Ships with labdex' : p.repository || p.source)
+const from = (p) => (p.bundled ? 'Development checkout' : p.repository || p.source)
 
 async function install(p, version = null) {
   busy.value = p.id
@@ -107,7 +107,7 @@ async function install(p, version = null) {
 }
 async function uninstall(p) {
   const body = p.bundled
-    ? 'It stays part of labdex and you can install it again any time. Nothing else changes.'
+    ? 'The checkout stays on disk and you can install it again any time. Nothing else changes.'
     : 'Its files are deleted. Install it again from its repository or upload it.'
   if (!(await confirm({ title: `Uninstall ${p.name}?`, body, action: 'Uninstall', danger: true }))) return
   busy.value = p.id

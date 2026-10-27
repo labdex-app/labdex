@@ -102,7 +102,8 @@ def seed() -> None:
     lab = Integration(plugin_id="demo-lab", name="lab", enabled=True, settings={}, selectors=["*"],
                       state={"demo_seeded_at": now.isoformat()})
     db.session.add(lab)
-    db.session.add(Integration(plugin_id="exports", name="exports", enabled=True, settings={}, selectors=["*"], state={}))
+    if current_app.extensions["labdex"]["registry"].get("exports") is not None:  # a plugin: only where it's installed
+        db.session.add(Integration(plugin_id="exports", name="exports", enabled=True, settings={}, selectors=["*"], state={}))
     from . import audit
     audit.record("import", "inventory", "demo", summary="loaded the demo's sample lab", actor=("demo reset", "system"))
     db.session.commit()

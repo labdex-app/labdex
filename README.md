@@ -208,9 +208,8 @@ and enable it. A plugin can have several instances, e.g. one per firewall.
 | YAML mirror | module | Writes the inventory to a file after every change, optionally committing to git. |
 | File exports | module | Download the OPNsense alias import, DNS zone, Ansible inventory, DHCP CSV, YAML. |
 
-¹ Official plugins that ship with labdex but update on their own: when the official
-repository has a newer version, the marketplace offers it; removing the update brings
-the bundled version back.
+¹ Official plugins, maintained by the labdex project in their own repositories and installed
+from the Marketplace (Plugins › Marketplace). Backups are part of labdex itself.
 
 **Plan, then apply.** Actions with `mode: plan` compute the changes and stop.
 You review the plan (each change with before/after) and apply or discard it.
@@ -280,8 +279,8 @@ about to install:
 
 | Trust | Means |
 | --- | --- |
-| built in | ships with labdex |
-| official | ships with labdex as an updatable plugin, or signed with the labdex project key (`labdex/keys/official/*.pub`) |
+| built in | part of labdex (backups, the demo lab) |
+| official | signed with the labdex project key (`labdex/keys/official/*.pub`) |
 | community | signed with the key of a repository you added, or an author key you added under Signing keys |
 | unsigned | no signature: installs only after you tick “I trust its author” |
 | invalid | bad signature, unknown key or files changed after signing: never loaded, not even from disk |

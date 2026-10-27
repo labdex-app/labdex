@@ -598,6 +598,13 @@ def _tick(app: Flask) -> None:
             except Exception:
                 db.session.rollback()
                 app.logger.exception("starting scheduled templates failed")
+            if not app.config.get("LABDEX_DEMO"):
+                try:
+                    from . import installer
+                    installer.restore_missing()  # after the upgrade from 1.24.0: the plugins that shipped with it
+                except Exception:
+                    db.session.rollback()
+                    app.logger.exception("installing missing plugins failed")
             try:
                 from . import updates
                 updates.check()  # every few hours; announces updates, installs official ones if asked to

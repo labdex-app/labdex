@@ -7,7 +7,7 @@ from flask import current_app, g, jsonify, request
 
 from .. import audit, rbac
 from ..models import Integration, Job, db
-from ..plugins import catalog
+from ..plugins import catalog, installer
 from ..plugins import coerce_settings, jobs, public_fields, public_settings, resolved_settings
 from ..plugins.base import Context, PluginError
 from . import body, bp, err, text_response
@@ -113,6 +113,7 @@ def list_plugins():
     return jsonify({"plugins": [s.as_dict() | {"instances": by_plugin.get(s.id, []), "installed": True}
                                 for s in specs if catalog.is_installed(s)],
                     "available": sum(1 for s in specs if not catalog.is_installed(s) and not s.error),
+                    "missing": [{"id": pid, "instances": [x["name"] for x in by_plugin.get(pid, [])]} for pid in installer.missing()],
                     "errors": reg.errors, "capabilities": CAPABILITIES,
                     "isolation": sandbox.status(current_app.config.get("LABDEX_PLUGIN_SANDBOX", "on"))})
 

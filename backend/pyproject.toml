@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "labdex"
-version = "1.24.0"
+version = "1.24.1"
 description = "Small homelab inventory with zones, naming rules, IPAM, RBAC, change history, discovery and integration plugins"
 license = { text = "AGPL-3.0-only" }  # with a plugin exception, see NOTICE
 requires-python = ">=3.11"
@@ -32,7 +32,7 @@ labdex = "labdex.cli:main"
 include = ["labdex*"]
 
 [tool.setuptools.package-data]
-labdex = ["static/**/*", "builtin_plugins/**/*", "official_plugins/**/*", "migrations/**/*", "keys/**/*", "CHANGELOG.md", "demo_lab.yaml"]
+labdex = ["static/**/*", "builtin_plugins/**/*", "migrations/**/*", "keys/**/*", "CHANGELOG.md", "demo_lab.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

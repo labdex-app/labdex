@@ -23,6 +23,9 @@ pip install mkdocs-material && mkdocs serve                     # these docs
 Plugins for other systems are tested against small fake servers (`tests/fakes.py`)
 that follow the real API; `tests/test_contracts.py` pins the details that matter.
 
-Official plugins live in their own repositories (`labdex-plugin-<id>`, git submodules under
-`backend/labdex/official_plugins/`) and must have a `labdex` range, tests, and use nothing
-outside the [plugin API](plugin-api.md).
+Official plugins live in their own repositories (`labdex-plugin-<id>`) and must have a
+`labdex` range, tests, and use nothing outside the [plugin API](plugin-api.md). They aren't part
+of labdex and don't go into its image: `plugins/` holds them as git submodules for development
+and the tests only (`git clone --recurse-submodules`). The tests load them through
+`LABDEX_DEV_PLUGINS=plugins` (set by `tests/conftest.py`); set it yourself to run a
+development server with them.
