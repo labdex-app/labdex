@@ -206,7 +206,7 @@ const tabs = computed(() => [
   { id: 'ansible', label: 'Ansible', count: form.features.length, err: !!(errors.value.features || errors.value.vars) },
   ...(isNew.value ? [] : [{ id: 'integrations', label: 'Plugins' }, { id: 'secrets', label: 'Secrets' }, { id: 'runs', label: 'Runs' }, { id: 'history', label: 'History' }]),
 ])
-// <category>-<type>-<role>-<nn> from the lists under Admin → Naming
+// <category>-<type>-<role>-<nn> from the lists under Naming
 const parts = ref({ category: [], type: [], role: [] })
 const nb = reactive({ category: '', type: '', role: '', nn: '', custom: false })
 const funInput = ref('')
@@ -807,7 +807,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
                     <span class="mono">{{ cableAt(r.i.label).peer_port }}</span></span>
                   <RouterLink v-if="derived?.switch_ports?.[r.i.label || r.i.mac] && !cableAt(r.i.label)" class="seen"
                               :to="`/discovery?tab=where&q=${encodeURIComponent(r.i.mac)}`" :title="`From the switch's MAC table (${derived.switch_ports[r.i.label || r.i.mac].source}), ${ago(derived.switch_ports[r.i.label || r.i.mac].seen_at)}`">
-                    <MapPin :size="12" /> on {{ derived.switch_ports[r.i.label || r.i.mac].switch }} <span class="mono">{{ derived.switch_ports[r.i.label || r.i.mac].port }}</span></RouterLink>
+                    <MapPin :size="12" /> on {{ derived.switch_ports[r.i.label || r.i.mac].switch }}&nbsp;<span class="mono">{{ derived.switch_ports[r.i.label || r.i.mac].port }}</span></RouterLink>
                   <template v-for="ip in ifaceIps(r.i)" :key="'s' + ip">
                     <span v-if="derived?.seen?.[ip]" class="seen" :title="`Discovery: ${derived.seen[ip].source} ${ago(derived.seen[ip].last_seen)}`">
                       <span class="dot" :class="derived.seen[ip].up ? 'up' : ''"></span>seen{{ derived.seen[ip].hostname ? ` as ${derived.seen[ip].hostname}` : '' }}{{ derived.seen[ip].vendor ? `, ${derived.seen[ip].vendor}` : '' }}</span>

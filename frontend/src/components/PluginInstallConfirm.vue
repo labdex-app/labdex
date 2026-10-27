@@ -1,6 +1,6 @@
 <script setup>
 // The last step of installing a downloaded or uploaded plugin: what it is, whose signature it
-// carries, what it runs, and an explicit OK for anything unsigned. Shared by Admin › Plugins and the Marketplace.
+// carries, what it runs, and an explicit OK for anything unsigned. Shared by Settings › Plugins and the Marketplace.
 import { ref } from 'vue'
 import { api } from '../api'
 import { toast } from '../store'

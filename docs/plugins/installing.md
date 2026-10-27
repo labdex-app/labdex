@@ -13,6 +13,8 @@ signature **before any plugin code runs**, then shows what you're about to insta
 | unsigned | no signature: installs only after you tick "I trust its author" |
 | invalid | bad signature, unknown key or files changed after signing: never loaded |
 
+![The Marketplace](../screenshots/marketplace.png)
+
 ## Repositories
 
 A repository is a signed `index.json` next to the plugin archives, on any web server.

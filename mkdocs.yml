@@ -24,6 +24,11 @@ theme:
     - content.code.copy
     - search.highlight
 
+extra:
+  version:
+    provider: mike  # the version picker: one site per release (see Branches, versions and releases)
+    default: latest
+
 markdown_extensions:
   - admonition
   - attr_list
@@ -32,6 +37,9 @@ markdown_extensions:
   - pymdownx.details
   - pymdownx.superfences
   - pymdownx.snippets: {base_path: ["."], check_paths: true}
+
+exclude_docs: |
+  screenshots.py
 
 nav:
   - Home: index.md
@@ -69,6 +77,7 @@ nav:
       - Writing a plugin: develop/plugins.md
       - Plugin API reference: develop/plugin-api.md
       - Publishing plugins: develop/publishing.md
+      - Branches, versions and releases: develop/releasing.md
       - REST API: develop/api.md
       - CLI: develop/cli.md
       - Contributing: develop/contributing.md

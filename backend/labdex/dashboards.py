@@ -135,3 +135,11 @@ def to_dict(d: Dashboard, principal, with_items=True) -> dict:
     if with_items:
         out["items"] = list(d.items or [])
     return out
+
+
+def ensure_overview() -> None:
+    """The shared start page, when there's no shared dashboard at all (a wiped demo, say)."""
+    import copy
+    from .models import Dashboard, db
+    if db.session.scalar(db.select(Dashboard.id).where(Dashboard.owner == "").limit(1)) is None:
+        db.session.add(Dashboard(name="Overview", owner="", position=0, items=copy.deepcopy(DEFAULT), updated_by="labdex"))

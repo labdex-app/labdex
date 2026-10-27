@@ -10,7 +10,7 @@ integrations, keeps your firewall, DNS server and monitoring in step with it.
 It's the lightweight middle ground between a spreadsheet and NetBox: one
 container, SQLite, under 100 MB of RAM, and a YAML file you can keep in git.
 
-![Hosts view](docs/hosts.png)
+![The hosts list](docs/screenshots/hosts.png)
 
 **Docs:** <https://reykimedev.github.io/labdex/> (built from `docs/`) · **Plugins:** <https://github.com/reykimedev/labdex-plugins> ·
 **Try it:** `docker run -p 8080:8080 -e LABDEX_DEMO=1 ghcr.io/reykimedev/labdex:1`
@@ -512,4 +512,14 @@ each release brought.
 
 ## License
 
-MIT
+labdex is **source-available** under the [PolyForm Noncommercial License 1.0.0](LICENSE):
+
+- **Free** for any noncommercial purpose: your home lab, hobby projects, study and research,
+  teaching, and charities, schools, public research and government organisations.
+- **Change it and share it**, as long as everyone you give a copy to also gets the licence
+  and the line `Required Notice: Copyright reykimedev (https://github.com/reykimedev/labdex)`.
+- **Not for commercial use** (running it for a business, selling it or a service built on
+  it) without a separate licence: ask through the repository.
+
+Versions up to and including 1.23.1 were released under the MIT licence; copies of those
+keep it. The plugins in the `labdex-plugin-*` repositories carry the same licence as labdex.

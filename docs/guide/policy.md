@@ -8,6 +8,8 @@ it goes. A cell holds ports and a reason:
 - `any`, a port alias (`SG_WEB`), or `tcp/443`, `udp/53`, `tcp/8000-8100`.
 - **No cell means no access**: anything not listed is denied.
 
+![The zone policy matrix](../screenshots/policy.png)
+
 Everyone can read the matrix; admins edit it. Changes are recorded in History, emit
 `policy.updated`, and are part of the YAML (`zone_policy`).
 

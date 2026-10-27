@@ -98,8 +98,10 @@ def main(src: str, dest: str, official: bool = True) -> None:
     (d / ".gitignore").write_text("__pycache__/\n*.pyc\nbuild/\n*.zip\n")
     if not (d / "README.md").exists():
         (d / "README.md").write_text(readme(m, official))
-    if not (d / "LICENSE").exists():
-        (d / "LICENSE").write_text(LICENSE)
+    if not (d / "LICENSE").exists():  # official plugins: labdex's licence; your own: MIT (change it as you like)
+        pf = HERE.parents[2] / "LICENSE"
+        (d / "LICENSE").write_text(f"Required Notice: Copyright reykimedev (https://github.com/reykimedev/{d.name})\n\n"
+                                   + pf.read_text().split("\n", 2)[2] if official and pf.is_file() else LICENSE)
     if not (d / "CHANGELOG.md").exists():
         (d / "CHANGELOG.md").write_text(f"# {m.get('name', m['id'])}\n\n## {m.get('version', '1.0')}\n- First release as its own repository.\n")
     print(f"{m['id']} {m.get('version')}: {d}")

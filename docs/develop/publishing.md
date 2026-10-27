@@ -20,7 +20,7 @@ repository, released by publishing a GitHub release. Start one from a plugin fol
 python3 backend/tools/plugin_repo/make_plugin_repo.py ./pihole ../labdex-plugin-pihole --community
 ```
 
-It adds a README from the manifest, the MIT licence, a CHANGELOG and the release workflow.
+It adds a README from the manifest, a licence (MIT for your own plugins, PolyForm Noncommercial with the Required Notice for official ones), a CHANGELOG and the release workflow.
 Set the repository secret `LABDEX_SIGNING_KEY` to your private key. Then each release is:
 bump `version` in `plugin.yaml`, add a `## <version>` section to `CHANGELOG.md`, commit,
 then publish a GitHub release tagged `v<version>` (in the web UI, or

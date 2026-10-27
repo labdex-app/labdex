@@ -13,7 +13,7 @@ The authorization code flow with PKCE, configured through the environment:
     LABDEX_OIDC_AUTOCREATE     true              (a first sign-in creates the account)
     LABDEX_OIDC_ONLY           false             (true hides the password form; the first administrator can still set up)
 
-The redirect URI to register at the provider is <public URL>/api/auth/oidc/callback (Admin ›
+The redirect URI to register at the provider is <public URL>/api/auth/oidc/callback (Settings ›
 General › public URL, else the address labdex was reached at).
 
 The ID token comes straight from the provider's token endpoint over TLS, which the spec

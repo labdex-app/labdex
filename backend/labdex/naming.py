@@ -126,7 +126,7 @@ def ensure_defaults() -> None:
 
 def ensure_defaults_in_session() -> None:
     """Only settings get defaults. Areas and trust levels are yours to create
-    (Admin → Zones offers the concept's set as a starting point)."""
+    (Settings → Zones offers the concept's set as a starting point)."""
     for key, value in DEFAULT_SETTINGS.items():
         if db.session.get(Setting, key) is None:
             db.session.add(Setting(key=key, value=value))

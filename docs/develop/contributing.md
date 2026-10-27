@@ -1,5 +1,13 @@
 # Contributing
 
+Issues, pull requests and the licence of contributions: see
+[CONTRIBUTING.md](https://github.com/reykimedev/labdex/blob/main/CONTRIBUTING.md). Security
+problems: [SECURITY.md](https://github.com/reykimedev/labdex/blob/main/SECURITY.md), never in a
+public issue. How branches, versions and releases work: [Branches, versions and
+releases](releasing.md).
+
+## Running it
+
 ```sh
 cd backend && pip install -e ".[server,postgres,uptimekuma,test]" ruff
 pytest -q                                                       # SQLite
@@ -15,5 +23,6 @@ pip install mkdocs-material && mkdocs serve                     # these docs
 Plugins for other systems are tested against small fake servers (`tests/fakes.py`)
 that follow the real API; `tests/test_contracts.py` pins the details that matter.
 
-Official plugins live in `plugins/` and must have a `labdex` range, tests, and use
-nothing outside the [plugin API](plugin-api.md).
+Official plugins live in their own repositories (`labdex-plugin-<id>`, git submodules under
+`backend/labdex/official_plugins/`) and must have a `labdex` range, tests, and use nothing
+outside the [plugin API](plugin-api.md).
