@@ -71,8 +71,8 @@ A [labdex](https://github.com/reykimedev/labdex) plugin. {m.get('description', '
 ## Releasing
 
 Bump `version` in `plugin.yaml`, add a `## <version>` section to `CHANGELOG.md`, commit, then
-`git tag v<version> && git push --tags`. The release workflow signs the plugin with the
-`LABDEX_SIGNING_KEY` secret and attaches `{m['id']}-<version>.zip` to a GitHub release.
+publish a GitHub release tagged `v<version>` (web UI, or `gh release create v<version> --target main --notes ""`).
+The release workflow signs the plugin with the `LABDEX_SIGNING_KEY` secret and attaches `{m['id']}-<version>.zip` to a GitHub release.
 """
 
 

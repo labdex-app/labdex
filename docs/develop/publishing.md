@@ -23,9 +23,10 @@ python3 backend/tools/plugin_repo/make_plugin_repo.py ./pihole ../labdex-plugin-
 It adds a README from the manifest, the MIT licence, a CHANGELOG and the release workflow.
 Set the repository secret `LABDEX_SIGNING_KEY` to your private key. Then each release is:
 bump `version` in `plugin.yaml`, add a `## <version>` section to `CHANGELOG.md`, commit,
-`git tag v<version> && git push --tags`. The workflow checks the tag against the manifest,
-signs exactly what's committed, and attaches `<id>-<version>.zip` to a GitHub release with
-that CHANGELOG section as its notes.
+then publish a GitHub release tagged `v<version>` (in the web UI, or
+`gh release create v<version> --target main --notes ""`). The workflow checks the tag against
+the manifest, signs exactly what's committed and attaches `<id>-<version>.zip` to the
+release; empty release notes are filled from that CHANGELOG section.
 
 ## A Marketplace from plugin repositories
 
