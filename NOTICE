@@ -1,0 +1,27 @@
+labdex
+Copyright (C) reykimedev and the labdex contributors
+https://github.com/reykimedev/labdex
+
+This program is free software: you can redistribute it and/or modify it under the terms
+of the GNU Affero General Public License version 3 as published by the Free Software
+Foundation (see LICENSE). It is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE.
+
+If you run a modified labdex for others over a network, offer them its source (section 13
+of the licence). Keep this notice and the credit to the original project in every copy and
+in every fork.
+
+Plugin exception
+
+Additional permission under GNU AGPL version 3 section 7: as a special exception, the
+copyright holders of labdex give you permission to write, use and distribute plugins for
+labdex under licences of your choice, and to combine them with labdex. A plugin is code
+that labdex loads through its plugin interface (a folder with a plugin.yaml, see
+docs/develop) and that contains no labdex code apart from what that interface requires.
+The exception covers the plugins only: labdex itself, and changes to it, stay under the
+AGPL. If you modify labdex, you may extend this exception to your version, but you are
+not obliged to.
+
+Versions of labdex up to and including 1.23.1 were released under the MIT licence; copies
+of those versions keep it.

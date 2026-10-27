@@ -76,9 +76,9 @@ The shipped plugins are git submodules: `git clone --recurse-submodules`, or
 Licence of contributions
 ------------------------
 
-labdex is under the [PolyForm Noncommercial License 1.0.0](LICENSE). By opening a pull
-request you agree that your contribution is published under that licence, and you grant
-reykimedev a perpetual, worldwide, royalty-free right to also license it under other terms
-(for example a commercial licence for a company that asks). You confirm that the
-contribution is yours to give, and that it contains nothing under a licence that doesn't
-allow this.
+labdex is under the [GNU Affero General Public License v3.0](LICENSE) with the plugin
+exception in [NOTICE](NOTICE). By opening a pull request you agree that your contribution
+is published under the same terms (inbound = outbound), and you confirm that it is yours to
+give and contains nothing under a licence that isn't compatible with the AGPL. Sign your
+commits off (`git commit -s`) to say so: that's the
+[Developer Certificate of Origin](https://developercertificate.org/).

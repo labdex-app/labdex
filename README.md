@@ -512,14 +512,16 @@ each release brought.
 
 ## License
 
-labdex is **source-available** under the [PolyForm Noncommercial License 1.0.0](LICENSE):
+labdex is **free and open source software** under the [GNU Affero General Public License
+v3.0](LICENSE) (AGPL-3.0), with a [plugin exception](NOTICE):
 
-- **Free** for any noncommercial purpose: your home lab, hobby projects, study and research,
-  teaching, and charities, schools, public research and government organisations.
-- **Change it and share it**, as long as everyone you give a copy to also gets the licence
-  and the line `Required Notice: Copyright reykimedev (https://github.com/reykimedev/labdex)`.
-- **Not for commercial use** (running it for a business, selling it or a service built on
-  it) without a separate licence: ask through the repository.
+- **Use it for free**, for anything, at home, at school or at work.
+- **Change it and share it**, as long as your version stays under the AGPL, keeps the
+  credit to the original (the [NOTICE](NOTICE) file), and comes with its source.
+- **Running a changed labdex for others** (a hosted service, say) counts as sharing it: you
+  have to offer them its source too. Nobody can turn labdex into a closed product.
+- **Plugins** may use any licence they like. The official plugins in the `labdex-plugin-*`
+  repositories are AGPL-3.0 too.
 
 Versions up to and including 1.23.1 were released under the MIT licence; copies of those
-keep it. The plugins in the `labdex-plugin-*` repositories carry the same licence as labdex.
+keep it.

@@ -2,6 +2,12 @@
 
 ## 1.24.0
 
+### Licence
+- labdex is now under the **GNU AGPL-3.0** (was MIT), with a plugin exception: free to use
+  and change, but a changed labdex, also one run as a service, has to stay open source and
+  keep the credit to the original (see `NOTICE`). Plugins can use any licence; the official
+  ones are AGPL-3.0 too. Earlier releases stay MIT.
+
 ### Patch panels and cable traces
 - An interface can **pass through** to another port of the same host: a patch panel's front
   port and its rear port (set on one side, both get it). *Several* adds a whole panel at once,
