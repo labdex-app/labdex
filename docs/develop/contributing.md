@@ -1,8 +1,8 @@
 # Contributing
 
 Issues, pull requests and the licence of contributions: see
-[CONTRIBUTING.md](https://github.com/reykimedev/labdex/blob/main/CONTRIBUTING.md). Security
-problems: [SECURITY.md](https://github.com/reykimedev/labdex/blob/main/SECURITY.md), never in a
+[CONTRIBUTING.md](https://github.com/labdex-app/labdex/blob/main/CONTRIBUTING.md). Security
+problems: [SECURITY.md](https://github.com/labdex-app/labdex/blob/main/SECURITY.md), never in a
 public issue. How branches, versions and releases work: [Branches, versions and
 releases](releasing.md).
 

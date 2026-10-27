@@ -68,11 +68,11 @@ def test_trace_respects_rights(admin, make_user):
 
 def test_release_check_on_any_platform(admin, monkeypatch):
     from labdex.api import about_api
-    assert about_api.release_api("https://github.com/reykimedev/labdex") == [("github", "https://api.github.com/repos/reykimedev/labdex/releases/latest")]
+    assert about_api.release_api("https://github.com/labdex-app/labdex") == [("github", "https://api.github.com/repos/labdex-app/labdex/releases/latest")]
     gl = about_api.release_api("https://gitlab.example.org/lab/tools/labdex")
     assert gl[0] == ("gitlab", "https://gitlab.example.org/api/v4/projects/lab%2Ftools%2Flabdex/releases/permalink/latest")
     assert about_api.release_api("https://codeberg.org/me/labdex")[0] == ("gitea", "https://codeberg.org/api/v1/repos/me/labdex/releases/latest")
-    assert admin.get("/api/meta").get_json()["project_url"] == "https://github.com/reykimedev/labdex"  # the default
+    assert admin.get("/api/meta").get_json()["project_url"] == "https://github.com/labdex-app/labdex"  # the default
 
     from tests.fakes import FakeServer
     from flask import Response

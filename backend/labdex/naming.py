@@ -22,7 +22,7 @@ DEFAULT_SETTINGS = {
     "marketplace_urls": "",
     "live_status_minutes": "1440",
     "update_check": "false",  # About page: ask the project's git platform for the latest release
-    "project_url": "https://github.com/reykimedev/labdex",  # where labdex lives: GitHub, GitLab, Gitea/Forgejo; help links and the release check
+    "project_url": "https://github.com/labdex-app/labdex",  # where labdex lives: GitHub, GitLab, Gitea/Forgejo; help links and the release check
     "update_check_repo": "",  # before 1.24: owner/repo on GitHub (read as https://github.com/<it>)
     "public_url": "",
     "status_stale_minutes": "15",  # a monitoring report older than this counts as unknown  # how people reach labdex, for links in notifications
@@ -124,12 +124,19 @@ def ensure_defaults() -> None:
     db.session.commit()
 
 
+# defaults that changed: an instance that still has the old one gets the new one
+MOVED_DEFAULTS = {"project_url": ("https://github.com/reykimedev/labdex",)}  # 1.24.1: the project moved to labdex-app
+
+
 def ensure_defaults_in_session() -> None:
     """Only settings get defaults. Areas and trust levels are yours to create
     (Settings → Zones offers the concept's set as a starting point)."""
     for key, value in DEFAULT_SETTINGS.items():
-        if db.session.get(Setting, key) is None:
+        row = db.session.get(Setting, key)
+        if row is None:
             db.session.add(Setting(key=key, value=value))
+        elif row.value in MOVED_DEFAULTS.get(key, ()):  # still the old default: follow it, a value you set stays
+            row.value = value
     db.session.flush()
 
 

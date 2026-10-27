@@ -11,7 +11,7 @@ from . import body, bp, err
 
 
 def _can_see(h: Host) -> bool:
-    return g.principal.can("host", "view", rbac.host_facts(store.host_to_dict(h)))
+    return g.principal.can("host", "view", rbac.host_facts(store.host_access(h)))
 
 
 def _can_arrange() -> bool:

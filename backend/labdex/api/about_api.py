@@ -23,7 +23,7 @@ def changelog_text() -> str:
     return ""
 
 
-DEFAULT_PROJECT = "https://github.com/reykimedev/labdex"
+DEFAULT_PROJECT = "https://github.com/labdex-app/labdex"
 
 
 def project_url() -> str:

@@ -297,7 +297,7 @@ def _tpl_check(integ_name: str, host: str, scheduled: bool) -> None:
         from ..models import Host
         h = db.session.scalar(db.select(Host).where(Host.name == host))
         if h is not None:
-            rbac.require("host", "apply", rbac.host_facts(store.host_to_dict(h)))
+            rbac.require("host", "apply", rbac.host_facts(store.host_access(h)))
 
 
 def _tpl(tid: int):

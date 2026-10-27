@@ -75,8 +75,8 @@ previous one too.
 
 - a GitHub release with the CHANGELOG section, the source (with the plugins), the wheel,
   their SBOMs and cosign bundles
-- `ghcr.io/reykimedev/labdex:<version>` for amd64 and arm64, signed, with its SBOM attached
-- its own docs: `https://reykimedev.github.io/labdex/<X.Y>/` (the version picker at the top);
+- `ghcr.io/labdex-app/labdex:<version>` for amd64 and arm64, signed, with its SBOM attached
+- its own docs: `https://labdex-app.github.io/labdex/<X.Y>/` (the version picker at the top);
   `latest` is the newest release, `dev` is `main`
 
 ## Checklist

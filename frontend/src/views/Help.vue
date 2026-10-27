@@ -8,7 +8,7 @@ import { state, toast } from '../store'
 
 const about = ref(null)
 onMounted(() => api.get('/api/about').then((d) => { about.value = d }).catch(() => {}))
-const project = computed(() => state.meta?.project_url || 'https://github.com/reykimedev/labdex')
+const project = computed(() => state.meta?.project_url || 'https://github.com/labdex-app/labdex')
 const host = computed(() => { try { return new URL(project.value).host } catch { return '' } })
 const isGitlab = computed(() => host.value.includes('gitlab'))
 const docs = computed(() => {

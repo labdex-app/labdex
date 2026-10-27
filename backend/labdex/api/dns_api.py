@@ -43,7 +43,7 @@ def dns_overview():
         if host not in hosts_ok:
             from .. import store
             h = store.find_host(host)
-            hosts_ok[host] = h is not None and p.can("host", "view", rbac.host_facts(store.host_to_dict(h)))
+            hosts_ok[host] = h is not None and p.can("host", "view", rbac.host_facts(store.host_access(h)))
         return hosts_ok[host]
 
     domain = naming.get_setting("domain")

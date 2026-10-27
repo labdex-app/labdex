@@ -474,7 +474,7 @@ const me = computed(() => state.auth.user.username)
         </label>
         <Field label="Project" :error="errors.project_url" style="margin-top: 10px"
                hint="Where labdex lives: GitHub, GitLab or Gitea/Forgejo (Codeberg). The release check asks its public API for the latest release; Help and the top bar link here.">
-          <input v-model.trim="settings.project_url" type="url" class="mono" placeholder="https://github.com/reykimedev/labdex">
+          <input v-model.trim="settings.project_url" type="url" class="mono" placeholder="https://github.com/labdex-app/labdex">
         </Field>
         <div style="margin-top: 14px"><button class="btn primary" @click="saveSettings">Save</button></div>
       </div>

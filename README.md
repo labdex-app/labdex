@@ -12,8 +12,8 @@ container, SQLite, under 100 MB of RAM, and a YAML file you can keep in git.
 
 ![The hosts list](docs/screenshots/hosts.png)
 
-**Docs:** <https://reykimedev.github.io/labdex/> (built from `docs/`) · **Plugins:** <https://github.com/reykimedev/labdex-plugins> ·
-**Try it:** `docker run -p 8080:8080 -e LABDEX_DEMO=1 ghcr.io/reykimedev/labdex:1`
+**Docs:** <https://labdex-app.github.io/labdex/> (built from `docs/`) · **Plugins:** <https://github.com/labdex-app/labdex-plugins> ·
+**Try it:** `docker run -p 8080:8080 -e LABDEX_DEMO=1 ghcr.io/labdex-app/labdex:1`
 
 > [!WARNING]
 > **Built with AI, for home labs only.** labdex was written largely with an AI coding

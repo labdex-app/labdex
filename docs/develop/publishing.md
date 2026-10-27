@@ -52,7 +52,7 @@ checksum and that it's signed with *your* key, and writes a signed `site/index.j
 points at the release assets. Every release is a version people can install, update to or
 go back to, with its notes; a `withdrawn` version stays installable on purpose but warns
 everyone who has it, and updates skip it. Publish `site/` on GitHub Pages: the
-[labdex-plugins](https://github.com/reykimedev/labdex-plugins) repository is a ready-made
+[labdex-plugins](https://github.com/labdex-app/labdex-plugins) repository is a ready-made
 example (it rebuilds every hour, when `plugins.yaml` changes, and on a
 `plugin-released` dispatch from a plugin's release workflow).
 
@@ -85,11 +85,11 @@ labdex plugin yank ./public pihole 0.3 --key my.pem          # offered again
 
 ## The official Marketplace
 
-Every official plugin lives in its own repository (`reykimedev/labdex-plugin-<id>`); labdex
+Every official plugin lives in its own repository (`labdex-app/labdex-plugin-<id>`); labdex
 has them as git submodules in `plugins/` for its tests, but doesn't ship them: users install
-them from the Marketplace. [labdex-plugins](https://github.com/reykimedev/labdex-plugins) lists them; its
+them from the Marketplace. [labdex-plugins](https://github.com/labdex-app/labdex-plugins) lists them; its
 index is signed with the project key and published at
-`https://reykimedev.github.io/labdex-plugins/index.json`, which labdex trusts out of the
+`https://labdex-app.github.io/labdex-plugins/index.json`, which labdex trusts out of the
 box. Contributions are welcome: see [Contributing](contributing.md).
 
 ## labdex's own versions

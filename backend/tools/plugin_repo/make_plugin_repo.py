@@ -41,7 +41,7 @@ SOFTWARE.
 def notice(m: dict, repo: str) -> str:
     """The copyright and licence notice of an official plugin."""
     return (f"{m.get('name', m['id'])}, a plugin for labdex\n"
-            f"Copyright (C) reykimedev and the labdex contributors\nhttps://github.com/reykimedev/{repo}\n\n"
+            f"Copyright (C) reykimedev and the labdex contributors\nhttps://github.com/labdex-app/{repo}\n\n"
             "This program is free software: you can redistribute it and/or modify it under the terms\n"
             "of the GNU Affero General Public License version 3 as published by the Free Software\n"
             "Foundation (see LICENSE). It is distributed WITHOUT ANY WARRANTY; without even the\n"
@@ -56,7 +56,7 @@ def readme(m: dict, official: bool) -> str:
                      for a in m.get("actions") or [])
     return f"""# {m.get('name', m['id'])}
 
-A [labdex](https://github.com/reykimedev/labdex) plugin. {m.get('description', '')}
+A [labdex](https://github.com/labdex-app/labdex) plugin. {m.get('description', '')}
 
 **Version** {m.get('version', '')} · **Works with** labdex {m.get('labdex') or 'any'} · **Plugin id** `{m['id']}`
 

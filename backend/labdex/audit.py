@@ -93,7 +93,7 @@ def visible(ev: AuditEvent) -> bool:
     if ev.object_type == "hostmodule":
         host_name, _, integ = ev.object_name.partition("/")
         h = db.session.scalar(db.select(Host).where(Host.name == host_name))
-        facts = rbac.host_facts(store.host_to_dict(h)) if h else rbac.named_facts(host_name)
+        facts = rbac.host_facts(store.host_access(h)) if h else rbac.named_facts(host_name)
         return p.can("audit", "view", facts) and p.can("host", "view", facts) and p.can("integration", "view", rbac.named_facts(integ))
     if ev.object_type == "secret":  # path and field names, never values
         return p.can_any("audit", "view") and p.can("secret", "view", rbac.named_facts(ev.object_name))
