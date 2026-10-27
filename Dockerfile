@@ -1,5 +1,7 @@
 # ---- web UI ---------------------------------------------------------------
-FROM node:22.12-alpine AS ui
+# Built once on the build machine's own platform: the result is the same files for every
+# architecture, so an arm64 image doesn't build the UI under emulation.
+FROM --platform=$BUILDPLATFORM node:22.12-alpine AS ui
 WORKDIR /src/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -17,16 +19,22 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     LABDEX_DATA=/data \
     HOME=/tmp
 WORKDIR /app
+# System packages and Python dependencies first: they change rarely, so this layer comes
+# from the build cache unless pyproject.toml (or ANSIBLE) changes.
 COPY backend/pyproject.toml ./
+RUN apt-get update && apt-get install -y --no-install-recommends nmap git openssh-client \
+ && rm -rf /var/lib/apt/lists/* \
+ && mkdir -p labdex && echo '__version__ = "0"' > labdex/__init__.py \
+ && pip install --no-cache-dir ".[server,postgres,uptimekuma]" && pip uninstall -y labdex \
+ && if [ "$ANSIBLE" = "1" ]; then pip install --no-cache-dir "ansible-core>=2.17"; fi \
+ && rm -rf labdex build *.egg-info \
+ && useradd --system --uid 10001 --home-dir /data labdex \
+ && mkdir -p /data/plugins && chown -R labdex /data
+# then labdex itself (quick: no dependencies to fetch)
 COPY backend/labdex ./labdex
 COPY CHANGELOG.md ./labdex/CHANGELOG.md
 COPY --from=ui /src/backend/labdex/static ./labdex/static
-RUN apt-get update && apt-get install -y --no-install-recommends nmap git openssh-client \
- && rm -rf /var/lib/apt/lists/* \
- && pip install --no-cache-dir ".[server,postgres,uptimekuma]" \
- && if [ "$ANSIBLE" = "1" ]; then pip install --no-cache-dir "ansible-core>=2.17"; fi \
- && useradd --system --uid 10001 --home-dir /data labdex \
- && mkdir -p /data/plugins && chown -R labdex /data
+RUN pip install --no-cache-dir --no-deps . && rm -rf build *.egg-info
 COPY examples /app/examples
 
 USER labdex

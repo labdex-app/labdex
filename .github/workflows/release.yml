@@ -72,8 +72,14 @@ jobs:
           build-args: ANSIBLE=1
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # layers come from the last release's build (kept next to the image as :buildcache),
+          # so a release only rebuilds what changed; the GitHub Actions cache is a second source
+          cache-from: |
+            type=registry,ref=ghcr.io/${{ github.repository_owner }}/labdex:buildcache
+            type=gha
+          cache-to: |
+            type=registry,ref=ghcr.io/${{ github.repository_owner }}/labdex:buildcache,mode=max
+            type=gha,mode=max
       - name: SBOM of the image
         uses: anchore/sbom-action@v0
         with:
