@@ -56,7 +56,7 @@ takes a host or network name (`/api/hosts/<name>`, `/api/networks/<name>`, …) 
 | GET · POST, PUT, DELETE | `/api/zones` · `/api/zones/{areas,trust}[/<code>]` | Areas and trust levels; `POST /api/zones/example` |
 | GET · GET · POST, PUT, DELETE | `/api/naming` · `/api/naming/next?category=&type=&role=` · `/api/naming/<kind>[/<code>]` | Hostname parts, next free name |
 | GET, POST · PUT, DELETE · GET | `/api/naming/pools` · `/api/naming/pools/<name>` · `/api/naming/fun-suggest?category=&zone=&pool=` | Fun name pools, unused suggestions |
-| GET | `/api/about` | Version, schema, database, plugins, changelog |
+| GET · POST | `/api/about` · `/api/about/update-check` | Version, schema, database, plugins, changelog; check for a release now |
 | GET | `/api/nav` | Sidebar: zone tree with live status, which pages to show |
 | GET | `/api/events[?job=<id>]` | Server-Sent Events: plan count, `revision` on every change, job status and output |
 | POST · POST · DELETE | `/api/plugins/upload` · `/api/plugins/stage/<token>/confirm` · `/api/plugins/<id>` | Install, confirm, remove |

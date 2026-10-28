@@ -1,10 +1,26 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { api } from '../api'
 import TrustBadge from '../components/TrustBadge.vue'
-import { useQuery } from '../query'
+import { invalidate, useQuery } from '../query'
 import { state, toast } from '../store'
 
 const { data } = useQuery('/api/about', { onError: (e) => toast(e.message, 'error') })
+
+// Check now: the server asks again past its cache; the page then reloads with the answer.
+const checking = ref(false)
+async function checkNow() {
+  checking.value = true
+  try {
+    const u = await api.post('/api/about/update-check')
+    toast(u.newer ? `${u.latest.tag} is out` : u.latest ? `Up to date (latest: ${u.latest.tag})` : `No answer: ${u.error || 'unknown'}`, u.latest ? 'ok' : 'error')
+    invalidate('/api/about')
+  } catch (e) { toast(e.message, 'error') } finally { checking.value = false }
+}
+const checkedAt = computed(() => {
+  const t = data.value?.update_check?.checked
+  return t ? new Date(t).toLocaleString() : ''
+})
 
 // The changelog is our own Markdown: headings, lists, paragraphs, `code`, **bold**, [links](url).
 // Escaped first, so nothing in it can become HTML.
@@ -57,6 +73,10 @@ const changelog = computed(() => render((data.value?.changelog || '').replace(/^
             <a :href="data.update_check.latest.url" target="_blank" rel="noopener">Release notes ↗</a>
           </p>
           <p v-else style="margin: 0">Up to date (latest: {{ data.update_check.latest.tag }}).</p>
+          <div class="check-row">
+            <span v-if="checkedAt" class="faint small">Checked {{ checkedAt }}</span>
+            <button class="btn small" :disabled="checking" @click="checkNow">{{ checking ? 'Checking…' : 'Check now' }}</button>
+          </div>
         </div>
         <div class="card">
           <h3>This instance</h3>
@@ -97,6 +117,7 @@ const changelog = computed(() => render((data.value?.changelog || '').replace(/^
 </template>
 
 <style scoped>
+.check-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; }
 .kv dt { color: var(--faint); }
 .kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
