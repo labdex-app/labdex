@@ -1,5 +1,5 @@
 <script setup>
-import { Bookmark, Pencil, Plus, Trash2, X } from 'lucide-vue-next'
+import { Bookmark, Pencil, Plus, Tag, Trash2, X } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, ApiError } from '../api'
@@ -280,6 +280,7 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
     <div v-if="picked.size" class="bulkbar" role="region" aria-label="Selected hosts">
       <b>{{ picked.size }} selected</b>
       <button class="btn small primary" @click="openBulk"><Pencil :size="14" /> Change</button>
+      <RouterLink class="btn small" :to="{ path: '/labels', query: { hosts: [...picked].join(',') } }"><Tag :size="14" /> Labels</RouterLink>
       <button class="btn small danger" @click="deleteBulk"><Trash2 :size="14" /> Delete</button>
       <span class="grow"></span>
       <span class="small faint hide-m">Shift-click selects a range</span>

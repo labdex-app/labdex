@@ -71,6 +71,15 @@ A change applies to all of them or to none: if one host doesn't accept it, nothi
 changes and the dialog says which host and why. Each host gets its own history entry
 (so each can be reverted), all with the same summary.
 
+## Labels
+
+*Label* on a host's page (or *Labels* on the bar that appears when you tick hosts) makes a
+label with the fun name, hostname, addresses and zone, and a QR code that opens the host in
+labdex: stick it on the machine, scan it from your phone. The Labels page prints a sheet in
+62 × 29, 50 × 25 or 89 × 36 mm. Cables have the same, with both ends written on and a
+QR code that opens the cable's trace. Set *Address of this labdex* (Settings › General) so
+the codes work from outside.
+
 ## Keeping your place
 
 - Back from a host returns to the list where you left it: same scroll position,

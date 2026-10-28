@@ -2,9 +2,9 @@
 // Every cable in one list: what's printed on it, both ends, medium, speed, length, colour.
 // Pick some (or all shown) and print their labels: one wrap-around label per cable, both ends
 // written on it, so whichever end you hold tells you where the other goes.
-import { Pencil, Printer, Route } from 'lucide-vue-next'
+import { Pencil, Printer, Route, Tag } from 'lucide-vue-next'
 import CableTrace from '../components/CableTrace.vue'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import CableSuggestions from '../components/CableSuggestions.vue'
@@ -30,6 +30,11 @@ const shown = computed(() => {
   const s = search.value.trim().toLowerCase()
   return all.value.filter((c) => (!unlabelled.value || !c.label)
     && (!s || [c.label, c.a_host, c.a_port, c.b_host, c.b_port, c.medium, c.speed, c.colour, c.notes].join(' ').toLowerCase().includes(s)))
+})
+// the QR code on a cable's label comes here: ?host=&port= opens its trace
+onMounted(() => {
+  const { host, port } = route.query
+  if (host && port) tracing.value = { a_host: String(host), a_uid: String(host), a_port: String(port), label: '' }
 })
 const picked = ref(new Set())
 const allPicked = computed(() => shown.value.length > 0 && shown.value.every((c) => picked.value.has(c.id)))
@@ -94,7 +99,9 @@ const swatch = (c) => CABLE_COLOURS.find((x) => x.name === c)?.hex || (/^#[0-9a-
             <td class="hide-m small"><i v-if="speedStep(c.speed)" class="spd" :style="{ background: speedStep(c.speed).colour }"></i>{{ [c.medium, c.speed].filter(Boolean).join(' · ') }}</td>
             <td class="hide-m small">{{ c.length ? `${c.length} m` : '' }}</td>
             <td class="hide-m small muted ell">{{ c.notes }}</td>
-            <td class="nowrap"><button class="btn icon" :aria-label="`Trace ${c.label || 'cable'}`" title="Trace end to end, through patch panels" @click="tracing = c"><Route :size="15" /></button>
+            <td class="nowrap"><a class="btn icon" :aria-label="`Label with QR code for ${c.label || 'cable'}`" title="Label with a QR code (SVG)" target="_blank" rel="noopener"
+                :href="`/api/cables/label.svg?host=${encodeURIComponent(c.a_host)}&port=${encodeURIComponent(c.a_port)}`"><Tag :size="15" /></a>
+              <button class="btn icon" :aria-label="`Trace ${c.label || 'cable'}`" title="Trace end to end, through patch panels" @click="tracing = c"><Route :size="15" /></button>
               <button v-if="canEdit" class="btn icon" :aria-label="`Edit ${c.label || 'cable'}`" @click="edit(c)"><Pencil :size="15" /></button></td>
           </tr>
         </tbody>

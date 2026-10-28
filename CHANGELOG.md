@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Labels
+- **Host labels with a QR code**: *Label* on a host's page, or tick hosts and choose *Labels*
+  to print a sheet. Each label has the fun name, hostname, addresses and zone, and a QR code
+  that opens the host. SVG in millimetres (62 × 29, 50 × 25 or 89 × 36), so it prints true on
+  a label printer. `GET /api/hosts/<name>/label.svg?size=…`.
+- **Cable labels with a QR code** next to each cable on the Cables page
+  (`GET /api/cables/label.svg?host=&port=`); the code opens the cable's trace.
+- Set the address of your labdex (Settings › General) so the codes work from outside; without
+  it they use the address you opened labdex with. New dependency: `segno` (pure Python).
+
 ### Hosts
 - **Saved searches**: a *Saved* menu on the Hosts page keeps the search text, filters, tab and
   grouping under a name. Yours are private; administrators can share one with everyone.

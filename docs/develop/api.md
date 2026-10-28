@@ -37,6 +37,7 @@ takes a host or network name (`/api/hosts/<name>`, `/api/networks/<name>`, …) 
 | GET · GET · POST | `/api/history` · `/api/history/<id>` · `/api/history/<id>/revert` | Audit log with diffs |
 | GET, POST · PUT, DELETE | `/api/searches` · `/api/searches/<uid>` | Saved Hosts searches, yours and shared ones |
 | POST | `/api/hosts/bulk` | One change to many hosts: status, runs on, tags, features, zone, integration, delete |
+| GET | `/api/hosts/<name>/label.svg` · `/api/cables/label.svg?host=&port=` | Printable labels with a QR code (`size=62x29`, `50x25`, `89x36`) |
 | GET | `/api/history/changes?since=7d` | Net change per object since a point in time (`24h`, `2w`, a date; `until` optional) |
 | GET | `/api/discovery/{summary,services,missing,unknown-hosts}` | Discovery |
 | GET, POST · GET, PUT, DELETE | `/api/integrations` · `/api/integrations/<name>` | Integration instances |

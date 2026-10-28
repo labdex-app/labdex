@@ -9,6 +9,7 @@ export const router = createRouter({
     { path: '/hosts/:name', component: () => import('./views/HostEdit.vue'), props: true, meta: { title: 'Host' } },
     { path: '/admin/secrets', redirect: '/vault' }, // 1.18: the global secrets live in the vault (global/…)
     { path: '/vault', component: () => import('./views/Vault.vue'), meta: { title: 'Vault' } },
+    { path: '/labels', component: () => import('./views/Labels.vue'), meta: { title: 'Labels' } },
     { path: '/cables', component: () => import('./views/Cables.vue'), meta: { title: 'Cables' } },
     { path: '/racks', component: () => import('./views/Racks.vue'), meta: { title: 'Racks' } },
     { path: '/networks', component: () => import('./views/Networks.vue'), meta: { title: 'Networks' } },
