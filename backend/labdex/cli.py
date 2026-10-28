@@ -66,10 +66,12 @@ def register(app: Flask) -> None:
     def lint_cmd(warnings_as_errors):
         """Check conventions; exits 1 on errors."""
         issues = lint.run()
+        n_accepted = len(lint.run_all()) - len(issues)
         for i in issues:
             click.echo(f"{i['severity']:<8} {i['kind']:<8} {i['ref']:<32} {i['message']}")
         s = lint.summary(issues)
-        click.echo(f"\n{s['error']} error(s), {s['warning']} warning(s), {s['info']} note(s)")
+        click.echo(f"\n{s['error']} error(s), {s['warning']} warning(s), {s['info']} note(s)"
+                   + (f", {n_accepted} accepted" if n_accepted else ""))
         if s["error"] or (warnings_as_errors and s["warning"]):
             sys.exit(1)
 

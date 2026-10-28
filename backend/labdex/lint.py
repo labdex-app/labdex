@@ -7,6 +7,7 @@ so it can gate CI.
 from __future__ import annotations
 
 import ipaddress
+import json
 from collections import defaultdict
 
 from . import ipam, naming
@@ -19,9 +20,24 @@ def _issue(severity, code, kind, ref, message):
     return {"severity": severity, "code": code, "kind": kind, "ref": ref, "message": message}
 
 
-def run() -> list[dict]:
+def accepted() -> list[dict]:
+    """Findings someone accepted on purpose: [{code, kind, ref, reason}]. Kept in the `lint_accepted` setting."""
+    try:
+        rows = json.loads(naming.get_setting("lint_accepted") or "[]")
+    except ValueError:
+        return []
+    return [r for r in rows if isinstance(r, dict) and r.get("code") and r.get("kind") and r.get("ref")]
+
+
+def run_all() -> list[dict]:
+    """Every finding; accepted ones carry `accepted` (the reason)."""
     from .cache import memo
     return memo("lint", _run)
+
+
+def run() -> list[dict]:
+    """The findings that still count: what `labdex lint`, the dashboard and host pages show."""
+    return [i for i in run_all() if "accepted" not in i]
 
 
 def _run() -> list[dict]:
@@ -41,10 +57,13 @@ def _run() -> list[dict]:
                                   f"third octet {net.network_address.packed[2]} doesn't match VLAN {n.vlan}"))
         if n.vlan and not n.prefixes:
             out.append(_issue("warning", "no-prefix", "network", n.name, "VLAN without an address prefix"))
+        out.extend(_prefix_checks(n))
         st = ipam.stats(n)
         if st["size"] and st["percent"] >= 90:
             out.append(_issue("warning", "nearly-full", "network", n.name,
                               f"{st['percent']} % of static addresses used"))
+
+    out.extend(_overlaps(nets))
 
     # ------------------------------------------------------------------- hosts
     seen_ip = defaultdict(list)
@@ -79,6 +98,7 @@ def _run() -> list[dict]:
                 seen_ip[a6].append(h.name)
             if i.mac:
                 seen_mac[i.mac].append(h.name)
+        out.extend(_port_clashes(h))
         if h.runs_on is not None and h.runs_on.status == "offline" and h.status == "active":
             out.append(_issue("warning", "runs-on-offline", "host", h.name, f"active, but its host {h.runs_on.name} is offline"))
 
@@ -158,9 +178,97 @@ def _run() -> list[dict]:
             out.append(_issue("error", "dns-conflict", "host", owners[0],
                               f"DNS name '{name}' is a CNAME and also used by {', '.join(owners)}"))
 
+    reasons = {(a["code"], a["kind"], a["ref"]): a.get("reason", "") for a in accepted()}
+    for i in out:
+        key = (i["code"], i["kind"], i["ref"])
+        if key in reasons:
+            i["accepted"] = reasons[key]
     order = {"error": 0, "warning": 1, "info": 2}
     return sorted(out, key=lambda i: (order[i["severity"]], i["kind"], i["ref"], i["code"]))
 
 
+def _cidr(text: str):
+    try:
+        return ipaddress.ip_network(text, strict=False) if text else None
+    except ValueError:
+        return None
+
+
+def _prefix_checks(n: Network) -> list[dict]:
+    """Gateway and DHCP range against the prefix they belong to; IPv6 prefix length."""
+    out = []
+    for p in n.prefixes:
+        net = _cidr(p.prefix) if p.source == "static" else None
+        if net is None:
+            continue
+        if net.version == 6 and net.prefixlen != 64 and net.prefixlen < 127:
+            out.append(_issue("info", "prefix6-length", "network", n.name,
+                              f"{p.prefix} isn't a /64, which SLAAC and most clients expect"))
+        if net.version != 4:
+            continue  # delegated prefixes keep suffixes, IPv6 static ones rarely carry a pool
+        gw = p.gateway
+        if gw:
+            try:
+                if ipaddress.ip_address(gw) not in net:
+                    out.append(_issue("warning", "gateway-outside", "network", n.name,
+                                      f"gateway {gw} is outside {p.prefix}"))
+            except ValueError:
+                pass
+        if p.dhcp_start and p.dhcp_end:
+            try:
+                a, b = ipaddress.ip_address(p.dhcp_start), ipaddress.ip_address(p.dhcp_end)
+            except ValueError:
+                continue
+            if a > b:
+                out.append(_issue("warning", "dhcp-range-order", "network", n.name,
+                                  f"DHCP range starts at {p.dhcp_start}, after its end {p.dhcp_end}"))
+            elif a not in net or b not in net:
+                out.append(_issue("warning", "dhcp-range-outside", "network", n.name,
+                                  f"DHCP range {p.dhcp_start}–{p.dhcp_end} reaches outside {p.prefix}"))
+            elif gw and a <= ipaddress.ip_address(gw) <= b:
+                out.append(_issue("warning", "dhcp-range-gateway", "network", n.name,
+                                  f"the gateway {gw} is inside the DHCP range"))
+    return out
+
+
+def _overlaps(nets) -> list[dict]:
+    """Two networks whose static prefixes overlap (reported on both)."""
+    flat = []
+    for n in nets:
+        for p in n.prefixes:
+            net = _cidr(p.prefix) if p.source == "static" else None
+            if net is not None:
+                flat.append((n.name, net))
+    out = []
+    seen = set()
+    for i, (a_name, a) in enumerate(flat):
+        for b_name, b in flat[i + 1:]:
+            if a_name == b_name or a.version != b.version or not a.overlaps(b):
+                continue
+            for mine, other, o_net in ((a_name, b_name, b), (b_name, a_name, a)):
+                key = (mine, other)
+                if key not in seen:
+                    seen.add(key)
+                    out.append(_issue("error", "prefix-overlap", "network", mine, f"overlaps {other} ({o_net})"))
+    return out
+
+
+def _port_clashes(h: Host) -> list[dict]:
+    """The same port and protocol twice on one host, listening on addresses that can coincide."""
+    out = []
+    by_port = defaultdict(list)
+    for s in h.services:
+        if s.port:
+            by_port[(s.port, s.proto)].append(s)
+    for (port, proto), svcs in by_port.items():
+        for i, a in enumerate(svcs):
+            for b in svcs[i + 1:]:
+                if not a.bind or not b.bind or a.bind == b.bind:
+                    out.append(_issue("warning", "service-port-clash", "host", h.name,
+                                      f"services {a.name} and {b.name} both use {port}/{proto}"))
+    return out
+
+
 def summary(issues: list[dict]) -> dict:
-    return {s: sum(1 for i in issues if i["severity"] == s) for s in ("error", "warning", "info")}
+    """Counts per severity; accepted findings don't count."""
+    return {s: sum(1 for i in issues if i["severity"] == s and "accepted" not in i) for s in ("error", "warning", "info")}

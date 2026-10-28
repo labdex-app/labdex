@@ -9,7 +9,9 @@
    sits in a zone.
 4. **Hosts.** Add hosts with interfaces (the next free address is suggested) and
    services (port, protocol, link, who may reach them).
-5. **Lint.** The Lint page tells you what breaks your conventions.
+5. **Lint.** The Lint page tells you what breaks your conventions. A finding that is fine
+   on purpose can be accepted with a reason (administrators): it stays listed, but stops
+   counting in `labdex lint` and on the dashboard.
 6. **Policy.** Fill in the zone matrix: which zone may reach which, on which ports.
 7. **Plugins.** Add an instance of OPNsense, Technitium and others under Plugins,
    then run their actions. Changes come as plans you review on the Dashboard.

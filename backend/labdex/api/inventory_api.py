@@ -567,7 +567,7 @@ def delete_alias(name):
 
 # --------------------------------------------------------------- lint/services
 def visible_issues(p) -> list[dict]:
-    all_issues = lint.run()
+    all_issues = lint.run_all()
     if p.is_admin:
         return list(all_issues)
     issues = []
@@ -596,6 +596,48 @@ def visible_issues(p) -> list[dict]:
 def get_lint():
     issues = visible_issues(g.principal)
     return jsonify({"summary": lint.summary(issues), "issues": issues})
+
+
+def _accept_key(data: dict) -> tuple[str, str, str]:
+    key = tuple(str(data.get(k) or "").strip() for k in ("code", "kind", "ref"))
+    if not all(key):
+        raise store.ValidationError([{"field": k, "message": "required"} for k, v in zip(("code", "kind", "ref"), key) if not v])
+    return key
+
+
+def _save_accepted(rows: list[dict], before: list[dict], name: str) -> None:
+    import json
+    store.save_settings({"lint_accepted": json.dumps(rows, sort_keys=True)})
+    audit.record("update", "setting", name, {"lint_accepted": before}, {"lint_accepted": rows},
+                 summary=f"lint: {name}")
+    db.session.commit()
+    jobs.emit("setting.updated")
+
+
+@bp.post("/lint/accept")
+def accept_finding():
+    """Accept a finding on purpose: it stays visible, but no longer counts (CLI, dashboard)."""
+    rbac.require_admin()
+    data = body()
+    code, kind, ref = _accept_key(data)
+    reason = str(data.get("reason") or "").strip()
+    if not reason:
+        raise store.ValidationError([{"field": "reason", "message": "say why it's fine"}])
+    before = lint.accepted()
+    rows = [r for r in before if (r["code"], r["kind"], r["ref"]) != (code, kind, ref)]
+    rows.append({"code": code, "kind": kind, "ref": ref, "reason": reason[:200]})
+    _save_accepted(rows, before, f"accept {code} {ref}")
+    return jsonify({"accepted": rows})
+
+
+@bp.delete("/lint/accept")
+def unaccept_finding():
+    rbac.require_admin()
+    code, kind, ref = _accept_key(body())
+    before = lint.accepted()
+    rows = [r for r in before if (r["code"], r["kind"], r["ref"]) != (code, kind, ref)]
+    _save_accepted(rows, before, f"unaccept {code} {ref}")
+    return jsonify({"accepted": rows})
 
 
 @bp.get("/services")

@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Lint
+- New checks: **overlapping prefixes** between networks (error), a **gateway outside its
+  prefix**, a **DHCP range** that is reversed, reaches outside its prefix or contains the
+  gateway, an **IPv6 prefix that isn't a /64** (note), and **two services on one host using
+  the same port and protocol** (when they can listen on the same address).
+- **Accept a finding** on the Lint page (administrators): give a reason and it no longer
+  counts in `labdex lint`, the dashboard or the sidebar. It stays on the page under *Show
+  accepted*, the change is in History, and *Count again* takes it back. API:
+  `POST`/`DELETE /api/lint/accept`; the list is the `lint_accepted` setting, so it's in the
+  inventory YAML and in backups.
+
 ## 1.24.1-1
 
 ### Fixes

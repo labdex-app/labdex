@@ -32,7 +32,8 @@ takes a host or network name (`/api/hosts/<name>`, `/api/networks/<name>`, …) 
 | GET | `/api/zones/zones/<code or uid>` | One zone: its networks, hosts at home there, policy cells from and to it |
 | GET, PUT · POST, PUT, DELETE | `/api/topology?view=physical\|l3` · `/api/topology/layout`, `/api/topology/cables[/<id>]` | The pictures, their shared arrangement, cables drawn on the map (both ends may be one host, on different ports); `PUT …/cables/<id>` `{medium, speed, notes}` changes one |
 | GET, POST, PUT, DELETE | `/api/aliases[/<name>]` | Aliases, generated and custom |
-| GET | `/api/services`, `/api/lint` | Services, convention checks |
+| GET | `/api/services`, `/api/lint` | Services, convention checks (accepted ones carry `accepted`: the reason) |
+| POST, DELETE | `/api/lint/accept` | Accept a finding `{code, kind, ref, reason}` / count it again (administrators) |
 | GET · GET · POST | `/api/history` · `/api/history/<id>` · `/api/history/<id>/revert` | Audit log with diffs |
 | GET | `/api/discovery/{summary,services,missing,unknown-hosts}` | Discovery |
 | GET, POST · GET, PUT, DELETE | `/api/integrations` · `/api/integrations/<name>` | Integration instances |

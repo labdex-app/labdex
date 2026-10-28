@@ -39,7 +39,7 @@ export const api = {
   text: (path) => request('GET', path, undefined, { text: true }),
   post: (path, body) => request('POST', path, body ?? {}),
   put: (path, body) => request('PUT', path, body),
-  del: (path) => request('DELETE', path),
+  del: (path, body) => request('DELETE', path, body),
 }
 
 export const enc = encodeURIComponent
