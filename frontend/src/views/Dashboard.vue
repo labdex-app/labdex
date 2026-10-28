@@ -12,6 +12,7 @@ import Field from '../components/Field.vue'
 import Modal from '../components/Modal.vue'
 import { useQuery } from '../query'
 import { state, toast } from '../store'
+import Loading from '../components/Loading.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -218,11 +219,11 @@ watch(() => route.query.d, () => { editing.value = false })
         </div>
         <span v-if="editing" class="resize" title="Drag to resize" aria-hidden="true" @pointerdown="pointerDown($event, it, 'resize')"></span>
       </div>
-      <div v-if="!items.length" class="emptydash">
+      <div v-if="!items.length" class="empty boxed emptydash">
         This dashboard is empty. <a v-if="dash.can_edit && !editing" href="#" @click.prevent="startEdit(); addOpen = true">Add a card</a>
       </div>
     </div>
-    <p v-else-if="listQ.loading.value || dashQ.loading.value" class="faint">Loading…</p>
+    <Loading v-else-if="listQ.loading.value || dashQ.loading.value" />
 
     <!-- add a card -->
     <Modal v-if="addOpen" title="Add a card" @close="addOpen = false">
@@ -308,7 +309,7 @@ watch(() => route.query.d, () => { editing.value = false })
   border-right: 3px solid var(--accent); border-bottom: 3px solid var(--accent); border-radius: 0 0 6px 0; }
 .editbar { display: flex; align-items: center; gap: 12px; padding: 8px 12px; margin-bottom: 14px; border: 1px solid var(--accent); border-radius: var(--r-ctl);
   background: var(--accent-faint); flex-wrap: wrap; }
-.emptydash { grid-column: 1 / -1; color: var(--faint); padding: 30px; text-align: center; border: 1px dashed var(--line-strong); border-radius: var(--r-box); }
+.emptydash { grid-column: 1 / -1; }
 .newtab { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); }
 .choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .choice { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 10px 12px; cursor: pointer; font: inherit;

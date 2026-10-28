@@ -137,7 +137,7 @@ const dot = (i) => (!i.enabled ? 'off' : i.last_status === 'failed' ? 'bad' : 'o
           <button class="btn small add" @click="startAdd(p)"><Plus :size="14" /> {{ p.instances.length ? 'Another instance' : 'Add an instance' }}</button>
         </template>
       </div>
-      <p v-if="!shown.length" class="faint">No plugin matches.<template v-if="show === 'used'"> <a href="#" @click.prevent="show = 'all'">Show all plugins</a>.</template></p>
+      <p v-if="!shown.length" class="empty">No plugin matches.<template v-if="show === 'used'"> <a href="#" @click.prevent="show = 'all'">Show all plugins</a>.</template></p>
     </div>
     <p class="small muted more">Firewalls, DNS, hypervisors, monitoring and more: <a href="#" @click.prevent="setTab('market')">find plugins in the Marketplace</a>.</p>
     </template>

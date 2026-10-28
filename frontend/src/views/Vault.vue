@@ -97,7 +97,7 @@ async function savePassphrase() {
           <div><button class="btn primary" :disabled="busy || !pass.one">Set up the vault</button></div>
         </form>
       </div>
-      <p v-else class="emptyp">The vault isn’t set up yet. An administrator does that here.</p>
+      <p v-else class="empty">The vault isn’t set up yet. An administrator does that here.</p>
     </template>
 
     <template v-else-if="st">

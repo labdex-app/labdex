@@ -884,7 +884,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
                 <span class="fundns"><span class="mono">{{ f }}.{{ hostZone }}</span> <span class="faint small">CNAME → the primary record</span></span></label>
             </li>
           </ul>
-          <p v-else class="faint" style="margin: 0">No fun names (add them on the Overview tab).</p>
+          <p v-else class="empty-line">No fun names (add them on the Overview tab).</p>
           <div v-if="err('fun_no_dns')" class="err">{{ err('fun_no_dns') }}</div>
           <p class="hint">Fun names switched off stay on the host (prompt, banner, search) but get no DNS record.</p>
         </div>

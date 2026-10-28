@@ -16,6 +16,7 @@ import HostIcon from '../components/HostIcon.vue'
 import TagChip from '../components/TagChip.vue'
 import ZoneChip from '../components/ZoneChip.vue'
 import { can, changed, state, tagColour, toast } from '../store'
+import Loading from '../components/Loading.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -256,7 +257,7 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
     <div class="page-head">
       <h1>Hosts</h1>
       <span class="sub">{{ visible.length }} of {{ inTab.length }}</span>
-      <span v-if="loading" class="faint small">loading …</span>
+      <Loading v-if="loading" inline />
       <span class="grow"></span>
       <input v-model="q" type="search" placeholder="Search, or tag:backup zone:DC_TC on:pve …" title="Plain text searches everything; tag: zone: status: on: net: cat: narrow it" style="max-width: 340px"
              aria-label="Search hosts" @input="syncQuery">
@@ -353,7 +354,8 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
               </td>
             </tr>
             </template>
-            <tr v-if="!loading && !visible.length">
+            <tr v-if="loading && !visible.length"><td :colspan="(editable ? 7 : 6) + sources.length"><Loading /></td></tr>
+            <tr v-else-if="!visible.length">
               <td :colspan="(editable ? 7 : 6) + sources.length" class="empty">
                 <template v-if="hosts.length">Nothing here matches<template v-if="elsewhere.length">, but
                   <template v-for="(t, n) in elsewhere" :key="t">{{ n ? ' and ' : '' }}<a href="#" @click.prevent="setTab(t)">{{ counts[t] }} in {{ TAB_LABEL[t] }}</a></template> do</template>.</template>

@@ -91,7 +91,7 @@ const counts = computed(() => ({ 4: prefixes.value.filter((p) => p.family === 4)
         <div v-if="err(i, k)" class="err">{{ err(i, k) }}</div>
       </div>
     </div>
-    <p v-if="!prefixes.length" class="faint small" style="margin: 0">No addresses yet. A network without prefixes is fine for tunnels and external ranges.</p>
+    <p v-if="!prefixes.length" class="empty-line small">No addresses yet. A network without prefixes is fine for tunnels and external ranges.</p>
     <p class="hint">Gateway and DHCP range: a full address or a suffix added to the prefix (254 → .254, ::1). A delegated IPv6 prefix comes from the firewall: the prefix it receives on the WAN interface plus the prefix ID (often the VLAN, in hex).</p>
   </div>
 </template>

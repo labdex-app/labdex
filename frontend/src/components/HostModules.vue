@@ -109,7 +109,7 @@ async function save(m, extra = {}) {
       </div>
     </div>
   </section>
-  <p v-else-if="mods" class="emptyp">No plugin works per host here yet. Plugins like OPNsense, Technitium or Uptime Kuma show up on this tab once they're set up on the <RouterLink to="/plugins">Plugins</RouterLink> page and apply to this host.</p>
+  <p v-else-if="mods" class="empty">No plugin works per host here yet. Plugins like OPNsense, Technitium or Uptime Kuma show up on this tab once they're set up on the <RouterLink to="/plugins">Plugins</RouterLink> page and apply to this host.</p>
 </template>
 
 <style scoped>

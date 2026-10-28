@@ -132,7 +132,7 @@ const setSite = (v) => { site.value = v; router.replace({ query: v ? { site: v }
       <RouterLink v-if="route.query.rack" to="/racks" class="btn small ghost">All racks</RouterLink>
     </div>
 
-    <p v-if="q.data.value && !all.length" class="emptyp">No racks yet. {{ canEdit ? 'Add one, then click a unit to put a host in it.' : '' }}</p>
+    <p v-if="q.data.value && !all.length" class="empty">No racks yet. {{ canEdit ? 'Add one, then click a unit to put a host in it.' : '' }}</p>
 
     <section v-for="[s, list] in bySite" :key="s" class="site">
       <h2 v-if="s || bySite.length > 1" class="sitename">{{ s || 'No site' }}</h2>
@@ -225,7 +225,6 @@ const setSite = (v) => { site.value = v; router.replace({ query: v ? { site: v }
 
 <style scoped>
 .page.wide { max-width: none; }
-.emptyp { color: var(--muted); }
 .site + .site { margin-top: 26px; }
 .sitename { font-size: 15px; margin: 0 0 10px; }
 .racks { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }

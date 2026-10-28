@@ -236,7 +236,7 @@ const tabs = computed(() => [
               <div class="row" style="gap: 6px 12px"><Copy v-for="ip in u.free" :key="ip" :text="ip" /></div>
             </template>
           </div>
-          <div v-if="!net.usage.length" class="card"><p class="faint" style="margin: 0">No prefixes on this network.</p></div>
+          <div v-if="!net.usage.length" class="card"><p class="empty-line">No prefixes on this network.</p></div>
         </aside>
       </div>
 

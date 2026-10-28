@@ -249,7 +249,7 @@ const minutes = (m) => (!m ? 'off' : m % 1440 === 0 ? `every ${m / 1440} d` : m 
             <p class="small" style="margin-top: 0">
               <RouterLink v-for="(h, n) in (d.hosts || []).slice(0, 40)" :key="h" :to="`/hosts/${h}`" class="mono">{{ h }}{{ n < Math.min(d.hosts.length, 40) - 1 ? ', ' : '' }}</RouterLink>
               <span v-if="d.hosts?.length > 40" class="faint"> … and {{ d.hosts.length - 40 }} more</span>
-              <span v-if="!d.hosts?.length" class="faint">No host selected.</span>
+              <span v-if="!d.hosts?.length" class="empty-line">No host selected.</span>
             </p>
             <template v-if="d.host_overrides.length">
               <h3>Per-host overrides</h3>

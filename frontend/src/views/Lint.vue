@@ -5,6 +5,7 @@ import { useQuery } from '../query'
 import { api } from '../api'
 import { changed, state, toast } from '../store'
 import Field from '../components/Field.vue'
+import Loading from '../components/Loading.vue'
 import Modal from '../components/Modal.vue'
 
 const { data } = useQuery('/api/lint', { onError: (e) => toast(e.message, 'error') })
@@ -79,6 +80,7 @@ const link = (i) => (i.kind === 'host' ? `/hosts/${i.ref}` : i.kind === 'network
         </table>
       </div>
     </template>
+    <Loading v-else />
 
     <Modal v-if="dlg" title="Accept this finding" :busy="busy" @close="dlg = null">
       <p class="small muted">{{ dlg.ref }}: {{ dlg.message }}<br>It stays on this page, but no longer counts in <code>labdex lint</code> or on the dashboard. The reason goes into History.</p>

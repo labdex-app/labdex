@@ -212,7 +212,7 @@ async function changed() {
         </footer>
       </article>
     </div>
-    <div v-if="data && !shown.length" class="emptyp">
+    <div v-if="data && !shown.length" class="empty">
       <PackageOpen :size="22" />
       <p v-if="show === 'updates'">Everything installed is up to date.</p>
       <p v-else-if="show === 'available' && !q && !tag">Every plugin is installed.</p>
@@ -310,9 +310,6 @@ async function changed() {
 .kv ul { margin: 0; display: flex; flex-direction: column; gap: 4px; }
 .kv ul.plain li { padding: 0; line-height: 1.6; word-break: normal; }
 .kv ul .tag { margin-right: 6px; }
-.spin { animation: spin 1s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
 .flags { display: flex; gap: 6px; flex-wrap: wrap; }
 .flag { font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--muted); }
 .flag.bad { color: var(--err); border-color: currentColor; }
@@ -323,6 +320,4 @@ async function changed() {
 .changes > div + div { margin-top: 8px; }
 .vers summary { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
 .vers table td { vertical-align: top; }
-.emptyp { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--faint); padding: 32px 0; }
-.emptyp p { margin: 0; }
 </style>

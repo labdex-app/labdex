@@ -85,7 +85,7 @@ const initial = (n) => (n || '?').trim().slice(0, 1).toUpperCase()
             <span v-if="j.can_approve" class="pill info">your turn</span>
           </li>
         </ul>
-        <p v-else class="empty-p">Nothing waits for approval.</p>
+        <p v-else class="empty-line">Nothing waits for approval.</p>
         <template v-if="d.scheduled.length">
           <div class="ch sub"><h3>Approved, waiting for their time</h3></div>
           <ul class="rows"><li v-for="j in d.scheduled" :key="j.id">
@@ -100,7 +100,7 @@ const initial = (n) => (n || '?').trim().slice(0, 1).toUpperCase()
               <span class="small faint ell">{{ j.result?.error }} · {{ ago(j.created_at) }}</span></RouterLink>
           </li>
         </ul>
-        <p v-else class="empty-p">✓ Nothing failing.</p>
+        <p v-else class="empty-line">✓ Nothing failing.</p>
       </template>
 
       <template v-else-if="item.type === 'running' && d">
@@ -110,7 +110,7 @@ const initial = (n) => (n || '?').trim().slice(0, 1).toUpperCase()
             <JobBadge :status="j.status" />
           </li>
         </ul>
-        <p v-else class="empty-p">Nothing runs right now.</p>
+        <p v-else class="empty-line">Nothing runs right now.</p>
       </template>
 
       <template v-else-if="item.type === 'changes' && d">
@@ -118,7 +118,7 @@ const initial = (n) => (n || '?').trim().slice(0, 1).toUpperCase()
           <li v-for="e in d.changes" :key="e.id">
             <RouterLink :to="`/history/${e.id}`" class="rl"><span class="t">{{ e.summary }}</span><span class="small faint">{{ e.actor }} · {{ ago(e.ts) }}</span></RouterLink>
           </li>
-          <li v-if="!d.changes.length" class="faint small">No changes yet.</li>
+          <li v-if="!d.changes.length" class="empty-line small">No changes yet.</li>
         </ul>
       </template>
 
@@ -133,7 +133,7 @@ const initial = (n) => (n || '?').trim().slice(0, 1).toUpperCase()
               <span class="small" :class="w.open ? 'c-green' : 'faint'">{{ w.open ? 'open now' : `opens ${stamp(w.next_open)}` }}</span></RouterLink>
           </li>
         </ul>
-        <p v-else class="empty-p">Nothing scheduled.</p>
+        <p v-else class="empty-line">Nothing scheduled.</p>
       </template>
 
       <template v-else-if="item.type === 'zones' && d">
@@ -151,7 +151,7 @@ const initial = (n) => (n || '?').trim().slice(0, 1).toUpperCase()
             <ExternalLink v-if="external(l.url)" :size="13" class="faint" aria-hidden="true" />
           </component>
         </div>
-        <p v-if="!(cfg.links || []).length" class="empty-p">No links yet.</p>
+        <p v-if="!(cfg.links || []).length" class="empty-line">No links yet.</p>
       </template>
 
       <template v-else-if="item.type === 'services'">
@@ -161,7 +161,7 @@ const initial = (n) => (n || '?').trim().slice(0, 1).toUpperCase()
             <span class="lt"><span class="ln">{{ s.name }}</span><span class="small faint ell">{{ s.fun || s.host }}</span></span>
           </a>
         </div>
-        <p v-if="svcQ && svcQ.data.value && !services.length" class="empty-p">No service with a link{{ cfg.tag || cfg.zone || cfg.category ? ' matches' : '' }}.</p>
+        <p v-if="svcQ && svcQ.data.value && !services.length" class="empty-line">No service with a link{{ cfg.tag || cfg.zone || cfg.category ? ' matches' : '' }}.</p>
       </template>
 
       <p v-else-if="item.type === 'note'" class="note">{{ cfg.text }}</p>
@@ -190,7 +190,7 @@ section.card.cardfill:not(.flush) { padding: 12px 14px; }
 .rows li:first-child { border-top: 0; }
 .rl { display: flex; flex-direction: column; min-width: 0; flex: 1; color: var(--ink); }
 .rl:hover { text-decoration: none; } .rl:hover .t { color: var(--accent-soft); }
-.empty-p { padding: 4px 18px 14px; margin: 0; color: var(--faint); font-size: 13px; }
+.empty-line { padding: 4px 18px 14px; font-size: 13px; }
 .zones { display: flex; flex-wrap: wrap; gap: 8px 14px; padding: 4px 18px 14px; }
 .zrow { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); }
 .lgrid { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 8px; padding: 4px 14px 14px; }

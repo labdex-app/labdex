@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, ref } from 'vue'
 import { api } from '../api'
+import Loading from '../components/Loading.vue'
 import Pager from '../components/Pager.vue'
 import TrustBadge from '../components/TrustBadge.vue'
 import { invalidate, useQuery } from '../query'
@@ -132,6 +133,7 @@ async function turn(p) {
         </div>
       </aside>
     </div>
+    <Loading v-else />
   </div>
 </template>
 

@@ -23,7 +23,7 @@ onMounted(() => props.firewalls.forEach(load))
 
 <template>
   <div class="fws">
-    <div v-if="!firewalls.length" class="emptyp">
+    <div v-if="!firewalls.length" class="empty">
       <ShieldCheck :size="22" />
       <p>No firewall enforces the matrix yet. The OPNsense plugin does: it writes a pass rule for each allowed pair (as a plan you review)
         and lists the rules the matrix doesn't explain.</p>
@@ -50,9 +50,4 @@ onMounted(() => props.firewalls.forEach(load))
 .fw header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
 .fw h2 { margin: 0; }
 .act { padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--line); }
-.emptyp { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--muted); padding: 32px 16px; text-align: center; }
-.emptyp p { margin: 0; max-width: 60ch; }
-.spin { animation: spin 1s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
 </style>

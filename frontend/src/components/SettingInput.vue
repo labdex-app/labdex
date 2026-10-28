@@ -72,7 +72,7 @@ function setCell(i, key, v) { set(rows.value.map((r, n) => (n === i ? { ...r, [k
       <button v-for="n in networks" :key="n.name" type="button" class="chip" :class="{ on: (modelValue || []).includes(n.name) }"
               :aria-pressed="(modelValue || []).includes(n.name)" :title="n.prefix4" @click="toggleNet(n.name, !(modelValue || []).includes(n.name))">
         <span class="mono">{{ n.name }}</span></button>
-      <span v-if="!networks.length" class="faint small">No networks you can see.</span>
+      <span v-if="!networks.length" class="empty-line small">No networks you can see.</span>
     </div>
     <div v-else-if="f.type === 'table'" class="table-wrap">
       <table class="edit">

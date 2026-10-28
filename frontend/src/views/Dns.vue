@@ -5,6 +5,7 @@ import { computed, ref, watch } from 'vue'
 import Pager from '../components/Pager.vue'
 import { useQuery } from '../query'
 import { toast } from '../store'
+import Loading from '../components/Loading.vue'
 
 const query = useQuery('/api/dns', { staleMs: 30000, onError: (e) => toast(e.message, 'error') })
 const d = computed(() => query.data.value)
@@ -48,7 +49,7 @@ const paged = computed(() => filtered.value.slice(page.value * SIZE, (page.value
       <input v-model="q" type="search" placeholder="Search names, values, hosts" style="max-width: 300px" aria-label="Search records">
       <button class="btn small" :disabled="query.loading.value" @click="query.refresh()">Refresh</button>
     </div>
-    <p v-if="loading" class="faint">Asking the DNS servers …</p>
+    <Loading v-if="loading" label="Asking the DNS servers…" />
     <template v-else-if="d">
       <nav class="tabs">
         <a v-for="s in servers" :key="s.integration" href="#" :class="{ 'router-link-active': tab === s.integration }" @click.prevent="tab = s.integration; status = ''">

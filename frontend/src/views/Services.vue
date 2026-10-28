@@ -77,7 +77,7 @@ const counts = computed(() => ({
           </div>
         </div>
       </section>
-      <p v-if="!groups.length" class="faint">Nothing matches. Services are added on each host's Services tab.</p>
+      <p v-if="!groups.length" class="empty">Nothing matches. Services are added on each host's Services tab.</p>
     </template>
 
     <div v-else class="card flush">

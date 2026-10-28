@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import { ago, stamp, toast } from '../store'
 import Diff from '../components/Diff.vue'
+import Loading from '../components/Loading.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -96,7 +97,8 @@ const link = (e) => ({ host: `/hosts/${e.object_name}`, network: `/networks/${e.
               </tr>
               <tr v-if="open.has(o.object_type + o.object_name)"><td /><td colspan="4"><Diff :rows="o.diff" /></td></tr>
             </template>
-            <tr v-if="!netData.objects.length && !loading"><td colspan="5" class="empty">Nothing changed in that time.</td></tr>
+            <tr v-if="!netData.objects.length && loading"><td colspan="5"><Loading /></td></tr>
+            <tr v-else-if="!netData.objects.length"><td colspan="5" class="empty">Nothing changed in that time.</td></tr>
           </tbody>
         </table>
       </div>
@@ -125,7 +127,8 @@ const link = (e) => ({ host: `/hosts/${e.object_name}`, network: `/networks/${e.
                 <span v-else class="mono"> {{ e.object_name }}</span></td>
               <td class="small">{{ e.summary }}</td>
             </tr>
-            <tr v-if="!events.length && !loading"><td colspan="5" class="empty">No changes match.</td></tr>
+            <tr v-if="!events.length && loading"><td colspan="5"><Loading /></td></tr>
+            <tr v-else-if="!events.length"><td colspan="5" class="empty">No changes match.</td></tr>
           </tbody>
         </table>
       </div>

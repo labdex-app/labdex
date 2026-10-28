@@ -274,7 +274,18 @@ pre.code {
 .bar { height: 6px; background: var(--raise); border-radius: 3px; overflow: hidden; min-width: 80px; }
 .bar > div { height: 100%; background: var(--accent); }
 .bar.hot > div { background: var(--warn); }
-.empty { padding: 32px; text-align: center; color: var(--faint); }
+.empty { padding: 32px 16px; text-align: center; color: var(--faint); }
+/* nothing to show. .empty centres a quiet note in a page, card or table cell (an icon, a line, an action);
+   .boxed draws the space it would fill; .list-empty is the row of an empty .list; .empty-line is a one-line note in a card */
+.empty > svg { display: block; margin: 0 auto 8px; }
+.empty > p { margin: 0 auto; max-width: 60ch; }
+.empty > p + p { margin-top: 4px; }
+.empty > .btn { margin-top: 12px; }
+.empty.boxed { border: 1px dashed var(--line-strong); border-radius: var(--r-box); }
+.empty-line { margin: 0; color: var(--faint); }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
 .kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; }
 .kv dt { color: var(--muted); }
 .kv dd { margin: 0; word-break: break-word; }

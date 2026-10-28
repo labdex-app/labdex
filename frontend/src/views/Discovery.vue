@@ -8,6 +8,7 @@ import { api, enc } from '../api'
 import HostPicker from '../components/HostPicker.vue'
 import ZoneChip from '../components/ZoneChip.vue'
 import { ago, can, changed, state, toast } from '../store'
+import Loading from '../components/Loading.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -226,7 +227,8 @@ function go(p) { f.page = p; load() }
             </tr>
           </tbody>
         </table>
-        <div v-if="!data.items.length && !loading" class="empty">
+        <Loading v-if="!data.items.length && loading" />
+        <div v-else-if="!data.items.length" class="empty">
           {{ { services: 'Nothing to review here.', unknown: 'Every address seen is in the inventory.', macs: 'No MACs to fill in: every interface that was seen has one, or none was seen with a MAC.' }[tab] || 'Every declared service on a scanned host answered.' }}
           <template v-if="!summary?.open && !summary?.unknown_hosts && can('integration', 'admin')"><br>Nothing discovered yet: add nmap, OPNsense (ARP, DHCP leases) or Technitium (records) under <RouterLink to="/plugins">Plugins</RouterLink>.</template>
         </div>

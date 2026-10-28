@@ -5,6 +5,7 @@ import { KeyRound, Plus } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { api } from '../api'
 import { toast } from '../store'
+import Loading from './Loading.vue'
 import VaultEntry from './VaultEntry.vue'
 
 const props = defineProps({ host: { type: String, default: '' }, search: { type: String, default: '' } })
@@ -39,7 +40,7 @@ const stamp = (s) => (s ? new Date(s).toLocaleDateString() : '')
     </div>
     <p v-if="host && status && !status.initialized" class="faint" style="margin: 0">The vault isn’t set up yet: an administrator does that on the <RouterLink to="/vault">Vault</RouterLink> page.</p>
     <p v-else-if="host && sealed" class="hint">The vault is sealed: names show, values can’t be revealed or added until an administrator unseals it.</p>
-    <div v-if="entries === null" class="faint">Loading…</div>
+    <Loading v-if="entries === null" />
     <p v-else-if="!entries.length && status?.initialized" class="faint" style="margin: 0">{{ search ? 'Nothing matches.' : host ? 'No secrets for this host yet.' : 'No secrets yet.' }}</p>
     <table v-else-if="entries.length">
       <thead><tr><th>Path</th><th class="hide-m">Fields</th><th v-if="!host" class="hide-m">Host</th><th class="hide-m">Updated</th></tr></thead>
