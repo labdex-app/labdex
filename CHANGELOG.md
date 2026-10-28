@@ -71,6 +71,13 @@
   `POST`/`DELETE /api/lint/accept`; the list is the `lint_accepted` setting, so it's in the
   inventory YAML and in backups.
 
+### Fixes
+- **About › Updates missed a new release for hours**: the release check kept its answer six
+  hours, so the page said "Up to date" long after a release was out. It now keeps it an hour,
+  and **Check now** on the card asks again at once (`POST /api/about/update-check`; at most
+  every 30 seconds). The card says when it last looked. Versions are compared the PEP 440
+  way, so `1.24.10` is newer than `1.24.9` and a `.post`, `rc` or `.dev` build compares right.
+
 ## 1.24.1-1
 
 ### Fixes

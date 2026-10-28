@@ -2,15 +2,17 @@
 from __future__ import annotations
 
 import platform
+import re
 import sys
 import time
+from datetime import datetime, UTC
 from pathlib import Path
 
 from flask import current_app, g, jsonify
 
 from .. import naming, schema
 from ..models import Host, Integration, db
-from . import bp
+from . import bp, err
 
 _release_cache: dict = {}
 
@@ -56,11 +58,16 @@ def release_api(url: str) -> list[tuple[str, str]]:
     return [gt, gl, gh]
 
 
-def latest_release(url: str) -> dict:
-    """The project's latest release: {tag, name, url, published} or {error}. Cached six hours
-    (a failure ten minutes). Only a GET to the platform's public API; nothing is sent."""
+RELEASE_TTL = 3600  # a found release is kept an hour, a failure ten minutes
+FORCE_FLOOR = 30  # "Check now" asks again at most this often (unauthenticated GitHub allows 60 an hour)
+
+
+def latest_release(url: str, force: bool = False) -> dict:
+    """The project's latest release: {tag, name, url, published, checked} or {error, checked}.
+    Cached (see RELEASE_TTL); force asks again unless the last answer is under FORCE_FLOOR seconds
+    old. Only a GET to the platform's public API; nothing is sent."""
     hit = _release_cache.get(url)
-    if hit and time.time() - hit[0] < (6 * 3600 if "tag" in hit[1] else 600):
+    if hit and time.time() - hit[0] < (FORCE_FLOOR if force else RELEASE_TTL if "tag" in hit[1] else 600):
         return hit[1]
     import requests
     out: dict = {}
@@ -88,17 +95,35 @@ def latest_release(url: str) -> dict:
             out = {"error": f"can't reach {api.split('/')[2]} ({type(exc).__name__})"}
         except ValueError:
             out = {"error": "the answer wasn't a release"}
-    _release_cache[url] = (time.time(), out or {"error": "no answer"})
-    return _release_cache[url][1]
+    now = time.time()
+    out = {**(out or {"error": "no answer"}), "checked": datetime.fromtimestamp(now, UTC).isoformat(timespec="seconds")}
+    _release_cache[url] = (now, out)
+    return out
 
 
 def _newer(tag: str, mine: str) -> bool:
-    def parts(v):
-        return tuple(int(x) for x in v.lstrip("v").split("-")[0].split(".") if x.isdigit())
+    """Is release tag (v1.25.0) newer than this version (1.24.1.post1)? PEP 440, so post, dev and
+    rc versions order right; a tag that isn't a version falls back to comparing its numbers."""
+    from packaging.version import InvalidVersion, Version
     try:
-        return parts(tag) > parts(mine)
-    except ValueError:
-        return False
+        return Version(tag) > Version(mine)
+    except InvalidVersion:
+        pass
+
+    def parts(v):
+        return tuple(int(m.group()) for x in v.lstrip("vV").split("-")[0].split(".") if (m := re.match(r"\d+", x)))
+    return parts(tag) > parts(mine)
+
+
+def update_check(force: bool = False) -> dict | None:
+    """The About page's Updates card, or None when the check is off in Settings."""
+    if naming.get_setting("update_check") != "true":
+        return None
+    project = project_url()
+    rel = latest_release(project, force=force)
+    ok = "tag" in rel
+    return {"project": project, "latest": rel if ok else None, "error": rel.get("error", ""), "checked": rel.get("checked", ""),
+            "newer": bool(ok and _newer(rel["tag"], current_app.config["LABDEX_VERSION"]))}
 
 
 def _jobs_status() -> dict:
@@ -133,12 +158,16 @@ def about():
         "jobs": _jobs_status(),
     }
     out["project_url"] = project_url()
-    if naming.get_setting("update_check") == "true":
-        rel = latest_release(out["project_url"])
-        ok = "tag" in rel
-        out["update_check"] = {"project": out["project_url"], "latest": rel if ok else None, "error": rel.get("error", ""),
-                               "newer": bool(ok and _newer(rel["tag"], version))}
+    out["update_check"] = update_check()
     return jsonify(out)
+
+
+@bp.post("/about/update-check")
+def check_for_update():
+    """Check now: ask the project's git platform for its latest release, past the cache."""
+    if naming.get_setting("update_check") != "true":
+        return err(409, "the release check is off (Settings)")
+    return jsonify(update_check(force=True))
 
 
 @bp.get("/openapi.json")

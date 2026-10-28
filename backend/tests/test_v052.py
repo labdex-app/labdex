@@ -144,7 +144,7 @@ def test_about(admin, monkeypatch):
     assert any(p["id"] == "technitium" and p["trust"] == "official" for p in a["plugins"])
     assert a["update_check"] is None
     from labdex.api import about_api
-    monkeypatch.setattr(about_api, "latest_release", lambda url: {"tag": "v9.0.0", "name": "", "url": "https://example.org", "published": ""})
+    monkeypatch.setattr(about_api, "latest_release", lambda url, force=False: {"tag": "v9.0.0", "name": "", "url": "https://example.org", "published": ""})
     admin.put("/api/admin/settings", json={"update_check": "true", "update_check_repo": "someone/labdex"})
     a = admin.get("/api/about").get_json()
     assert a["update_check"]["newer"] is True and a["project_url"] == "https://github.com/someone/labdex"  # the old setting still counts
