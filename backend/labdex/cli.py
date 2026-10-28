@@ -7,6 +7,7 @@
     labdex import inventory.yaml       replace the inventory with a YAML file
     labdex export [-o file]            write the inventory as YAML
     labdex lint                        check conventions; exit 1 on errors
+    labdex diff --since 7d             what changed in the inventory since then
     labdex plugins                     list plugins and integrations
     labdex action INTEGRATION ACTION   run an integration action (plans are applied with --apply)
     labdex worker                      run queued jobs and the scheduler (with LABDEX_WORKER=external)
@@ -74,6 +75,27 @@ def register(app: Flask) -> None:
                    + (f", {n_accepted} accepted" if n_accepted else ""))
         if s["error"] or (warnings_as_errors and s["warning"]):
             sys.exit(1)
+
+    @app.cli.command("diff")
+    @click.option("--since", default="7d", show_default=True, help="24h, 7d, 2w or a date")
+    @click.option("--until", default=None, help="Same forms; default: now")
+    @click.option("--fields", is_flag=True, help="Show before and after of every field")
+    def diff_cmd(since, until, fields):
+        """What changed in the inventory between two points in time."""
+        try:
+            start = audit.parse_since(since)
+            end = audit.parse_since(until) if until else None
+        except ValueError as e:
+            raise click.UsageError(f"{e}: use 24h, 7d, 2w or a date like 2026-10-01") from None
+        rows = audit.changes_since(start, end, only_visible=False)
+        sign = {"created": "+", "deleted": "-", "updated": "~"}
+        for r in rows:
+            extra = f"  ({', '.join(r['fields'])})" if r["fields"] and not fields else ""
+            click.echo(f"{sign[r['change']]} {r['object_type']:<10} {r['object_name']}{extra}")
+            if fields:
+                for d in r["diff"]:
+                    click.echo(f"    {d['path']}: {d['before']!r} -> {d['after']!r}")
+        click.echo(f"\n{len(rows)} object(s) changed since {start:%Y-%m-%d %H:%M} UTC", err=True)
 
     # ------------------------------------------------------------------ users
     @app.cli.group("user")

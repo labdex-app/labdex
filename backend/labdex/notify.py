@@ -42,6 +42,7 @@ EVENTS = [
     ("backup.failed", "A backup failed"),
     ("host.down", "A host stopped answering"),
     ("host.up", "A host answers again"),
+    ("digest.weekly", "Weekly digest: changes, lint findings, unknown addresses, waiting plans"),
     ("plugins.update", "A plugin update is available"),
     ("plugins.updated", "A plugin updated itself (official updates)"),
     ("plugins.update_failed", "An automatic plugin update failed"),
@@ -115,6 +116,62 @@ def emit(event: str, title: str, body: str = "", link: str = "", data: dict | No
         from .plugins import jobs
         jobs.wake()
     return n
+
+
+DIGEST_EVERY = timedelta(days=7)
+DIGEST_KEY = "digest_last"
+
+
+def digest_text(days: int = 7) -> tuple[str, str]:
+    """Title and body of the weekly digest: what changed, what lint says, what Discovery found, what waits."""
+    from . import audit, discovery, lint
+    from .models import DiscoveredHost, Job
+    changes = audit.changes_since(utcnow() - timedelta(days=days), only_visible=False)
+    by = {}
+    for c in changes:
+        by.setdefault(c["change"], []).append(c)
+    issues = lint.summary(lint.run())
+    known = discovery._ip_index()
+    unknown = sum(1 for dh in db.session.scalars(db.select(DiscoveredHost)) if dh.ip not in known)
+    waiting = db.session.scalar(db.select(db.func.count()).select_from(Job).where(Job.status.in_(("planned", "approved")))) or 0
+    lines = [f"Last {days} days: {len(by.get('created', []))} created, {len(by.get('updated', []))} changed, "
+             f"{len(by.get('deleted', []))} deleted."]
+    for c in changes[:10]:
+        lines.append(f"  {c['change']:<8} {c['object_type']} {c['object_name']}")
+    if len(changes) > 10:
+        lines.append(f"  … and {len(changes) - 10} more")
+    lines.append(f"Lint: {issues['error']} error(s), {issues['warning']} warning(s).")
+    lines.append(f"Discovery: {unknown} address(es) seen that aren't in the inventory.")
+    lines.append(f"Plans waiting: {waiting}.")
+    return f"{naming_name()} weekly digest", "\n".join(lines)
+
+
+def naming_name() -> str:
+    from . import naming
+    return naming.get_setting("instance_name") or "labdex"
+
+
+def digest_due(now=None) -> bool:
+    """Queue the weekly digest when a channel wants it and seven days passed since the last one.
+    The first check only starts the clock, so enabling the event doesn't send one at once."""
+    from .models import Setting
+    now = now or utcnow()
+    if not any(any(fnmatchcase("digest.weekly", p) for p in ch.events or [])
+               for ch in db.session.scalars(db.select(NotificationChannel).where(NotificationChannel.enabled.is_(True)))):
+        return False
+    row = db.session.get(Setting, DIGEST_KEY)
+    if row is None or not row.value:
+        db.session.merge(Setting(key=DIGEST_KEY, value=now.isoformat()))
+        db.session.commit()
+        return False
+    from datetime import datetime
+    if now - datetime.fromisoformat(row.value) < DIGEST_EVERY:
+        return False
+    row.value = now.isoformat()
+    db.session.commit()
+    title, body = digest_text()
+    emit("digest.weekly", title, body, "/history")
+    return True
 
 
 def job_event(job, event: str) -> None:

@@ -12,7 +12,7 @@ import yaml
 from . import features, hostnames, naming, racks, store
 from .models import AliasGroup, Area, Feature, Host, Interface, Link, NamingPart, Network, Rack, RackItem, Service, Setting, Tag, Zone, db
 
-INSTANCE_SETTINGS = ("official_repo_seeded", "bundled_installed", "plugin_holds", "plugin_update_mode", "plugin_updates_seen", "plugin_updates_checked")  # settings of this labdex, kept through an import
+INSTANCE_SETTINGS = ("official_repo_seeded", "bundled_installed", "plugin_holds", "plugin_update_mode", "plugin_updates_seen", "plugin_updates_checked", "digest_last")  # settings of this labdex, kept through an import
 
 HEADER = "# labdex inventory. Edit here or in the web UI; import with `labdex import`.\n"
 

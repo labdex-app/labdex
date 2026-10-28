@@ -34,6 +34,19 @@ def list_history():
     return resp
 
 
+@bp.get("/history/changes")
+def changes():
+    """The net change per object since a point in time: ?since=7d (or 24h, 2w, 2026-10-01), &until= optional."""
+    try:
+        start = audit.parse_since(request.args.get("since") or "7d")
+        end = audit.parse_since(request.args["until"]) if request.args.get("until") else None
+    except ValueError:
+        return err(422, "since and until are like 24h, 7d, 2w or a date (2026-10-01)")
+    rows = audit.changes_since(start, end)
+    return jsonify({"since": start.isoformat() + "Z", "until": end.isoformat() + "Z" if end else None, "objects": rows,
+                    "counts": {c: sum(1 for r in rows if r["change"] == c) for c in ("created", "updated", "deleted")}})
+
+
 @bp.get("/history/<int:event_id>")
 def get_event(event_id):
     ev = db.session.get(AuditEvent, event_id)

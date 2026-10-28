@@ -581,6 +581,7 @@ def _due(app: Flask) -> None:
             approvals.due()
             from .. import health, notify
             notify.prune()
+            notify.digest_due()
             health.reconcile()
         except Exception:
             db.session.rollback()

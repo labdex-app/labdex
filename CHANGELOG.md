@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### History
+- **Net change since…** on the History page (last day, week or 30 days): one row per
+  object with what changed overall, so five edits of a host read as one diff, and an object
+  created and deleted in between isn't listed. Also `labdex diff --since 7d [--fields]` and
+  `GET /api/history/changes?since=7d` (`24h`, `2w` or a date work too).
+
+### Weekly digest
+- New notification event **`digest.weekly`**: one message a week with what changed, the
+  lint errors and warnings, addresses Discovery saw that aren't in the inventory and plans
+  waiting. Tick it on a channel under Settings › Notifications; the first one arrives a week
+  later.
+
 ### Lint
 - New checks: **overlapping prefixes** between networks (error), a **gateway outside its
   prefix**, a **DHCP range** that is reversed, reaches outside its prefix or contains the
