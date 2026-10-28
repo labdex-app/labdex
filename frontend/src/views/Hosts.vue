@@ -257,7 +257,6 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
     <div class="page-head">
       <h1>Hosts</h1>
       <span class="sub">{{ visible.length }} of {{ inTab.length }}</span>
-      <Loading v-if="loading" inline />
       <span class="grow"></span>
       <input v-model="q" type="search" placeholder="Search, or tag:backup zone:DC_TC on:pve …" title="Plain text searches everything; tag: zone: status: on: net: cat: narrow it" style="max-width: 340px"
              aria-label="Search hosts" @input="syncQuery">
