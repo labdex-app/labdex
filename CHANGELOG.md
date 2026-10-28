@@ -3,7 +3,9 @@
 ## 1.24.1-1
 
 ### Fixes
-- 
+- No more `InsecureRequestWarning` in the log for every request to a device whose
+  certificate isn't checked (a self-signed firewall, controller or hypervisor, with
+  "verify TLS" off): that's a setting you chose, not a problem to report again and again.
 
 ## 1.24.1
 
