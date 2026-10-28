@@ -34,7 +34,7 @@ container, SQLite, under 100 MB of RAM, and a YAML file you can keep in git.
 | **DNS** | `A`/`AAAA` per interface (`<host>.<network>.<domain>`), CNAMEs for short, fun and service names, `SRV`/`TXT` per service. As a zone file or JSON. |
 | **Ansible** | Groups per category, zone, area, status and tag; host vars with addresses, aliases, a login banner (`labdex_motd`) and a zone-coloured prompt (`labdex_ps1`). |
 | **Lint** | Placement (a device never sits above its own trust level), duplicate IPs and MACs, third octet vs. VLAN, alias length, unresolvable alias members, DNS name clashes. `labdex lint` exits non-zero on errors, so it can gate CI. |
-| **Plugins** | Plugins with settings, actions and hooks, written in Python, Ansible or both. Built in: OPNsense alias sync, Technitium DNS sync, nmap discovery, Prometheus service discovery, login banners over Ansible, a YAML mirror and file exports. Changes to other systems are **planned first and applied after review**. |
+| **Plugins** | Plugins with settings, actions and hooks, written in Python, Ansible or both. Official ones from the Marketplace: OPNsense alias sync, Technitium DNS sync, nmap discovery, Prometheus service discovery, login banners over Ansible, a YAML mirror, file exports and more; backups are built in. Changes to other systems are **planned first and applied after review**. |
 | **Discovery** | nmap (TCP connect, no root), the OPNsense ARP table, Kea DHCP leases and DNS records show what's really there: undocumented services, unknown addresses, declared services that don't answer. One click adds a port to its host, or an unknown address to an existing host. Hosts get live up/down dots. |
 | **Features (Ansible)** | A tree of features (`server` → `server.packages` → `server.packages.pve`) with nested variables and playbooks/roles. Hosts get features; variables merge root → leaf, then the host's own vars. The Ansible runner applies them with plan → apply. |
 | **Per-host integrations** | Every integration applies to hosts by selector (`zone:DC_*`, `tag:admin`, …) and can be switched on/off and configured per host, with its own panel on the host page: DNS records that belong to the host, firewall rules that mention it, declared access without a pass rule, actions like *run a command*. |
@@ -48,7 +48,7 @@ that change another system show you a plan first.
 ## Quick start
 
 ```sh
-git clone https://github.com/<you>/labdex && cd labdex
+git clone https://github.com/labdex-app/labdex && cd labdex
 # set LABDEX_ADMIN_PASSWORD in docker-compose.yml (or leave it out and use the setup page)
 docker compose up -d --build
 docker compose exec labdex labdex import --yes /app/examples/homelab.yaml   # optional demo data
@@ -118,7 +118,7 @@ can't make HTTP requests or run Ansible, and installing plugins, repositories,
 notification channels, secrets, restores and changes to users and passwords are off.
 
 ```sh
-docker run -d -p 8080:8080 -e LABDEX_DEMO=1 ghcr.io/<owner>/labdex
+docker run -d -p 8080:8080 -e LABDEX_DEMO=1 ghcr.io/labdex-app/labdex:1
 ```
 
 ### Jobs and the worker
@@ -174,7 +174,7 @@ split horizon, a public service's name resolves to its internal address inside.
 ## Users, roles and history
 
 - **Sign-in:** local passwords (10+ characters, throttled after 5 failures), SSO headers from a trusted proxy, or API tokens (`Authorization: Bearer ldx_…`, optionally read-only and expiring, stored hashed).
-- **Permissions** are `<type>:<action>` with types `host`, `network`, `alias`, `integration`, `discovery`, `audit` and actions `view`, `edit`, `apply`, `admin`. Built-in roles: viewer, editor, operator, integration-admin, admin.
+- **Permissions** are `<type>:<action>` with types `host`, `network`, `alias`, `integration`, `discovery`, `audit` and actions `view`, `edit`, `apply`, `admin`. Built-in roles: viewer, editor, operator, integration-admin, secret-keeper, admin.
 - **Role bindings** give a user or group a role on a scope: `*`, `zone:DC_*`, `area:CA`, `network:srv`, `tag:admin`, `name:srv-vm-*`. A user with `editor` on `zone:CA_*` can't see or touch the datacenter.
 - **Object grants** add exceptions for single objects, e.g. edit on `host:srv-vm-media-*` or apply on `integration:motd`.
 - Moving an object needs edit rights on both its old and new place, so nobody can move a host out of reach of the people responsible for it.
@@ -285,8 +285,9 @@ about to install:
 | unsigned | no signature: installs only after you tick “I trust its author” |
 | invalid | bad signature, unknown key or files changed after signing: never loaded, not even from disk |
 
-The **official repository** (published with the docs, signed with the project key)
-is there out of the box; remove it and it stays removed. `LABDEX_OFFICIAL_INDEX`
+The **official repository** ([labdex-plugins](https://github.com/labdex-app/labdex-plugins),
+signed with the project key) is there out of the box and is where every official plugin
+comes from (since 1.24.1 none ships with labdex); remove it and it stays removed. `LABDEX_OFFICIAL_INDEX`
 points elsewhere, or is empty to have none.
 
 A repository is a signed `index.json` next to the plugin archives, on any web
@@ -492,12 +493,13 @@ LABDEX_E2E=1 pytest -q tests/e2e                             # browser tests (np
 python tools/big_inventory.py 1000 > big.yaml                # a large demo inventory
 ```
 
-GitHub Actions runs all of it on every push (`ci.yml`), including a docs build and
-the upgrade gate (a 0.5 database started on the current release, `tests/test_upgrade_gate.py`).
+GitHub Actions runs it on pull requests (`ci.yml`: what a change can affect, including a docs
+build and the upgrade gate, a 0.5 database started on the current release,
+`tests/test_upgrade_gate.py`), and ruff and eslint on every push (`lint.yml`).
 Publishing a GitHub release tagged `v<version>` publishes signed multi-arch images (amd64, arm64) to `ghcr.io/<owner>/labdex`
 and a GitHub release with signed archives, wheel and SBOMs (`release.yml`). `docs.yml`
-publishes the docs and the official plugin repository (signed with the
-`LABDEX_OFFICIAL_KEY` secret) to GitHub Pages.
+publishes the docs, one version per release, to GitHub Pages; the official plugin
+repository is its own project ([labdex-plugins](https://github.com/labdex-app/labdex-plugins)).
 
 The OPNsense and Technitium plugins are checked against OPNsense 26.1 (Kea
 inside OPNsense) and Technitium DNS Server 15.6.2; `tests/test_contracts.py`

@@ -70,7 +70,7 @@ ruff check labdex tools tests
 cd ../frontend && npm ci && npm run lint && npm run dev         # Vite on :5173, proxies /api
 ```
 
-The shipped plugins are git submodules: `git clone --recurse-submodules`, or
+The official plugins (for the tests; they aren't part of the package) are git submodules: `git clone --recurse-submodules`, or
 `git submodule update --init` in a clone you have.
 
 Licence of contributions

@@ -14,6 +14,8 @@ The Marketplace also lists what your [repositories](installing.md#repositories) 
 with a filter for updates. Anyone who can see integrations can browse it; administrators
 install.
 
+![The installed plugins](../screenshots/plugins.png)
+
 Under **Plugins** add an instance of a plugin (an integration), fill in its settings and
 enable it. A plugin can have several instances, e.g. one per firewall. Each plugin has a
 page listing its instances, what it can do and its signature.

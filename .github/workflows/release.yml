@@ -4,7 +4,7 @@ name: Release
 # a hotfix; web UI, or `gh release create v1.23.0 --target main --notes ""`). This builds:
 #   ghcr.io/<owner>/labdex:1.23.0, :1.23, :1 and :latest for amd64 and arm64, signed with
 #   cosign (keyless, this workflow's identity) with an SPDX SBOM attached as an attestation;
-#   on the release: the source archive (with the plugins), the Python wheel and sdist, their
+#   on the release: labdex's source archive (not the plugins), the Python wheel and sdist, their
 #   SBOM, CHANGELOG.md and a cosign bundle for each file. The description gets this version's
 #   CHANGELOG.md section, below anything you wrote.
 on:
@@ -132,9 +132,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Point labdex at this owner's official Marketplace (labdex-plugins)
-        run: |
-          owner="${GITHUB_REPOSITORY_OWNER}"; repo="${GITHUB_REPOSITORY#*/}"
-          echo "https://${owner}.github.io/labdex-plugins/index.json" > backend/labdex/keys/official/index.url
+        run: echo "https://${GITHUB_REPOSITORY_OWNER}.github.io/labdex-plugins/index.json" > backend/labdex/keys/official/index.url
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
