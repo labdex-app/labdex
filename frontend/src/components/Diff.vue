@@ -17,5 +17,5 @@ const show = (v) => (v === null || v === undefined || v === '' ? '∅' : typeof 
       </tbody>
     </table>
   </div>
-  <p v-else class="faint" style="margin: 0">No field changes recorded.</p>
+  <p v-else class="empty-line">No field changes recorded.</p>
 </template>

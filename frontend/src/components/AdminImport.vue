@@ -36,7 +36,7 @@ const added = computed(() => result.value && (result.value.created.networks.leng
 <template>
   <div class="card">
     <h2>Add from other tools</h2>
-    <p class="muted small" style="margin-top: 0">Brings networks and hosts from NetBox, phpIPAM or CSV files into labdex. It only adds: what already exists (by name, and networks also by prefix) is left alone, and every new object is in History, so you can revert it. Run a preview first; it keeps nothing.</p>
+    <p class="muted small mt-0">Brings networks and hosts from NetBox, phpIPAM or CSV files into labdex. It only adds: what already exists (by name, and networks also by prefix) is left alone, and every new object is in History, so you can revert it. Run a preview first; it keeps nothing.</p>
 
     <div class="g2">
       <Field label="From"><select v-model="f.source"><option v-for="s in SOURCES" :key="s.value" :value="s.value">{{ s.label }}</option></select></Field>
@@ -66,7 +66,7 @@ const added = computed(() => result.value && (result.value.created.networks.leng
       <button class="btn primary" :disabled="busy || !f.zone || !result || result.applied || !added" @click="run(true)">Add {{ added || '' }}</button>
     </div>
 
-    <div v-if="result" class="stack" style="margin-top: 14px">
+    <div v-if="result" class="stack mt-4">
       <p class="small"><b>{{ result.applied ? 'Added' : 'Would add' }}</b>: {{ result.created.networks.length }} networks, {{ result.created.hosts.length }} hosts.
         <span v-if="result.skipped.length">{{ result.skipped.length }} skipped (already there).</span>
         <span v-if="result.failed.length" class="c-red">{{ result.failed.length }} failed.</span></p>

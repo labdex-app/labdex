@@ -113,11 +113,11 @@ async function remove(p) {
             <input v-model.trim="form.applies_to" class="mono" placeholder="category:srv, zone:DC_*">
           </Field>
         </div>
-        <Field label="Description" :error="errors.description" style="margin-top: 14px"><input v-model="form.description" type="text"></Field>
-        <Field :label="`Names (${count})`" :error="errors.names" hint="Paste a list: spaces, commas or new lines between names. Lowercase letters, digits and dashes." style="margin-top: 14px">
+        <Field label="Description" :error="errors.description" class="mt-4"><input v-model="form.description" type="text"></Field>
+        <Field :label="`Names (${count})`" :error="errors.names" hint="Paste a list: spaces, commas or new lines between names. Lowercase letters, digits and dashes." class="mt-4">
           <textarea v-model="form.names" rows="8" class="mono" spellcheck="false" placeholder="arcanine&#10;snorlax&#10;umbreon"></textarea>
         </Field>
-        <label class="check" style="margin-top: 12px"><input v-model="form.enabled" type="checkbox"> Enabled</label>
+        <label class="check mt-3"><input v-model="form.enabled" type="checkbox"> Enabled</label>
       </form>
       <template #foot>
         <button type="button" class="btn ghost" @click="editing = null">Cancel</button>

@@ -80,8 +80,8 @@ async function remove(t) {
             <input v-model.trim="edit.name" class="mono" placeholder="backup" required></Field>
           <div class="pv"><TagChip :name="edit.name || 'tag'" :colour="edit.colour || ''" /></div>
         </div>
-        <Field label="Colour" :error="errors.colour" style="margin-top: 14px"><ColourPicker v-model="edit.colour" none-title="no colour" /></Field>
-        <Field label="Description" style="margin-top: 14px"><input v-model="edit.description" placeholder="What the tag means"></Field>
+        <Field label="Colour" :error="errors.colour" class="mt-4"><ColourPicker v-model="edit.colour" none-title="no colour" /></Field>
+        <Field label="Description" class="mt-4"><input v-model="edit.description" placeholder="What the tag means"></Field>
       </form>
       <template #foot>
         <button type="button" class="btn ghost" @click="edit = null">Cancel</button>

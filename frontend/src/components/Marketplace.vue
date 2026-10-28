@@ -167,7 +167,7 @@ async function changed() {
 
 <template>
   <div>
-    <PluginInstallConfirm v-if="staged" ref="confirmBox" :staged="staged" :isolation="isolation" style="margin-bottom: 16px" @cancel="staged = null" @done="changed" />
+    <PluginInstallConfirm v-if="staged" ref="confirmBox" :staged="staged" :isolation="isolation" class="mb-4" @cancel="staged = null" @done="changed" />
 
     <div class="filters mtools">
       <div class="seg" role="radiogroup" aria-label="Show">
@@ -184,7 +184,7 @@ async function changed() {
       <button type="button" class="chip" :class="{ on: !tag }" :aria-pressed="!tag" @click="tag = ''">Everything</button>
       <button v-for="t in tags" :key="t" type="button" class="chip" :class="{ on: tag === t }" :aria-pressed="tag === t" @click="tag = tag === t ? '' : t">{{ t }}</button>
     </div>
-    <div v-for="e in data?.errors || []" :key="e" class="warnbox small" style="margin-bottom: 10px">Couldn't read a repository. {{ e }}</div>
+    <div v-for="e in data?.errors || []" :key="e" class="warnbox small mb-3">Couldn't read a repository. {{ e }}</div>
 
     <div class="mgrid">
       <article v-for="p in shown" :key="p.id" class="card mcard" :class="{ inst: p.installed }">
@@ -212,16 +212,16 @@ async function changed() {
         </footer>
       </article>
     </div>
-    <div v-if="data && !shown.length" class="emptyp">
+    <div v-if="data && !shown.length" class="empty">
       <PackageOpen :size="22" />
       <p v-if="show === 'updates'">Everything installed is up to date.</p>
       <p v-else-if="show === 'available' && !q && !tag">Every plugin is installed.</p>
       <p v-else>Nothing matches. <a href="#" @click.prevent="q = ''; tag = ''; show = 'all'">Clear the filters</a></p>
     </div>
-    <p v-if="data && !canInstall" class="small faint" style="margin-top: 14px">An administrator installs and uninstalls plugins.</p>
+    <p v-if="data && !canInstall" class="small faint mt-4">An administrator installs and uninstalls plugins.</p>
 
     <Modal v-if="open" :title="open.name" wide @close="open = null">
-      <p style="margin-top: 0">{{ open.description }}</p>
+      <p class="mt-0">{{ open.description }}</p>
       <dl class="kv small">
         <dt>From</dt><dd>{{ from(open) }}<span v-if="open.official" class="off">official</span>
           <span v-if="open.bundled" class="faint"> · nothing to download, installs at once</span>
@@ -238,9 +238,9 @@ async function changed() {
           · {{ open.schedules }} can run on a schedule</span></dd>
         <dt v-if="open.pages.length">Pages</dt><dd v-if="open.pages.length">{{ open.pages.join(', ') }}</dd>
         <dt v-if="open.widgets">Widgets</dt><dd v-if="open.widgets">{{ open.widgets }}</dd>
-        <dt v-if="open.tags.length">Tags</dt><dd v-if="open.tags.length"><span v-for="t in open.tags" :key="t" class="tag" style="margin-right: 4px">{{ t }}</span></dd>
+        <dt v-if="open.tags.length">Tags</dt><dd v-if="open.tags.length"><span v-for="t in open.tags" :key="t" class="tag mr-1">{{ t }}</span></dd>
       </dl>
-      <div v-if="open.withdrawn" class="errbox small" style="margin-top: 12px">The publisher withdrew {{ open.installed_version }}: {{ open.withdrawn }}.
+      <div v-if="open.withdrawn" class="errbox small mt-3">The publisher withdrew {{ open.installed_version }}: {{ open.withdrawn }}.
         <template v-if="open.update"> Update to {{ open.repo_version }}</template><template v-else-if="open.previous"> Switch back to {{ open.previous }}</template><template v-else> Install another version below</template>.</div>
       <template v-if="newer(open).length">
         <h3 class="sub3">{{ newer(open)[0].only ? 'What changed in this version' : open.installed ? `New since ${open.installed_version}` : 'What\'s new' }}</h3>
@@ -250,7 +250,7 @@ async function changed() {
         <h3 class="sub3">Updates</h3>
         <label class="check"><input type="checkbox" :checked="!!open.held" :disabled="!!busy" @change="setHold(open, $event.target.checked)">
           Stay on {{ open.held || open.installed_version }}<span class="faint small">&nbsp;· no update is offered or installed</span></label>
-        <div v-if="open.previous" class="row" style="margin-top: 8px">
+        <div v-if="open.previous" class="row mt-2">
           <button class="btn small" :disabled="!!busy" @click="rollback(open)"><Undo2 :size="14" /> Switch back to {{ open.previous }}</button>
           <span class="small faint">the version you had before, kept here</span></div>
       </template>
@@ -260,7 +260,7 @@ async function changed() {
           <thead><tr><th>Version</th><th>Released</th><th>Notes</th><th></th></tr></thead>
           <tbody>
             <tr v-for="v in open.versions" :key="v.version" :class="{ faint: v.yanked }">
-              <td class="mono">{{ v.version }}<span v-if="v.version === open.installed_version" class="tag" style="margin-left: 6px">installed</span></td>
+              <td class="mono">{{ v.version }}<span v-if="v.version === open.installed_version" class="tag ml-2">installed</span></td>
               <td class="nowrap">{{ v.date || '—' }}</td>
               <td class="pre"><span v-if="v.yanked" class="c-red">Withdrawn: {{ v.yanked }}.<br></span>{{ v.changes || '—' }}
                 <span v-if="!v.compatible" class="c-red"> Needs labdex {{ v.labdex }}.</span></td>
@@ -300,7 +300,7 @@ async function changed() {
 .mcard header { display: flex; flex-direction: column; gap: 1px; }
 .mname { all: unset; cursor: pointer; font-weight: 650; font-size: calc(15px * var(--text)); color: var(--ink); }
 .mname:hover { text-decoration: underline; }
-.mname:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.mname:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
 .mfrom { color: var(--faint); }
 .off { margin-left: 6px; font-size: calc(11px * var(--text)); font-weight: 700; color: var(--accent-soft); }
 .desc { margin: 0; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
@@ -310,9 +310,6 @@ async function changed() {
 .kv ul { margin: 0; display: flex; flex-direction: column; gap: 4px; }
 .kv ul.plain li { padding: 0; line-height: 1.6; word-break: normal; }
 .kv ul .tag { margin-right: 6px; }
-.spin { animation: spin 1s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
 .flags { display: flex; gap: 6px; flex-wrap: wrap; }
 .flag { font-size: calc(11.5px * var(--text)); font-weight: 600; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--muted); }
 .flag.bad { color: var(--err); border-color: currentColor; }
@@ -323,6 +320,4 @@ async function changed() {
 .changes > div + div { margin-top: 8px; }
 .vers summary { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
 .vers table td { vertical-align: top; }
-.emptyp { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--faint); padding: 32px 0; }
-.emptyp p { margin: 0; }
 </style>

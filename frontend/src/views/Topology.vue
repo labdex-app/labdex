@@ -561,7 +561,7 @@ onBeforeUnmount(() => cy.value?.destroy())
       <span class="grow"></span>
       <button v-if="view === 'physical' && canArrange" class="btn small" :class="{ primary: wiring }" title="Draw a cable: click both ends" @click="wiring ? stopWiring() : startWiring()">
         <Cable :size="14" /> {{ wiring ? 'Cancel cable' : 'Cable' }}</button>
-      <select class="viewpick" :value="current?.uid || ''" aria-label="Saved view" @change="pickView($event.target.value)">
+      <select class="viewpick small auto" :value="current?.uid || ''" aria-label="Saved view" @change="pickView($event.target.value)">
         <option value="">{{ views.length ? 'Saved views…' : 'No saved views' }}</option>
         <option v-for="v in views" :key="v.uid" :value="v.uid">{{ v.name }}</option></select>
       <button v-if="canArrange" class="btn small" title="Save what you see as a view: picture, zone, networks, options and zoom" @click="viewDlg = { name: current?.name || '', error: '' }"><Save :size="14" /> View</button>
@@ -622,13 +622,13 @@ onBeforeUnmount(() => cy.value?.destroy())
         <p v-if="sel.auto" class="small muted">Guessed: the guest's interface has no “sits on” set, so it's drawn to {{ sel.b_host }}'s bridge in the same network. Set it on the guest's Network tab to make it exact.</p>
         <p v-if="sel.kind === 'vip'" class="small muted">{{ sel.label || 'shared' }}: the VIP's members are set on the VIP.</p>
         <template v-if="edgeForm">
-          <div v-if="canArrange" class="g2" style="margin-top: 10px">
+          <div v-if="canArrange" class="g2 mt-3">
             <Field label="Medium"><select v-model="edgeForm.medium"><option value="">—</option><option v-for="m in MEDIA" :key="m" :value="m">{{ m }}</option></select></Field>
             <Field label="Speed"><input v-model.trim="edgeForm.speed" list="cable-speeds-t" placeholder="1G"></Field>
           </div>
           <Field v-if="canArrange" label="Notes"><input v-model="edgeForm.notes" placeholder="patch panel 12"></Field>
           <CableExtras v-if="canArrange" v-model:cable="edgeForm" compact />
-          <div v-else class="small" style="margin-top: 8px">{{ [sel.cable_label, sel.medium, sel.speed, sel.length ? `${sel.length} m` : '', sel.cable_colour, sel.notes].filter(Boolean).join(' · ') || 'No details.' }}</div>
+          <div v-else class="small mt-2">{{ [sel.cable_label, sel.medium, sel.speed, sel.length ? `${sel.length} m` : '', sel.cable_colour, sel.notes].filter(Boolean).join(' · ') || 'No details.' }}</div>
           <div v-if="canArrange" class="row" style="gap: 8px; margin-top: 10px">
             <button class="btn small danger" @click="removeCable(sel)"><Trash2 :size="13" /> Remove</button><span class="grow"></span>
             <button v-if="sel.kind === 'cable'" class="btn small" @click="tracing = { host: sel.a_host, port: sel.a_port }"><Route :size="13" /> Trace</button>
@@ -644,7 +644,7 @@ onBeforeUnmount(() => cy.value?.destroy())
         </template>
         <template v-else>
           <div class="mono small muted">{{ sel.name || sel.host }}</div>
-          <div v-if="sel.function" class="small" style="margin-top: 6px">{{ sel.function }}</div>
+          <div v-if="sel.function" class="small mt-2">{{ sel.function }}</div>
           <div class="row small" style="gap: 8px; margin-top: 8px"><ZoneChip v-if="sel.zone" :zone="sel.zone" />
             <span class="status" :class="`s-${sel.status}`">{{ sel.status }}</span><span v-if="sel.address" class="mono">{{ sel.address }}</span></div>
         </template>
@@ -664,7 +664,7 @@ onBeforeUnmount(() => cy.value?.destroy())
           </div>
         </div>
         <p v-else class="small faint">{{ view === 'l3' ? 'No addresses.' : 'No cables.' }}</p>
-        <RouterLink class="btn small" style="margin-top: 10px" :to="sel.type === 'network' ? `/networks/${sel.uid || sel.name}` : `/hosts/${sel.uid || sel.name || sel.host}?tab=network`">
+        <RouterLink class="btn small mt-3" :to="sel.type === 'network' ? `/networks/${sel.uid || sel.name}` : `/hosts/${sel.uid || sel.name || sel.host}?tab=network`">
           {{ sel.type === 'network' ? 'Open the network' : 'Open the host' }}</RouterLink>
       </aside>
     </div>
@@ -675,7 +675,7 @@ onBeforeUnmount(() => cy.value?.destroy())
       Hover a line for the address. The arrangement is shared and kept apart from the physical view.</p>
 
     <Modal v-if="viewDlg" title="Save this view" @close="viewDlg = null">
-      <p class="small muted" style="margin: 0">Keeps the picture ({{ view === 'l3' ? 'networks' : 'physical' }}), the zone, hidden networks, options and where you've zoomed to.
+      <p class="small muted m-0">Keeps the picture ({{ view === 'l3' ? 'networks' : 'physical' }}), the zone, hidden networks, options and where you've zoomed to.
         Everyone who sees the topology can open it; the link opens it straight away.</p>
       <Field label="Name" :error="viewDlg.error"><input v-model.trim="viewDlg.name" placeholder="Rack room, Kube networks …" @keydown.enter="saveView(!current)"></Field>
       <template #foot>
@@ -691,15 +691,15 @@ onBeforeUnmount(() => cy.value?.destroy())
       <div class="g2">
         <div v-for="side in ['a', 'b']" :key="side" class="end">
           <div class="small faint">{{ side === 'a' ? 'From' : 'To' }}</div>
-          <b class="mono" style="margin-bottom: 4px">{{ cableDlg[side].host }}</b>
+          <b class="mono mb-1">{{ cableDlg[side].host }}</b>
           <Field label="Interface" :error="errFor(side)">
             <select :value="cableDlg[side].pick" :aria-label="`Interface on ${cableDlg[side].host}`" @change="setPick(cableDlg[side], $event.target.value)">
               <option v-for="o in choices(cableDlg[side].h)" :key="o.value" :value="o.value">{{ o.text }}</option></select>
           </Field>
           <Field v-if="!cableDlg[side].pick.startsWith('l:')" :label="isNew(cableDlg[side]) ? 'Name of the new port' : 'Its name'">
             <input v-model.trim="cableDlg[side].port" class="mono" placeholder="eth0" :aria-label="`Port name on ${cableDlg[side].host}`"></Field>
-          <p v-if="isNew(cableDlg[side])" class="small c-accent" style="margin: 0">Added to {{ cableDlg[side].host }} as a new interface.</p>
-          <p v-else-if="taken(cableDlg[side])" class="small c-yellow" style="margin: 4px 0 0">Has a cable to {{ taken(cableDlg[side]).peer }} {{ taken(cableDlg[side]).peer_port }}; that one goes.</p>
+          <p v-if="isNew(cableDlg[side])" class="small c-accent m-0">Added to {{ cableDlg[side].host }} as a new interface.</p>
+          <p v-else-if="taken(cableDlg[side])" class="small c-yellow m-0 mt-1">Has a cable to {{ taken(cableDlg[side]).peer }} {{ taken(cableDlg[side]).peer_port }}; that one goes.</p>
         </div>
       </div>
       <div class="g2">

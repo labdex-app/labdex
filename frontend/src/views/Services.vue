@@ -50,7 +50,7 @@ const counts = computed(() => ({
 
     <div class="filters">
       <FilterSelect :model-value="status" label="Status" :options="Object.entries(STATUS).map(([k, v]) => ({ value: k, label: `${v[1]} (${counts[k]})` }))" @update:model-value="(v) => (status = v || '')" />
-      <label class="check small" style="margin-left: 8px"><input v-model="linkedOnly" type="checkbox"> with a link</label>
+      <label class="check small ml-2"><input v-model="linkedOnly" type="checkbox"> with a link</label>
     </div>
 
     <template v-if="view === 'cards'">
@@ -77,7 +77,7 @@ const counts = computed(() => ({
           </div>
         </div>
       </section>
-      <p v-if="!groups.length" class="faint">Nothing matches. Services are added on each host's Services tab.</p>
+      <p v-if="!groups.length" class="empty">Nothing matches. Services are added on each host's Services tab.</p>
     </template>
 
     <div v-else class="card flush">

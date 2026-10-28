@@ -1,7 +1,8 @@
 <script setup>
 // Page through a long list: « 1 2 … n », with how many there are.
 import { computed } from 'vue'
-const props = defineProps({ total: { type: Number, required: true }, size: { type: Number, default: 20 }, modelValue: { type: Number, default: 0 } })
+const props = defineProps({ total: { type: Number, required: true }, size: { type: Number, default: 20 }, modelValue: { type: Number, default: 0 },
+  unit: { type: String, default: '' } }) // what's counted ("releases"), after the total
 const emit = defineEmits(['update:modelValue'])
 const pages = computed(() => Math.max(1, Math.ceil(props.total / props.size)))
 const shown = computed(() => {
@@ -13,7 +14,7 @@ const shown = computed(() => {
 
 <template>
   <div v-if="pages > 1" class="pager">
-    <span class="small faint">{{ modelValue * size + 1 }}–{{ Math.min(total, (modelValue + 1) * size) }} of {{ total }}</span>
+    <span class="small faint">{{ modelValue * size + 1 }}–{{ Math.min(total, (modelValue + 1) * size) }} of {{ total }}{{ unit ? ` ${unit}` : '' }}</span>
     <span class="grow"></span>
     <button class="btn small ghost" :disabled="modelValue === 0" aria-label="Previous page" @click="emit('update:modelValue', modelValue - 1)">‹</button>
     <template v-for="(p, i) in shown" :key="p">

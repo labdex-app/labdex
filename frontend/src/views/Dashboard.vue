@@ -12,6 +12,7 @@ import Field from '../components/Field.vue'
 import Modal from '../components/Modal.vue'
 import { useQuery } from '../query'
 import { state, toast } from '../store'
+import Loading from '../components/Loading.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -203,7 +204,7 @@ watch(() => route.query.d, () => { editing.value = false })
       <a href="#" class="c-red" @click.prevent="deleteDash">Delete this dashboard</a>
     </div>
 
-    <div v-if="d && !d.health.jobs.ok" class="warnbox" style="margin-bottom: 16px">
+    <div v-if="d && !d.health.jobs.ok" class="warnbox mb-4">
       Jobs are left to <code>labdex worker</code>, and none was seen in the last minute: {{ d.health.jobs.waiting }} waiting.
     </div>
 
@@ -218,11 +219,11 @@ watch(() => route.query.d, () => { editing.value = false })
         </div>
         <span v-if="editing" class="resize" title="Drag to resize" aria-hidden="true" @pointerdown="pointerDown($event, it, 'resize')"></span>
       </div>
-      <div v-if="!items.length" class="emptydash">
+      <div v-if="!items.length" class="empty boxed emptydash">
         This dashboard is empty. <a v-if="dash.can_edit && !editing" href="#" @click.prevent="startEdit(); addOpen = true">Add a card</a>
       </div>
     </div>
-    <p v-else-if="listQ.loading.value || dashQ.loading.value" class="faint">Loading…</p>
+    <Loading v-else-if="listQ.loading.value || dashQ.loading.value" />
 
     <!-- add a card -->
     <Modal v-if="addOpen" title="Add a card" @close="addOpen = false">
@@ -232,7 +233,7 @@ watch(() => route.query.d, () => { editing.value = false })
         </template>
       </div>
       <template v-if="plugins.length">
-        <h3 style="margin: 16px 0 8px">A plugin widget</h3>
+        <h3 class="m-0 mt-4 mb-2">A plugin widget</h3>
         <div class="choices">
           <button v-for="p in plugins" :key="`${p.integration}/${p.widget}`" class="choice" @click="addCard('widget', { integration: p.integration, widget: p.widget })">
             <b>{{ p.label }}</b><span class="mono small faint">{{ p.integration }}</span></button>
@@ -251,7 +252,7 @@ watch(() => route.query.d, () => { editing.value = false })
           <button class="btn icon" aria-label="Remove link" @click="cfgDlg.cfg.links.splice(n, 1)"><Trash2 :size="15" /></button>
         </div>
         <div class="row" style="gap: 10px"><button class="btn small" @click="cfgDlg.cfg.links.push({ name: '', url: '', description: '' })"><Plus :size="14" /> Link</button>
-          <label class="small">Columns <select v-model.number="cfgDlg.cfg.columns" style="width: auto"><option v-for="n in [1, 2, 3, 4, 6]" :key="n" :value="n">{{ n }}</option></select></label></div>
+          <label class="small">Columns <select v-model.number="cfgDlg.cfg.columns" class="auto"><option v-for="n in [1, 2, 3, 4, 6]" :key="n" :value="n">{{ n }}</option></select></label></div>
         <p v-if="badLink" class="err" role="alert">“{{ badLink.name || badLink.url }}”: an address starts with http:// or https://, or is a page of labdex (/hosts).</p>
         <p v-else class="hint">Addresses start with http:// or https://, or are a page of labdex (/hosts).</p>
       </template>
@@ -300,7 +301,7 @@ watch(() => route.query.d, () => { editing.value = false })
 .tools { position: absolute; top: 6px; right: 6px; left: 6px; display: flex; align-items: center; gap: 4px; z-index: 5;
   background: var(--card); border: 1px solid var(--line-strong); border-radius: var(--r-ctl); padding: 2px 4px; box-shadow: 0 4px 14px var(--shadow); }
 .tname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
-.tbtn { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 4px; border-radius: 5px; display: grid; place-items: center; }
+.tbtn { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 4px; border-radius: var(--r-ctl); display: grid; place-items: center; }
 .tbtn:hover { color: var(--ink); background: var(--raise); }
 .grip { cursor: grab; touch-action: none; }
 .grip:active { cursor: grabbing; }
@@ -308,7 +309,7 @@ watch(() => route.query.d, () => { editing.value = false })
   border-right: 3px solid var(--accent); border-bottom: 3px solid var(--accent); border-radius: 0 0 6px 0; }
 .editbar { display: flex; align-items: center; gap: 12px; padding: 8px 12px; margin-bottom: 14px; border: 1px solid var(--accent); border-radius: var(--r-ctl);
   background: var(--accent-faint); flex-wrap: wrap; }
-.emptydash { grid-column: 1 / -1; color: var(--faint); padding: 30px; text-align: center; border: 1px dashed var(--line-strong); border-radius: var(--r-box); }
+.emptydash { grid-column: 1 / -1; }
 .newtab { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); }
 .choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .choice { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 10px 12px; cursor: pointer; font: inherit;

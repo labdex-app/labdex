@@ -78,7 +78,7 @@ async function del(kind, code) {
           <Field label="Code" :error="errors.code"><input v-model.trim="editing.code" class="mono" placeholder="dns" required></Field>
           <Field label="Label" :error="errors.label"><input v-model="editing.label" placeholder="Name server"></Field>
         </div>
-        <Field label="Description" style="margin-top: 14px"><input v-model="editing.description"></Field>
+        <Field label="Description" class="mt-4"><input v-model="editing.description"></Field>
       </form>
       <template #foot>
         <button type="button" class="btn ghost" @click="editing = null">Cancel</button>

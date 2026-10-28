@@ -24,6 +24,8 @@
   --ok: #4ade80;
   --warn: #fbbf24;
   --err: #f87171;
+  --err-solid: #b91c1c;        /* filled danger: a destructive button, an error toast (both themes) */
+  --err-solid-hover: #991b1b;
   --c-magenta: #e879f9;
   --c-green: #4ade80;
   --c-yellow: #fbbf24;
@@ -36,6 +38,7 @@
   --text: 1.0714;    /* every font size is a 14px-base size times this: Comfortable (15px); see theme.js */
   --r-ctl: 6px;      /* inputs, buttons, chips */
   --r-box: 10px;     /* cards, dialogs */
+  --r-sm: 4px;       /* badges, swatches, small marks */
   --gap: 16px;
   --code: #d9cffd;
   --scrim: rgba(8, 9, 12, .62);
@@ -222,7 +225,8 @@ tbody tr:last-child td { border-bottom: 0; }
 tr.click { cursor: pointer; }
 tr.click:hover td { background: var(--hover); }
 table.edit td { padding: 5px 6px; vertical-align: middle; }
-table.edit input, table.edit select { padding: 5px 8px; }
+table.edit input, table.edit select { padding-top: 5px; padding-bottom: 5px; padding-left: 8px; }
+table.edit input { padding-right: 8px; }
 
 /* chips and badges */
 .chip {
@@ -267,7 +271,18 @@ pre.code {
 .bar { height: 6px; background: var(--raise); border-radius: 3px; overflow: hidden; min-width: 80px; }
 .bar > div { height: 100%; background: var(--accent); }
 .bar.hot > div { background: var(--warn); }
-.empty { padding: 32px; text-align: center; color: var(--faint); }
+.empty { padding: 32px 16px; text-align: center; color: var(--faint); }
+/* nothing to show. .empty centres a quiet note in a page, card or table cell (an icon, a line, an action);
+   .boxed draws the space it would fill; .list-empty is the row of an empty .list; .empty-line is a one-line note in a card */
+.empty > svg { display: block; margin: 0 auto 8px; }
+.empty > p { margin: 0 auto; max-width: 60ch; }
+.empty > p + p { margin-top: 4px; }
+.empty > .btn { margin-top: 12px; }
+.empty.boxed { border: 1px dashed var(--line-strong); border-radius: var(--r-box); }
+.empty-line { margin: 0; color: var(--faint); }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
 .kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; }
 .kv dt { color: var(--muted); }
 .kv dd { margin: 0; word-break: break-word; }
@@ -331,6 +346,15 @@ select:disabled, input:disabled { opacity: .55; cursor: not-allowed; }
 .li.nested2 { padding-left: 64px; }
 .list-empty { padding: 20px 16px; color: var(--faint); }
 
+/* menus and suggestion lists that drop down from a control: MenuButton, HostPicker, ChipInput, the account menu */
+.pop { background: var(--card); border: 1px solid var(--line-strong); border-radius: var(--r-box); padding: 4px; box-shadow: 0 12px 30px var(--shadow); }
+ul.pop { margin: 0; list-style: none; }
+.pop-item { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; font: inherit; font-size: 13px; color: var(--ink);
+  background: none; border: 0; border-radius: var(--r-ctl); padding: 7px 10px; cursor: pointer; }
+.pop-item:hover, .pop-item:focus-visible, .pop-item.on { background: var(--raise); outline: none; text-decoration: none; }
+.pop-item.danger { color: var(--err); }
+.pop-item:disabled { opacity: .45; cursor: not-allowed; }
+
 /* dialogs */
 .dlg-back { position: fixed; inset: 0; background: var(--scrim); display: grid; place-items: start center; padding: 8vh 16px 16px; z-index: 50; overflow-y: auto; }
 .dlg { width: min(560px, 100%); background: var(--card); border: 1px solid var(--line-strong); border-radius: var(--r-box);
@@ -341,8 +365,8 @@ select:disabled, input:disabled { opacity: .55; cursor: not-allowed; }
 .dlg-body { padding: 16px 20px; overflow-y: auto; }
 .dlg-body > * + * { margin-top: 14px; }
 .dlg-foot { display: flex; align-items: center; gap: 8px; justify-content: flex-end; padding: 12px 20px; border-top: 1px solid var(--line); background: var(--panel); border-radius: 0 0 var(--r-box) var(--r-box); }
-.btn.danger-solid { background: #b91c1c; border-color: #b91c1c; color: #fff; }
-.btn.danger-solid:hover { background: #991b1b; }
+.btn.danger-solid { background: var(--err-solid); border-color: var(--err-solid); color: #fff; }
+.btn.danger-solid:hover { background: var(--err-solid-hover); border-color: var(--err-solid-hover); }
 ::placeholder { color: var(--faint); opacity: .75; }
 .seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--r-ctl); overflow: hidden; align-self: flex-start; }
 .seg button { font: inherit; font-size: calc(13px * var(--text)); padding: 5px 14px; background: none; border: 0; color: var(--muted); cursor: pointer; }
@@ -357,6 +381,13 @@ select:disabled, input:disabled { opacity: .55; cursor: not-allowed; }
 .g2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; }
 .g3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 14px; align-items: start; }
 @media (max-width: 700px) { .g2, .g3 { grid-template-columns: minmax(0, 1fr); } }
+
+/* spacing on one scale (4, 8, 12, 16 px), for the one-off gap a layout rule doesn't give; !important so they win
+   like the inline styles they replace */
+.m-0 { margin: 0 !important; }
+.mt-0 { margin-top: 0 !important; } .mt-1 { margin-top: 4px !important; } .mt-2 { margin-top: 8px !important; } .mt-3 { margin-top: 12px !important; } .mt-4 { margin-top: 16px !important; }
+.mb-0 { margin-bottom: 0 !important; } .mb-1 { margin-bottom: 4px !important; } .mb-2 { margin-bottom: 8px !important; } .mb-3 { margin-bottom: 12px !important; } .mb-4 { margin-bottom: 16px !important; }
+.ml-1 { margin-left: 4px !important; } .ml-2 { margin-left: 8px !important; } .mr-1 { margin-right: 4px !important; } .mr-2 { margin-right: 8px !important; } .mr-3 { margin-right: 12px !important; }
 
 /* not on a phone (the sidebar's breakpoint) */
 @media (max-width: 860px) { .hide-m { display: none !important; } }

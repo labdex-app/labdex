@@ -47,12 +47,12 @@ async function submit() {
         <p class="muted">Nobody has signed in yet. Create the first administrator; you can add more users afterwards.</p>
       </template>
       <h1 v-else>Sign in</h1>
-      <div v-if="demo && !setup" class="warnbox small" style="margin-bottom: 14px">
+      <div v-if="demo && !setup" class="warnbox small mb-4">
         This is the labdex demo. Sign in as <b class="mono">{{ demo.username }}</b> with <b class="mono">{{ demo.password }}</b>
         (filled in). Change anything you like: it all resets every night at 03:00 UTC, and nothing here talks to a real network.
       </div>
 
-      <div v-if="message" class="errbox" style="margin: 8px 0 4px">{{ message }}</div>
+      <div v-if="message" class="errbox m-0 mt-2 mb-1">{{ message }}</div>
       <a v-if="oidc" :href="ssoHref" class="btn primary go sso">Sign in with {{ oidc.name }}</a>
       <div v-if="oidc && passwordForm" class="or small faint"><span>or with a password</span></div>
       <div v-if="passwordForm" class="stack">

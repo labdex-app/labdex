@@ -86,10 +86,10 @@ const count = computed(() => (d.value?.cells || []).length)
       <template #head><span class="small muted">{{ edit.src === edit.dst ? 'between networks of the same zone' : '' }}</span></template>
       <form id="cell-form" @submit.prevent="save">
         <div class="pair"><ZoneChip :zone="edit.src" /><span class="faint">may reach</span><ZoneChip :zone="edit.dst" /></div>
-        <Field label="Ports" :error="errors.ports" hint="No ports = no access. Each cell becomes one firewall rule (category automation:labdex), as a plan." style="margin-top: 14px">
+        <Field label="Ports" :error="errors.ports" hint="No ports = no access. Each cell becomes one firewall rule (category automation:labdex), as a plan." class="mt-4">
           <ChipInput v-model="edit.ports" :suggestions="portSugg" mono :max="40" placeholder="any, SG_WEB, tcp/443, udp/53" label="Add ports" />
         </Field>
-        <Field label="Why" style="margin-top: 14px"><input v-model="edit.description" type="text" placeholder="Shown in the rule's description"></Field>
+        <Field label="Why" class="mt-4"><input v-model="edit.description" type="text" placeholder="Shown in the rule's description"></Field>
       </form>
       <template #foot>
         <button type="button" class="btn ghost" @click="edit = null">Cancel</button>

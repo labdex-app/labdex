@@ -539,7 +539,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
       </div>
       <nav class="tabs" aria-label="Host sections">
         <a v-for="t in tabs" :key="t.id" href="#" :class="{ 'router-link-active': tab === t.id }" :aria-current="tab === t.id ? 'page' : undefined" @click.prevent="setTab(t.id)">
-          {{ t.label }}<span v-if="t.count" class="tcount">{{ t.count }}</span><span v-if="t.err" class="pill" style="margin-left: 6px">!</span>
+          {{ t.label }}<span v-if="t.count" class="tcount">{{ t.count }}</span><span v-if="t.err" class="pill ml-2">!</span>
         </a>
       </nav>
 
@@ -601,7 +601,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
                   <span class="small faint">{{ sugg.matched ? 'from' : 'no pool for this category or zone; from' }} {{ sugg.pools.join(', ') || 'no pools' }}:</span>
                   <button v-for="n in sugg.names" :key="n.name" type="button" class="chip" :title="`from ${n.pool}`" @click="takeFun(n.name)">{{ n.name }}</button>
                   <span v-if="!sugg.names.length" class="small faint">nothing unused left</span>
-                  <select v-model="suggPool" class="small-sel" aria-label="Pool" @change="suggest">
+                  <select v-model="suggPool" class="small auto" aria-label="Pool" @change="suggest">
                     <option value="">matching pools</option>
                     <option v-for="p in poolList" :key="p.name" :value="p.name">{{ p.name }}</option>
                   </select>
@@ -708,7 +708,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
                            :normalize="(v) => v.trim().toLowerCase().replace(/\s+/g, '-')" />
               </Field>
             </div>
-            <div style="margin-top: 12px">
+            <div class="mt-3">
               <Field label="Notes">
                 <textarea v-model="form.notes" rows="2" style="font-family: inherit; font-size: calc(14px * var(--text))"></textarea>
               </Field>
@@ -744,11 +744,11 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
             <ul v-if="aliasPreview.length" class="plain">
               <li v-for="v in aliasPreview" :key="v[0]">
                 <Copy :text="v[0]" />
-                <span class="small faint" style="margin-left: 8px">{{ v[1] }}/{{ aliasMax }}</span>
+                <span class="small faint ml-2">{{ v[1] }}/{{ aliasMax }}</span>
                 <div v-if="v[2] && v[2] !== v[0]" class="small faint">on the firewall: <span class="mono">{{ v[2] }}</span></div>
               </li>
             </ul>
-            <p v-else class="faint" style="margin: 0">{{ form.name ? 'Add an address to get aliases.' : 'Enter a hostname to see them.' }}</p>
+            <p v-else class="faint m-0">{{ form.name ? 'Add an address to get aliases.' : 'Enter a hostname to see them.' }}</p>
             <p class="hint">H4/H6 hold the addresses; H_ nests both. Names longer than the firewall allows get a shortened id; the full name goes into the description.</p>
           </div>
           <div v-if="derived?.dns?.length && !dirty" class="card">
@@ -776,7 +776,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
             <button class="btn small" @click="openBulk"><ListPlus :size="14" />Several</button>
             <button class="btn small" @click="openIf(-1)"><Plus :size="14" />Interface</button>
           </div>
-          <div v-if="err('interfaces')" class="err" style="margin-bottom: 8px">{{ err('interfaces') }}</div>
+          <div v-if="err('interfaces')" class="err mb-2">{{ err('interfaces') }}</div>
           <PortMap :interfaces="form.interfaces" :cables="form.cables" @pick="pickPort" />
           <template v-if="form.interfaces.length">
           <template v-for="g in ifGroups" :key="g.id">
@@ -884,13 +884,13 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
                 <span class="fundns"><span class="mono">{{ f }}.{{ hostZone }}</span> <span class="faint small">CNAME → the primary record</span></span></label>
             </li>
           </ul>
-          <p v-else class="faint" style="margin: 0">No fun names (add them on the Overview tab).</p>
+          <p v-else class="empty-line">No fun names (add them on the Overview tab).</p>
           <div v-if="err('fun_no_dns')" class="err">{{ err('fun_no_dns') }}</div>
           <p class="hint">Fun names switched off stay on the host (prompt, banner, search) but get no DNS record.</p>
         </div>
         <div class="card">
-          <div class="row" style="margin-bottom: 10px">
-            <h3 style="margin: 0">Extra records</h3><span class="grow"></span>
+          <div class="row mb-3">
+            <h3 class="m-0">Extra records</h3><span class="grow"></span>
             <button v-for="[label, preset, hint] in RECORD_PRESETS" :key="label" type="button" class="btn small" :title="hint"
                     @click="addRecord(preset)">+ {{ label }}</button>
           </div>
@@ -915,7 +915,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
               </div>
             </template>
           </div>
-          <p v-else class="faint" style="margin: 0">None. Add a name that should point at this host, or a TXT/SRV/MX record.</p>
+          <p v-else class="faint m-0">None. Add a name that should point at this host, or a TXT/SRV/MX record.</p>
           <p class="hint">
             Name: relative to <span class="mono">{{ hostZone }}</span> (empty = the host's own name; <code>{host}</code>, <code>{fun}</code> work,
             e.g. <code>_acme-challenge.{host}</code>). Value: <code>{target}</code> = the primary record (what the short name points at),
@@ -997,15 +997,15 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
 
       <div v-show="tab === 'ansible'">
           <div class="card">
-            <div class="row" style="margin-bottom: 8px">
-              <h3 style="margin: 0">Ansible features</h3><span class="grow"></span>
+            <div class="row mb-2">
+              <h3 class="m-0">Ansible features</h3><span class="grow"></span>
               <RouterLink to="/features" class="small">Feature tree →</RouterLink>
             </div>
             <fieldset :disabled="readOnly" class="bare">
               <div class="row" style="gap: 6px">
                 <span v-for="(f, n) in form.features" :key="f" class="chip on mono">{{ f }}
                   <button type="button" class="chipx" aria-label="Remove feature" @click.prevent="form.features.splice(n, 1)">✕</button></span>
-                <select v-model="addFeature" style="width: auto" aria-label="Add feature"
+                <select v-model="addFeature" class="small auto" aria-label="Add feature"
                         @change="addFeature && !form.features.includes(addFeature) && form.features.push(addFeature); addFeature = ''">
                   <option value="">+ feature…</option>
                   <option v-for="f in featureList.filter((x) => !form.features.includes(x))" :key="f" :value="f">{{ f }}</option>
@@ -1017,9 +1017,9 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
                 <textarea v-model="form.vars" rows="4" spellcheck="false" placeholder="k3s_role: server&#10;ntp_servers: [10.10.3.1]"></textarea>
               </Field>
             </fieldset>
-            <details v-if="derived?.merged_vars && Object.keys(derived.merged_vars).length && !dirty" style="margin-top: 10px">
+            <details v-if="derived?.merged_vars && Object.keys(derived.merged_vars).length && !dirty" class="mt-3">
               <summary class="small muted">Merged variables ({{ derived.features_expanded.join(' → ') || 'host only' }})</summary>
-              <pre class="code" style="margin-top: 8px">{{ toYaml(derived.merged_vars) }}</pre>
+              <pre class="code mt-2">{{ toYaml(derived.merged_vars) }}</pre>
             </details>
           </div>
       </div>
@@ -1044,7 +1044,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
       <!-- several interfaces from a pattern -->
       <Modal v-if="traceOf" :title="`Trace ${traceOf.port}`" @close="traceOf = null">
         <CableTrace :host="props.name" :port="traceOf.port" />
-        <p v-if="dirty" class="small faint" style="margin-bottom: 0">Shows what's saved; save the host to trace your changes.</p>
+        <p v-if="dirty" class="small faint mb-0">Shows what's saved; save the host to trace your changes.</p>
       </Modal>
       <Modal v-if="bulk" title="Add several interfaces" wide @close="bulk = null">
         <Field label="Names" hint="Ranges in brackets: eth[0-3], 1/0/[1-48], swp[1-4]s[0-3]; a leading zero is kept (Gi1/0/[01-24])">
@@ -1102,7 +1102,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
               <option value="">— none —</option>
               <option v-for="net in netsFor(ifDlg.i)" :key="net.name" :value="net.name">{{ net.name }}{{ net.vlan ? ` (VLAN ${net.vlan})` : '' }}{{ net.zone !== form.zone ? ` · ${net.zone}` : '' }}</option>
             </select>
-            <label v-if="otherZoneNets" class="check small" style="margin-top: 4px"><input v-model="allNets" type="checkbox"> networks of every zone</label>
+            <label v-if="otherZoneNets" class="check small mt-1"><input v-model="allNets" type="checkbox"> networks of every zone</label>
           </Field>
           <Field label="MAC" :error="ifErr('mac')"><input v-model.trim="ifDlg.i.mac" class="mono" placeholder="aa:bb:cc:dd:ee:ff" :disabled="isVip"></Field>
           <div class="checks">
@@ -1161,7 +1161,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
           <button type="button" role="radio" :aria-checked="isInternal(cabDlg.c)" :class="{ on: isInternal(cabDlg.c) }" :disabled="!internalPeers.length"
                   :title="internalPeers.length ? '' : 'Only between a guest and the host it runs on (set “Runs on” first)'" @click="setCableType(true)">Internal</button>
         </div>
-        <p v-if="isInternal(cabDlg.c)" class="small muted" style="margin: 0">A link inside one machine: this guest's interface on the hypervisor's bridge
+        <p v-if="isInternal(cabDlg.c)" class="small muted m-0">A link inside one machine: this guest's interface on the hypervisor's bridge
           (or two guests of one host). The topology draws it inside the hypervisor's box.</p>
         <div class="g2">
           <Field :label="isInternal(cabDlg.c) ? 'Interface here' : 'Port here'" :error="err(`cables[${cabDlg.idx}].port`)"><input v-model.trim="cabDlg.c.port" class="mono" list="own-ports" placeholder="eth0"></Field>
@@ -1242,7 +1242,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
 .v6more > * + * { margin-top: 10px; }
 .stack-tree .sp { margin-left: 6px; }
 .iconpick { display: flex; flex-wrap: wrap; gap: 4px; }
-.ip { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 7px; background: none; color: var(--muted); cursor: pointer; }
+.ip { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: var(--r-ctl); background: none; color: var(--muted); cursor: pointer; }
 .ip.on { border-color: var(--accent); color: var(--ink); }
 .lower1 > .card { margin-top: 16px; }
 .hstate { font-size: calc(11.5px * var(--text)); font-weight: 600; padding: 1px 8px; border-radius: 6px; background: rgba(255, 255, 255, .05); color: var(--faint); }
@@ -1259,7 +1259,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
 .builder .nn { width: 60px; }
 .dash { color: var(--faint); font-family: var(--mono); }
 .v6row { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; margin-top: 6px; }
-.v6addr { padding: 1px 6px; border: 1px solid var(--line); border-radius: 4px; }
+.v6addr { padding: 1px 6px; border: 1px solid var(--line); border-radius: var(--r-sm); }
 .v6more { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 6px 0 2px; }
 .v6more label { display: flex; gap: 6px; align-items: center; color: var(--faint); }
 .v6more input { width: 220px !important; padding: 3px 6px !important; font-size: calc(12.5px * var(--text)) !important; }

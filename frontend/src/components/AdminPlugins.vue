@@ -138,7 +138,7 @@ async function removeKey(k) {
               <td class="mono small">{{ p.version || '—' }}</td>
               <td><TrustBadge :trust="p.trust" />
                 <span v-if="p.isolated" class="iso" :title="isolation?.detail">isolated</span></td>
-              <td><span v-for="t in p.tags" :key="t" class="tag" style="margin-right: 4px">{{ t }}</span></td>
+              <td><span v-for="t in p.tags" :key="t" class="tag mr-1">{{ t }}</span></td>
               <td class="right"><button v-if="!p.builtin && !p.bundled" class="btn small ghost" :title="p.replaces_bundled ? `Go back to the development checkout (${p.replaces_bundled})` : ''" @click="uninstall(p)">{{ p.replaces_bundled ? 'Remove update' : 'Remove' }}</button></td>
             </tr>
           </tbody>
@@ -155,11 +155,11 @@ async function removeKey(k) {
         <button v-for="[k, l] in [['notify', 'Tell me'], ['official', 'Install official updates'], ['off', 'Off']]" :key="k" type="button" role="radio"
                 :aria-checked="upd.mode === k" :class="{ on: upd.mode === k }" @click="setMode(k)">{{ l }}</button>
       </div>
-      <p class="small muted" style="margin: 8px 0 0">{{ {
+      <p class="small muted m-0 mt-2">{{ {
         notify: 'Every few hours labdex reads the repositories and sends a notification (plugins.update) for each new version once. Nothing is installed.',
         official: 'Updates signed with the labdex project key install by themselves (and are in History); anything else is announced. Held plugins and withdrawn versions are skipped.',
         off: 'No checks and no notifications. The Marketplace still shows updates when you open it.' }[upd.mode] }}</p>
-      <div class="row small" style="margin-top: 10px">
+      <div class="row small mt-3">
         <button class="btn small" :disabled="busy" @click="checkNow">Check now</button>
         <span class="faint">{{ upd.checked ? `checked ${ago(upd.checked)}` : 'not checked yet' }}</span>
         <span v-if="Object.keys(upd.holds).length" class="faint">· held: {{ Object.entries(upd.holds).map(([k, v]) => `${k} ${v}`).join(', ') }}</span>
@@ -168,7 +168,7 @@ async function removeKey(k) {
 
     <div class="card">
       <h2>Repositories</h2>
-      <p class="muted small" style="margin-top: 0">A repository is a signed <code>index.json</code> on any web server. Its key signs the index and every plugin in it, so adding it trusts that key; the key is pinned, and an index or plugin signed with another key is refused. Publish your own with <code>labdex plugin repo</code>.</p>
+      <p class="muted small mt-0">A repository is a signed <code>index.json</code> on any web server. Its key signs the index and every plugin in it, so adding it trusts that key; the key is pinned, and an index or plugin signed with another key is refused. Publish your own with <code>labdex plugin repo</code>.</p>
       <ul v-if="repos.repositories.length" class="plain small repos">
         <li v-for="r in repos.repositories" :key="r.id" class="row" :class="{ faint: !r.enabled }">
           <span v-if="r.official" class="tag">official</span>
@@ -188,26 +188,26 @@ async function removeKey(k) {
         <div><b>{{ preview.name }}</b> <span v-if="preview.official" class="tag">official</span> · {{ preview.plugins }} plugin{{ preview.plugins === 1 ? '' : 's' }}</div>
         <div v-if="preview.description" class="small muted">{{ preview.description }}</div>
         <div class="small">Signed with key <span class="mono">{{ preview.key_id }}</span>. Compare it with the one the publisher gives you before you trust it.</div>
-        <div class="row" style="margin-top: 8px"><button class="btn primary small" :disabled="busy" @click="trustRepo">Trust this repository</button>
+        <div class="row mt-2"><button class="btn primary small" :disabled="busy" @click="trustRepo">Trust this repository</button>
           <button class="btn ghost small" @click="preview = null">Cancel</button></div>
       </div>
-      <div v-if="repos.legacy_urls.length" class="warnbox small" style="margin-top: 10px">
+      <div v-if="repos.legacy_urls.length" class="warnbox small mt-3">
         Unsigned marketplace URLs from before 0.7 aren't used any more: {{ repos.legacy_urls.join(', ') }}. Add them again here once their publisher signs them.
       </div>
       <div v-for="e in market?.errors || []" :key="e" class="err small">{{ e }}</div>
-      <p v-if="repos.repositories.length" class="small muted" style="margin: 10px 0 0">Browse and install what they offer in the <RouterLink to="/plugins?tab=market">Marketplace</RouterLink>.</p>
+      <p v-if="repos.repositories.length" class="small muted m-0 mt-3">Browse and install what they offer in the <RouterLink to="/plugins?tab=market">Marketplace</RouterLink>.</p>
     </div>
 
     <div class="card">
       <h2>Signing keys</h2>
-      <p class="muted small" style="margin-top: 0"><b>Official</b> plugins are signed with the labdex project key below. <b>Community</b> plugins are signed by a repository you added, or by an author whose public key you add here. Anything else is <b>unsigned</b> and needs your explicit OK; a broken signature is never loaded.</p>
+      <p class="muted small mt-0"><b>Official</b> plugins are signed with the labdex project key below. <b>Community</b> plugins are signed by a repository you added, or by an author whose public key you add here. Anything else is <b>unsigned</b> and needs your explicit OK; a broken signature is never loaded.</p>
       <ul class="plain small">
         <li v-for="k in keys.official" :key="k.key_id"><span class="tag">official</span> {{ k.name }} <span class="mono faint">{{ k.key_id }}</span></li>
         <li v-for="k in keys.community" :key="k.id" class="row"><span class="tag">community</span> {{ k.name }} <span class="mono faint">{{ k.key_id }}</span>
           <span class="faint">added by {{ k.added_by }} {{ ago(k.created_at) }}</span><span class="grow"></span>
           <button class="btn icon" title="Remove key" aria-label="Remove key" @click="removeKey(k)"><Trash2 :size="15" /></button></li>
       </ul>
-      <button class="btn small" style="margin-top: 10px" @click="keyOpen = true"><Plus :size="14" /> Author key</button>
+      <button class="btn small mt-3" @click="keyOpen = true"><Plus :size="14" /> Author key</button>
       <Modal v-if="keyOpen" title="Trust an author's key" @close="keyOpen = false">
         <form id="key-form" class="kform" @submit.prevent="addKey">
           <Field label="Author" :error="kerr.name"><input v-model.trim="nk.name" placeholder="Alice" required></Field>
@@ -231,6 +231,6 @@ async function removeKey(k) {
 .stack > * + * { margin-top: 16px; }
 .kform > * + * { margin-top: 14px; }
 label.btn.disabled { opacity: .5; pointer-events: none; }
-.stage-box { margin-top: 10px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: 8px; display: flex; flex-direction: column; gap: 4px; }
+.stage-box { margin-top: 10px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: var(--r-box); display: flex; flex-direction: column; gap: 4px; }
 .repos li { padding: 6px 0; border-top: 1px solid var(--line); gap: 8px; flex-wrap: nowrap; }
 </style>

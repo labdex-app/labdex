@@ -1,6 +1,8 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { api } from '../api'
+import Loading from '../components/Loading.vue'
+import Pager from '../components/Pager.vue'
 import TrustBadge from '../components/TrustBadge.vue'
 import { invalidate, useQuery } from '../query'
 import { state, toast } from '../store'
@@ -48,31 +50,49 @@ function render(md) {
   flushPara(); flushList()
   return out.join('\n')
 }
-const changelog = computed(() => render((data.value?.changelog || '').replace(/^# Changelog\s*/, '')))
+// One release per "## " heading, a few to a page: the whole file is well over a thousand lines.
+// What comes before the first release stays on the first page.
+const releases = computed(() => {
+  const parts = (data.value?.changelog || '').replace(/^# Changelog\s*/, '').split(/^(?=## )/m)
+  const head = /^## /.test(parts[0] || '') ? '' : parts.shift()
+  return { head, list: parts }
+})
+const SIZE = 5
+const page = ref(0)
+const changelog = computed(() => render((page.value ? '' : releases.value.head) + releases.value.list.slice(page.value * SIZE, (page.value + 1) * SIZE).join('')))
+const card = ref(null)
+async function turn(p) {
+  page.value = p
+  await nextTick()
+  if (card.value?.getBoundingClientRect().top < 0) card.value.scrollIntoView({ block: 'start' })
+}
 </script>
 
 <template>
   <div class="page">
     <div class="page-head"><h1>About labdex</h1><span class="sub">{{ data?.version || state.meta.version }}</span></div>
-    <div class="warnbox small" style="margin-bottom: 16px"><b>Built with AI, for home labs only.</b> labdex was written largely with an AI coding
+    <div class="warnbox small mb-4"><b>Built with AI, for home labs only.</b> labdex was written largely with an AI coding
       assistant (Claude), directed and reviewed by a human. It hasn't had an independent security audit and may contain security problems:
       run it on a trusted home network, not on the internet or for production.</div>
     <div v-if="data" class="split">
-      <div class="card changelog">
+      <div ref="card" class="card changelog">
         <h2>Changelog</h2>
-        <!-- eslint-disable-next-line vue/no-v-html -- render() escapes everything first and only adds its own tags -->
-        <div v-if="data.changelog" v-html="changelog"></div>
+        <template v-if="data.changelog">
+          <!-- eslint-disable-next-line vue/no-v-html -- render() escapes everything first and only adds its own tags -->
+          <div v-html="changelog"></div>
+          <Pager :model-value="page" :total="releases.list.length" :size="SIZE" unit="releases" @update:model-value="turn" />
+        </template>
         <p v-else class="faint">This build doesn't include the changelog.</p>
       </div>
       <aside>
         <div v-if="data.update_check" class="card">
           <h3>Updates</h3>
-          <p v-if="!data.update_check.latest" class="faint" style="margin: 0">No answer from <a :href="data.update_check.project" target="_blank" rel="noopener">{{ data.update_check.project.replace('https://', '') }}</a>: {{ data.update_check.error || 'unknown' }}.</p>
-          <p v-else-if="data.update_check.newer" style="margin: 0">
+          <p v-if="!data.update_check.latest" class="faint m-0">No answer from <a :href="data.update_check.project" target="_blank" rel="noopener">{{ data.update_check.project.replace('https://', '') }}</a>: {{ data.update_check.error || 'unknown' }}.</p>
+          <p v-else-if="data.update_check.newer" class="m-0">
             <strong>{{ data.update_check.latest.tag }}</strong> is out.
             <a :href="data.update_check.latest.url" target="_blank" rel="noopener">Release notes ↗</a>
           </p>
-          <p v-else style="margin: 0">Up to date (latest: {{ data.update_check.latest.tag }}).</p>
+          <p v-else class="m-0">Up to date (latest: {{ data.update_check.latest.tag }}).</p>
           <div class="check-row">
             <span v-if="checkedAt" class="faint small">Checked {{ checkedAt }}</span>
             <button class="btn small" :disabled="checking" @click="checkNow">{{ checking ? 'Checking…' : 'Check now' }}</button>
@@ -113,6 +133,7 @@ const changelog = computed(() => render((data.value?.changelog || '').replace(/^
         </div>
       </aside>
     </div>
+    <Loading v-else />
   </div>
 </template>
 
@@ -126,4 +147,6 @@ const changelog = computed(() => render((data.value?.changelog || '').replace(/^
 .changelog :deep(ul) { margin: 4px 0 8px; padding-left: 20px; }
 .changelog :deep(li) { margin: 3px 0; line-height: 1.5; }
 .changelog :deep(p) { line-height: 1.55; }
+.changelog { scroll-margin-top: 64px; } /* clear of the top bar when a page turn scrolls up to it */
+.changelog .pager { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line); }
 </style>

@@ -67,7 +67,7 @@ const current = computed(() => (route.path.startsWith('/hosts/') ? route.params.
 .thead { position: sticky; top: 30px; z-index: 2; background: var(--panel); padding: 2px 0; }
 .tq { margin: 2px 0 8px; padding: 5px 9px !important; font-size: calc(12.5px * var(--text)) !important; }
 .row-btn { width: 100%; display: flex; align-items: center; gap: 6px; font: inherit; background: none; border: 0; color: var(--muted);
-  padding: 3px 8px; border-radius: 6px; cursor: pointer; text-align: left; }
+  padding: 3px 8px; border-radius: var(--r-ctl); cursor: pointer; text-align: left; }
 .row-btn:hover { background: var(--raise); color: var(--ink); }
 .car { width: 10px; color: var(--faint); font-size: calc(10px * var(--text)); }
 .zcode { font-family: var(--mono); font-size: calc(12px * var(--text)); font-weight: 700; }

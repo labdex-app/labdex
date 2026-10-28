@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import { ago, stamp, toast } from '../store'
 import Diff from '../components/Diff.vue'
+import Loading from '../components/Loading.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -89,7 +90,7 @@ const link = (e) => ({ host: `/hosts/${e.object_name}`, network: `/networks/${e.
             <template v-for="o in netData.objects" :key="o.object_type + o.object_name">
               <tr :class="{ click: o.diff.length }" @click="o.diff.length && toggle(o.object_type + o.object_name)">
                 <td class="mono">{{ sign[o.change] }}</td>
-                <td class="nowrap"><span class="faint small" style="margin-right: 6px">{{ o.object_type }}</span><span class="mono">{{ o.object_name }}</span></td>
+                <td class="nowrap"><span class="faint small mr-2">{{ o.object_type }}</span><span class="mono">{{ o.object_name }}</span></td>
                 <td class="small">{{ o.change }}<span v-if="o.fields.length" class="faint"> · {{ o.fields.slice(0, 4).join(', ') }}{{ o.fields.length > 4 ? ', …' : '' }}</span></td>
                 <td class="small">{{ o.events }}</td>
                 <td class="small">{{ o.actors.join(', ') }}</td>
@@ -99,6 +100,7 @@ const link = (e) => ({ host: `/hosts/${e.object_name}`, network: `/networks/${e.
             <tr v-if="!netData.objects.length && !loading"><td colspan="5" class="empty">Nothing changed in that time.</td></tr>
           </tbody>
         </table>
+        <Loading v-if="!netData.objects.length && loading" />
       </div>
     </div>
 
@@ -120,7 +122,7 @@ const link = (e) => ({ host: `/hosts/${e.object_name}`, network: `/networks/${e.
               <td class="small nowrap" :title="stamp(e.ts)">{{ ago(e.ts) }}</td>
               <td class="small">{{ e.actor }} <span v-if="e.actor_kind !== 'user'" class="tag">{{ e.actor_kind }}</span></td>
               <td><span class="op" :class="`op-${e.action}`">{{ e.action }}</span></td>
-              <td class="nowrap"><span class="faint small" style="margin-right: 6px">{{ e.object_type }}</span>
+              <td class="nowrap"><span class="faint small mr-2">{{ e.object_type }}</span>
                 <RouterLink v-if="link(e) && e.action !== 'delete'" :to="link(e)" class="mono" @click.stop> {{ e.object_name }}</RouterLink>
                 <span v-else class="mono"> {{ e.object_name }}</span></td>
               <td class="small">{{ e.summary }}</td>
@@ -128,6 +130,7 @@ const link = (e) => ({ host: `/hosts/${e.object_name}`, network: `/networks/${e.
             <tr v-if="!events.length && !loading"><td colspan="5" class="empty">No changes match.</td></tr>
           </tbody>
         </table>
+        <Loading v-if="!events.length && loading" />
       </div>
     </div>
     <div v-if="more && !net" style="text-align: center; margin-top: 14px"><button class="btn" :disabled="loading" @click="load(true)">Older</button></div>
