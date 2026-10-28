@@ -23,6 +23,7 @@ ARG ANSIBLE=0
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     LABDEX_DATA=/data \
+    LABDEX_CONTAINER=1 \
     HOME=/tmp
 WORKDIR /app
 # System packages and Python dependencies first: they change rarely, so this layer comes

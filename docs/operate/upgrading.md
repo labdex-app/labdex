@@ -21,6 +21,11 @@ docker compose pull && docker compose up -d
 labdex db current       # the schema revision, if you're curious
 ```
 
+With the release check on (Settings › General), administrators see a bar at the top of
+every page when a newer release is out, with its notes and this command to copy. labdex
+doesn't upgrade itself: that would mean giving the container control of Docker. If you
+want it hands-off, a tool like Watchtower can pull new images for you.
+
 Take a backup first (`labdex backup create -o FILE`) if you want a way back: a
 migrated database can't be opened by the older release.
 

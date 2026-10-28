@@ -18,6 +18,11 @@
   set, and each change checked against your permissions. See *Change sets* in the guide.
 
 ### Web UI
+- **A bar says when a new labdex is out**: with the release check on (Settings › General),
+  administrators see a bar on every page with the new version, its release notes and the
+  command to upgrade, ready to copy (`docker compose pull && docker compose up -d` in the
+  image, a `git pull` and `pip install` for a checkout). *Dismiss* hides it until the next
+  release, in this browser. `GET /api/about/update` gives the same for scripts.
 - **Dropdowns look the same everywhere**: every select has one chevron in the theme's colours
   (the browser's own arrow differed between Chrome, Firefox and Safari, and between light and
   dark), with a compact size for toolbars and table rows. The menus and suggestion lists that

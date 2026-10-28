@@ -1,6 +1,7 @@
 """About: version, schema, database, plugins and the changelog; optional release check."""
 from __future__ import annotations
 
+import os
 import platform
 import re
 import sys
@@ -168,6 +169,31 @@ def check_for_update():
     if naming.get_setting("update_check") != "true":
         return err(409, "the release check is off (Settings)")
     return jsonify(update_check(force=True))
+
+
+UPGRADE_COMMANDS = {
+    "container": "docker compose pull && docker compose up -d",
+    "package": 'git pull && pip install -e "backend[server]"',  # a checkout of the repository, from its top folder
+}
+
+
+def upgrade_command() -> str:
+    """What an administrator runs to upgrade: the image sets LABDEX_CONTAINER, anything else runs from a checkout."""
+    return UPGRADE_COMMANDS["container" if os.environ.get("LABDEX_CONTAINER") else "package"]
+
+
+@bp.get("/about/update")
+def update_banner():
+    """For the banner administrators see on every page: a newer release and how to upgrade, or
+    {"update": null} (the check is off, it found nothing newer, or it got no answer). Only reads the
+    release check's cache-backed answer; nothing changes here."""
+    if not g.principal.is_admin:
+        return jsonify({"update": None})
+    u = update_check()
+    if not u or not u["newer"]:
+        return jsonify({"update": None})
+    return jsonify({"update": {"tag": u["latest"]["tag"], "url": u["latest"]["url"], "current": current_app.config["LABDEX_VERSION"],
+                               "command": upgrade_command()}})
 
 
 @bp.get("/openapi.json")
