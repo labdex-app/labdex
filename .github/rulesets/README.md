@@ -6,7 +6,7 @@ targeting the repositories by name).
 
 | File | Where | What it does |
 | --- | --- | --- |
-| `labdex-branches.json` | labdex | `main` and `release/*`: pull requests only; one approval from a code owner who didn't push the last commit; new pushes dismiss approvals; open review threads block; **Lint** and **CI passed** green; no force-push, no deletion |
+| `labdex-branches.json` | labdex | `main` and `release/*`: pull requests only; one approval from a code owner who didn't push the last commit; new pushes dismiss approvals; open review threads block; **Lint** and **CI passed** green on pull requests (not on creating a branch: `release/X.Y` starts from a commit on `main`, which has no pull-request checks); no force-push, no deletion |
 | `plugin-branches.json` | every `labdex-plugin-*`, `labdex-plugins` | the same without required checks (they have no pull-request CI) |
 | `release-tags.json` | every repository | only organization admins create `v*` tags (a release); nobody moves or deletes one |
 

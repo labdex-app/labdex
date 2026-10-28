@@ -38,12 +38,25 @@ from their own repositories; a plugin fix never waits for labdex.
 | `feature/<topic>`, `fix/<topic>` | one change; short-lived | no |
 | `dependabot/…` | dependency updates, weekly | no |
 
-Every change reaches `main` and `release/*` through a pull request. Pushes run the quick
-lint; pull requests run CI for what they touch: the backend tests on SQLite (only the tests
-the change affects), browser tests, the performance budget, the image and the docs. The
-tests also run on PostgreSQL when a change touches database code (models, migrations,
-queries, the driver), for every pull request into a `release/*` branch, when CI is run by
-hand, and every Monday on `main`.
+Every change reaches `main` and `release/*` through a pull request. Every push runs Lint
+(ruff, eslint, YAML). Pull requests run only what their change can affect
+(`.github/ci-changes.py` decides, the "What changed" job shows why):
+
+| Change | Runs |
+| --- | --- |
+| a version bump alone (`bump.py`) | nothing but the docs build (CHANGELOG) |
+| backend code | the tests that code affects (pytest-testmon) on SQLite, the performance budget |
+| …with database code (queries, models), or into `release/*` | the same on PostgreSQL too |
+| backend tests only | the tests that changed |
+| frontend, or the API it calls | the UI build and the browser tests |
+| `Dockerfile` | the image build |
+| docs, `mkdocs.yml`, CHANGELOG, README | the docs build |
+| Python or JavaScript dependencies, migrations, the plugins, CI itself | everything |
+
+Running CI by hand (Actions › CI › Run workflow) runs everything, and so does the Monday run
+on `main`, which also keeps testmon's record current for new pull requests. Branch
+protection requires two checks: **Lint** and **CI passed** (the last job, which waits for
+the others).
 
 ## Making a release
 
