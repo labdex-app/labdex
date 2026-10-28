@@ -153,7 +153,7 @@ const tabs = computed(() => [
 
       <nav v-if="!isNew" class="tabs" aria-label="Network sections">
         <a v-for="t in tabs.filter((x) => !x.hide)" :key="t.id" href="#" :class="{ 'router-link-active': tab === t.id }" :aria-current="tab === t.id ? 'page' : undefined" @click.prevent="setTab(t.id)">
-          {{ t.label }}<span v-if="t.count" class="tcount">{{ t.count }}</span><span v-if="t.err" class="pill" style="margin-left: 6px">!</span>
+          {{ t.label }}<span v-if="t.count" class="tcount">{{ t.count }}</span><span v-if="t.err" class="pill ml-2">!</span>
         </a>
       </nav>
 
@@ -174,10 +174,10 @@ const tabs = computed(() => [
               </select>
             </Field>
           </div>
-          <div style="margin-top: 14px">
+          <div class="mt-4">
             <PrefixEditor v-model:prefixes="form.prefixes" :errors="errors" :vlan="form.vlan" />
           </div>
-          <div style="margin-top: 12px" class="stack">
+          <div class="stack mt-3">
             <label class="check"><input v-model="form.in_dns" type="checkbox"> Publish DNS records for this network</label>
             <Field v-if="form.in_dns" label="DNS zone" :error="err('dns_zone')"
                    :hint="`Where its address records go. Empty: <host>.${form.name || 'network'}.${state.meta.settings.domain}; @: <host>.${state.meta.settings.domain}; or a zone of its own, e.g. home.lab → <host>.home.lab. Short names and fun names stay in the host's zone.`">
@@ -186,8 +186,8 @@ const tabs = computed(() => [
             <Field label="Notes"><textarea v-model="form.notes" rows="2" style="font-family: inherit; font-size: 14px"></textarea></Field>
           </div>
           <button type="submit" hidden></button>
-          <div v-if="suggestion" class="row" style="margin-top: 12px">
-            <span class="hint" style="margin: 0">Following your convention: <code>{{ suggestion.prefix4 }}</code>, gateway <code>{{ suggestion.gateway4 }}</code></span>
+          <div v-if="suggestion" class="row mt-3">
+            <span class="hint m-0">Following your convention: <code>{{ suggestion.prefix4 }}</code>, gateway <code>{{ suggestion.gateway4 }}</code></span>
             <button type="button" class="btn small" @click="useSuggestion">Use it</button>
           </div>
         </form>
@@ -228,15 +228,15 @@ const tabs = computed(() => [
             </template>
             <p v-else class="small muted">{{ u.used }} address(es) in use<template v-if="u.gateway"> · gateway <span class="mono">{{ u.gateway }}</span></template></p>
             <template v-if="u.free_tokens?.length">
-              <h3 style="margin-top: 10px">Next free interface IDs</h3>
+              <h3 class="mt-3">Next free interface IDs</h3>
               <div class="row" style="gap: 6px 12px"><Copy v-for="t in u.free_tokens" :key="t" :text="t" /></div>
             </template>
             <template v-if="u.free.length">
-              <h3 style="margin-top: 10px">Next free (static)</h3>
+              <h3 class="mt-3">Next free (static)</h3>
               <div class="row" style="gap: 6px 12px"><Copy v-for="ip in u.free" :key="ip" :text="ip" /></div>
             </template>
           </div>
-          <div v-if="!net.usage.length" class="card"><p class="faint" style="margin: 0">No prefixes on this network.</p></div>
+          <div v-if="!net.usage.length" class="card"><p class="empty-line">No prefixes on this network.</p></div>
         </aside>
       </div>
 

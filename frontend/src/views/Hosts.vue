@@ -16,6 +16,7 @@ import HostIcon from '../components/HostIcon.vue'
 import TagChip from '../components/TagChip.vue'
 import ZoneChip from '../components/ZoneChip.vue'
 import { can, changed, state, tagColour, toast } from '../store'
+import Loading from '../components/Loading.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -256,7 +257,6 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
     <div class="page-head">
       <h1>Hosts</h1>
       <span class="sub">{{ visible.length }} of {{ inTab.length }}</span>
-      <span v-if="loading" class="faint small">loading …</span>
       <span class="grow"></span>
       <input v-model="q" type="search" placeholder="Search, or tag:backup zone:DC_TC on:pve …" title="Plain text searches everything; tag: zone: status: on: net: cat: narrow it" style="max-width: 340px"
              aria-label="Search hosts" @input="syncQuery">
@@ -307,7 +307,7 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
             <template v-for="r in rows" :key="r.key">
             <tr v-if="r.head" class="grph"><td :colspan="(editable ? 7 : 6) + sources.length">
               <b :class="{ mono: groupBy !== 'status' }">{{ r.label || NOGROUP[groupBy] }}</b> <span class="faint small">{{ r.n }}</span>
-              <a v-if="r.label && groupBy === 'tag'" href="#" class="small" style="margin-left: 8px" @click.prevent="addTerm('tag', r.label)">only these</a></td></tr>
+              <a v-if="r.label && groupBy === 'tag'" href="#" class="small ml-2" @click.prevent="addTerm('tag', r.label)">only these</a></td></tr>
             <tr v-else v-rowlink class="click" :class="{ sel: picked.has(r.h.name) }" @mouseenter="hover(r.h)"
                 @click="router.push(`/hosts/${r.h.uid || r.h.name}`)">
               <td v-if="editable" class="pick" @click.stop="pick(r.h, r.idx, $event)">
@@ -348,12 +348,13 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
                 <span class="status" :class="`s-${r.h.status}`">{{ r.h.status }}</span></td>
               <td v-for="src in sources" :key="src" class="srccol hide-s"><span v-if="r.h.live_sources?.[src]" class="ldot" :class="r.h.live_sources[src]" :title="`${src}: ${r.h.live_sources[src]}`"></span></td>
               <td class="nowrap hide-s">
-                <a v-for="l in r.h.links" :key="l.url" :href="l.url" target="_blank" rel="noopener" class="small"
-                   style="margin-right: 8px" @click.stop>{{ l.name }}</a>
+                <a v-for="l in r.h.links" :key="l.url" :href="l.url" target="_blank" rel="noopener" class="small mr-2"
+                   @click.stop>{{ l.name }}</a>
               </td>
             </tr>
             </template>
-            <tr v-if="!loading && !visible.length">
+            <tr v-if="loading && !visible.length"><td :colspan="(editable ? 7 : 6) + sources.length"><Loading /></td></tr>
+            <tr v-else-if="!visible.length">
               <td :colspan="(editable ? 7 : 6) + sources.length" class="empty">
                 <template v-if="hosts.length">Nothing here matches<template v-if="elsewhere.length">, but
                   <template v-for="(t, n) in elsewhere" :key="t">{{ n ? ' and ' : '' }}<a href="#" @click.prevent="setTab(t)">{{ counts[t] }} in {{ TAB_LABEL[t] }}</a></template> do</template>.</template>
@@ -370,7 +371,7 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
     </div>
 
     <Modal v-if="saveDlg" title="Save this search" :busy="busy" @close="saveDlg = null">
-      <p class="small muted" style="margin: 0">Saves the search text, the filters, the tab and the grouping as they are now.</p>
+      <p class="small muted m-0">Saves the search text, the filters, the tab and the grouping as they are now.</p>
       <Field label="Name" :error="saveDlg.error"><input v-model.trim="saveDlg.name" maxlength="64" placeholder="k3s nodes that are up" @keydown.enter="saveDlg.name && saveSearch()"></Field>
       <label v-if="saved.data.value?.can_share" class="check small"><input v-model="saveDlg.shared" type="checkbox"> Share with everyone</label>
       <template #foot>
@@ -380,7 +381,7 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
     </Modal>
 
     <Modal v-if="bulk" :title="`Change ${picked.size} host${picked.size === 1 ? '' : 's'}`" :busy="busy" @close="bulk = null">
-      <p class="small muted" style="margin: 0">Only what you set here changes; everything else stays as it is on each host. All of them change, or none.</p>
+      <p class="small muted m-0">Only what you set here changes; everything else stays as it is on each host. All of them change, or none.</p>
       <div class="g2">
         <Field label="Status"><select v-model="bulk.status"><option value="">keep</option><option v-for="s in state.meta.statuses" :key="s" :value="s">{{ s }}</option></select></Field>
         <Field label="Runs on">

@@ -58,7 +58,7 @@ async function go() {
     </div>
     <form v-if="open" class="params" @submit.prevent="go">
       <SettingsForm :fields="action.params" v-model:values="values" :errors="errors" />
-      <div class="row" style="margin-top: 10px">
+      <div class="row mt-3">
         <button class="btn primary small" :disabled="busy">Run</button>
         <button type="button" class="btn ghost small" @click="open = false">Cancel</button>
       </div>
@@ -70,5 +70,5 @@ async function go() {
 .ab .btn { width: 220px; flex: none; justify-content: flex-start; gap: 8px; }
 .ab .aic { flex: none; color: var(--muted); }
 @media (max-width: 640px) { .ab .row { flex-wrap: wrap !important; } .ab .btn { width: 100%; } }
-.params { margin: 10px 0 4px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.params { margin: 10px 0 4px; padding: 12px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--panel); }
 </style>

@@ -50,7 +50,7 @@ const counts = computed(() => ({
 
     <div class="filters">
       <FilterSelect :model-value="status" label="Status" :options="Object.entries(STATUS).map(([k, v]) => ({ value: k, label: `${v[1]} (${counts[k]})` }))" @update:model-value="(v) => (status = v || '')" />
-      <label class="check small" style="margin-left: 8px"><input v-model="linkedOnly" type="checkbox"> with a link</label>
+      <label class="check small ml-2"><input v-model="linkedOnly" type="checkbox"> with a link</label>
     </div>
 
     <template v-if="view === 'cards'">
@@ -77,7 +77,7 @@ const counts = computed(() => ({
           </div>
         </div>
       </section>
-      <p v-if="!groups.length" class="faint">Nothing matches. Services are added on each host's Services tab.</p>
+      <p v-if="!groups.length" class="empty">Nothing matches. Services are added on each host's Services tab.</p>
     </template>
 
     <div v-else class="card flush">
@@ -108,7 +108,7 @@ const counts = computed(() => ({
 .grp { margin-bottom: 22px; }
 .grp-h { display: flex; align-items: center; gap: 10px; font-size: 14px; margin: 0 0 10px; }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
-.svc-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.svc-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-box); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .svc-card .nm { font-size: 15px; overflow-wrap: anywhere; }
 .svc-card .desc { color: var(--muted); }
 .svc-card .foot { margin-top: auto; gap: 8px; flex-wrap: nowrap; min-width: 0; }
@@ -117,7 +117,7 @@ const counts = computed(() => ({
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--faint); opacity: .45; flex: none; margin-right: 4px; }
 .dot.up { background: var(--ok); opacity: 1; }
 .dot.down { background: var(--err); opacity: 1; }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r-box); overflow: hidden; }
 .seg button { font: inherit; font-size: 12.5px; padding: 5px 10px; background: none; border: 0; color: var(--muted); cursor: pointer; }
 .seg button.on { background: var(--raise); color: var(--ink); }
 </style>

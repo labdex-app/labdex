@@ -129,7 +129,7 @@ const stamp = (s) => (s ? new Date(s).toLocaleString() : '')
 <template>
   <Modal :title="editing ? (e ? `Edit ${e.path}` : 'New secret') : e?.path || '…'" wide :busy="busy" @close="emit('close')">
     <template v-if="editing && form">
-      <p v-if="sealed && (!e || valuesChanged)" class="warnbox small" style="margin: 0">The vault is sealed: path, host and description can change, values can’t.</p>
+      <p v-if="sealed && (!e || valuesChanged)" class="warnbox small m-0">The vault is sealed: path, host and description can change, values can’t.</p>
       <div class="g2">
         <Field label="Path" :error="errors.path" hint="hosts/srv-pm-pve-01/root, wifi/iot …"><input v-model.trim="form.path" class="mono" placeholder="hosts/srv-pm-pve-01/root"></Field>
         <Field label="Host" :error="errors.host" hint="Optional: shows on the host, and its rights apply">
@@ -157,10 +157,10 @@ const stamp = (s) => (s ? new Date(s).toLocaleString() : '')
         <span v-if="e.host">on <RouterLink :to="`/hosts/${e.host_uid}?tab=secrets`" class="mono">{{ e.host }}</RouterLink></span>
         <span>version {{ e.version }} · {{ e.updated_by }} · {{ stamp(e.updated_at) }}</span>
       </div>
-      <p v-if="e.description" style="margin: 0">{{ e.description }}</p>
-      <p v-if="e.used_by?.length" class="small muted" style="margin: 0">Used by {{ e.used_by.join(', ') }}: they read it when they run.
+      <p v-if="e.description" class="m-0">{{ e.description }}</p>
+      <p v-if="e.used_by?.length" class="small muted m-0">Used by {{ e.used_by.join(', ') }}: they read it when they run.
         Point at a field with <span class="mono">vault:{{ e.path }}#{{ e.fields[0] }}</span>.</p>
-      <p v-else-if="e.can_reveal" class="small faint" style="margin: 0">Plugins and Ansible variables can point at it: <span class="mono">vault:{{ e.path }}#{{ e.fields[0] }}</span>.</p>
+      <p v-else-if="e.can_reveal" class="small faint m-0">Plugins and Ansible variables can point at it: <span class="mono">vault:{{ e.path }}#{{ e.fields[0] }}</span>.</p>
       <div class="fields">
         <div v-for="f in e.fields" :key="f" class="fld">
           <span class="mono fname">{{ f }}</span>
@@ -196,7 +196,7 @@ const stamp = (s) => (s ? new Date(s).toLocaleString() : '')
   </Modal>
 
   <Modal v-if="pw" title="Confirm your password" @close="pw = null">
-    <p class="small muted" style="margin: 0">Revealing a secret asks again every few minutes.</p>
+    <p class="small muted m-0">Revealing a secret asks again every few minutes.</p>
     <Field label="Password" :error="pw.error"><input v-model="pw.password" type="password" autocomplete="current-password" @keydown.enter="sendPassword"></Field>
     <template #foot>
       <button class="btn" @click="pw = null">Cancel</button>

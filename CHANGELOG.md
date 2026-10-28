@@ -8,7 +8,23 @@
   then **apply** it as one unit: all of it or none, one history entry per object named after the
   set, and each change checked against your permissions. See *Change sets* in the guide.
 
+### Web UI
+- **Dropdowns look the same everywhere**: every select has one chevron in the theme's colours
+  (the browser's own arrow differed between Chrome, Firefox and Safari, and between light and
+  dark), with a compact size for toolbars and table rows. The menus and suggestion lists that
+  drop down from a button or a field (the ⋯ menus, the host picker, tags and fun names, the
+  account menu) share one look too.
+- **Empty and loading states look the same everywhere**: a page, table or card with nothing in
+  it shows one centred note (several views showed plain unstyled text), and one that's still
+  waiting shows a spinner with *Loading…* instead of nothing, `…`, or its own wording.
+- **The host picker and the tag and name fields** tell screen readers which suggestion is
+  highlighted.
+- **The changelog on About is paged**, five releases at a time, instead of one page of well
+  over a thousand lines.
+
 ### Fixes
+- The *Accept…* and *Count again* buttons on Lint were full size in their table rows; they're
+  the small ones now, like the other row actions.
 - **Install in the Marketplace seemed to do nothing** for a plugin further down the list: the
   step that shows its signature and asks you to confirm opened above the cards, out of view. It
   now scrolls into view.

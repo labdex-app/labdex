@@ -132,7 +132,7 @@ const setSite = (v) => { site.value = v; router.replace({ query: v ? { site: v }
       <RouterLink v-if="route.query.rack" to="/racks" class="btn small ghost">All racks</RouterLink>
     </div>
 
-    <p v-if="q.data.value && !all.length" class="emptyp">No racks yet. {{ canEdit ? 'Add one, then click a unit to put a host in it.' : '' }}</p>
+    <p v-if="q.data.value && !all.length" class="empty">No racks yet. {{ canEdit ? 'Add one, then click a unit to put a host in it.' : '' }}</p>
 
     <section v-for="[s, list] in bySite" :key="s" class="site">
       <h2 v-if="s || bySite.length > 1" class="sitename">{{ s || 'No site' }}</h2>
@@ -225,7 +225,6 @@ const setSite = (v) => { site.value = v; router.replace({ query: v ? { site: v }
 
 <style scoped>
 .page.wide { max-width: none; }
-.emptyp { color: var(--muted); }
 .site + .site { margin-top: 26px; }
 .sitename { font-size: 15px; margin: 0 0 10px; }
 .racks { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
@@ -234,12 +233,12 @@ const setSite = (v) => { site.value = v; router.replace({ query: v ? { site: v }
 .rsides { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .sl { margin: 0 0 4px 30px; }
 .elev { display: grid; grid-template-columns: 26px minmax(0, 1fr); column-gap: 4px; row-gap: 1px; background: var(--panel); border: 1px solid var(--line-strong);
-  border-radius: 6px; padding: 3px 4px; }
+  border-radius: var(--r-ctl); padding: 3px 4px; }
 .un { grid-column: 1; font-size: 10px; color: var(--faint); text-align: right; line-height: 21px; padding-right: 2px; }
-.free { grid-column: 2; border: 1px dashed transparent; background: none; border-radius: 3px; cursor: pointer; padding: 0; }
+.free { grid-column: 2; border: 1px dashed transparent; background: none; border-radius: var(--r-sm); cursor: pointer; padding: 0; }
 .free:not(:disabled):hover, .free:focus-visible { border-color: var(--accent); background: var(--accent-faint); }
 .free:disabled { cursor: default; }
-.dev { grid-column: 2; display: flex; align-items: stretch; min-width: 0; border-radius: 4px; background: var(--card);
+.dev { grid-column: 2; display: flex; align-items: stretch; min-width: 0; border-radius: var(--r-sm); background: var(--card);
   border: 1px solid var(--line-strong); border-left: 4px solid var(--zc, var(--line-strong)); position: relative; }
 .dev.full { background-image: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--ink) 6%, transparent) 6px 8px); }
 .dev.s-offline, .dev.s-planned { border-style: dashed; opacity: .8; }
@@ -250,15 +249,15 @@ const setSite = (v) => { site.value = v; router.replace({ query: v ? { site: v }
 .dn { font-weight: 500; }
 .dsub { font-size: 10.5px; color: var(--faint); }
 .dev:not(.tall) .dsub { display: none; }
-.dm { background: none; border: 0; color: var(--faint); cursor: pointer; padding: 0 4px; border-radius: 3px; }
+.dm { background: none; border: 0; color: var(--faint); cursor: pointer; padding: 0 4px; border-radius: var(--r-sm); }
 .dm:hover { color: var(--ink); background: var(--raise); }
 .item { grid-column: 2; display: flex; align-items: center; gap: 6px; min-width: 0; padding: 0 6px; font: inherit; font-size: 11.5px; text-align: left;
-  border: 1px solid var(--line-strong); border-radius: 4px; background: var(--raise); color: var(--muted); cursor: pointer; }
+  border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--raise); color: var(--muted); cursor: pointer; }
 .item:disabled { cursor: default; }
 .item:not(:disabled):hover { border-color: var(--accent); color: var(--ink); }
 .item.k-patch { background-image: radial-gradient(circle, var(--line-strong) 1.5px, transparent 1.6px); background-size: 9px 100%; background-position: 0 center; }
 .item .il { flex: none; max-width: 60%; font-weight: 500; }
-.item.k-patch span { background: var(--raise); padding: 0 3px; border-radius: 3px; }
+.item.k-patch span { background: var(--raise); padding: 0 3px; border-radius: var(--r-sm); }
 .item.k-cables { border-style: dashed; }
 .item.k-blank { background: var(--panel); color: var(--faint); }
 .item.full { outline: 1px dotted var(--line-strong); outline-offset: -3px; }

@@ -26,7 +26,7 @@ onMounted(async () => {
         <span class="small faint nowrap">{{ e.actor }} · {{ ago(e.ts) }}</span>
       </li>
     </ul>
-    <p v-else class="faint" style="margin: 0">No recorded changes.</p>
+    <p v-else class="empty-line">No recorded changes.</p>
     <RouterLink :to="`/history?object_type=${type}&object_name=${enc(name)}`" class="small">All changes →</RouterLink>
   </div>
 </template>

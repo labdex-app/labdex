@@ -115,9 +115,9 @@ const minutes = (m) => (!m ? 'off' : m % 1440 === 0 ? `every ${m / 1440} d` : m 
           <button class="btn" :disabled="!!busy" @click="save({ enabled: !d.enabled })">{{ d.enabled ? 'Disable' : 'Enable' }}</button>
         </template>
       </div>
-      <div v-if="d.error" class="errbox" style="margin-bottom: 16px">The plugin failed to load: <code>{{ d.error }}</code></div>
+      <div v-if="d.error" class="errbox mb-4">The plugin failed to load: <code>{{ d.error }}</code></div>
       <p v-if="spec?.description" class="muted" style="margin-top: -6px">{{ spec.description }}</p>
-      <div v-if="d.plugin_id === 'backup' && !d.secrets_set.includes('passphrase')" class="warnbox" style="margin-bottom: 16px">
+      <div v-if="d.plugin_id === 'backup' && !d.secrets_set.includes('passphrase')" class="warnbox mb-4">
         Backups are <b>not encrypted</b>: set a passphrase below. Secrets inside stay encrypted either way (with secret.key, which is never in a backup).
       </div>
 
@@ -170,7 +170,7 @@ const minutes = (m) => (!m ? 'off' : m % 1440 === 0 ? `every ${m / 1440} d` : m 
           <div v-if="spec?.endpoints?.length" class="card">
             <h2>Endpoints</h2>
             <ul class="plain">
-              <li v-for="e in spec.endpoints" :key="e.id" style="margin-bottom: 8px">
+              <li v-for="e in spec.endpoints" :key="e.id" class="mb-2">
                 <div class="row"><span style="flex: 1">{{ e.label || e.id }}</span>
                   <button class="btn small ghost" :disabled="!d.enabled" @click="show(e.label || e.id, `${base}/endpoints/${e.id}`, true)">View</button></div>
                 <Copy :text="`${base}/endpoints/${e.id}`" />
@@ -180,7 +180,7 @@ const minutes = (m) => (!m ? 'off' : m % 1440 === 0 ? `every ${m / 1440} d` : m 
           </div>
 
           <div v-if="preview" class="card">
-            <div class="row" style="margin-bottom: 8px"><h2 style="margin: 0; flex: 1">{{ preview.title }}</h2>
+            <div class="row mb-2"><h2 style="margin: 0; flex: 1">{{ preview.title }}</h2>
               <button class="btn small ghost" @click="preview = null">Close</button></div>
             <pre class="code">{{ preview.body }}</pre>
           </div>
@@ -217,10 +217,10 @@ const minutes = (m) => (!m ? 'off' : m % 1440 === 0 ? `every ${m / 1440} d` : m 
               <SettingsForm :fields="fields" v-model:values="values" :errors="errors" :secrets-set="d.secrets_set" :secret-refs="d.secret_refs"
                             :networks="networks" :secrets="secrets" />
               <div v-if="schedules.length">
-                <h3 style="margin-top: 8px">Schedule</h3>
-                <div v-for="f in schedules" :key="f.key" class="row" style="margin-bottom: 6px">
+                <h3 class="mt-2">Schedule</h3>
+                <div v-for="f in schedules" :key="f.key" class="row mb-2">
                   <span style="flex: 1" class="small">{{ f.label }}</span>
-                  <select v-model.number="values[f.key]" style="width: auto">
+                  <select v-model.number="values[f.key]" class="auto">
                     <option v-for="m in [0, 15, 60, 360, 1440, 10080]" :key="m" :value="m">{{ minutes(m) }}</option>
                     <option v-if="![0, 15, 60, 360, 1440, 10080, null, undefined].includes(values[f.key])" :value="values[f.key]">{{ minutes(values[f.key]) }}</option>
                   </select>
@@ -228,7 +228,7 @@ const minutes = (m) => (!m ? 'off' : m % 1440 === 0 ? `every ${m / 1440} d` : m 
                 <p class="hint">Scheduled plans wait for review like any other plan.</p>
               </div>
             </fieldset>
-            <div v-if="d.can_admin" class="row" style="margin-top: 14px">
+            <div v-if="d.can_admin" class="row mt-4">
               <button class="btn primary" :disabled="!dirty || !!busy">{{ busy === 'save' ? 'Saving…' : 'Save settings' }}</button>
               <button v-if="dirty" type="button" class="btn ghost" @click="values = JSON.parse(JSON.stringify(d.settings)); selectors = d.selectors.join(' ')">Reset</button>
             </div>
@@ -246,10 +246,10 @@ const minutes = (m) => (!m ? 'off' : m % 1440 === 0 ? `every ${m / 1440} d` : m 
           </div>
           <div v-if="d.per_host" class="card">
             <h3>Hosts ({{ d.hosts?.length || 0 }})</h3>
-            <p class="small" style="margin-top: 0">
+            <p class="small mt-0">
               <RouterLink v-for="(h, n) in (d.hosts || []).slice(0, 40)" :key="h" :to="`/hosts/${h}`" class="mono">{{ h }}{{ n < Math.min(d.hosts.length, 40) - 1 ? ', ' : '' }}</RouterLink>
               <span v-if="d.hosts?.length > 40" class="faint"> … and {{ d.hosts.length - 40 }} more</span>
-              <span v-if="!d.hosts?.length" class="faint">No host selected.</span>
+              <span v-if="!d.hosts?.length" class="empty-line">No host selected.</span>
             </p>
             <template v-if="d.host_overrides.length">
               <h3>Per-host overrides</h3>

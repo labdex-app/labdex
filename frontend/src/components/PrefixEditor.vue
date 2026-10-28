@@ -45,8 +45,8 @@ const counts = computed(() => ({ 4: prefixes.value.filter((p) => p.family === 4)
 
 <template>
   <div class="pfx">
-    <div class="row" style="margin-bottom: 8px">
-      <span class="flabel" style="margin: 0">Addresses</span>
+    <div class="row mb-2">
+      <span class="flabel m-0">Addresses</span>
       <span class="small faint">{{ counts[4] }} IPv4 · {{ counts[6] }} IPv6</span>
       <span class="grow"></span>
       <button type="button" class="btn small" @click="add(4)"><Plus :size="14" /> IPv4</button>
@@ -54,10 +54,10 @@ const counts = computed(() => ({ 4: prefixes.value.filter((p) => p.family === 4)
     </div>
     <div v-for="(p, i) in prefixes" :key="i" class="pfx-row" :class="{ bad: anyErr(i) }">
       <div class="pfx-top">
-        <select :value="p.family" class="fam" aria-label="Family" @change="setFamily(p, $event.target.value)">
+        <select :value="p.family" class="fam small auto" aria-label="Family" @change="setFamily(p, $event.target.value)">
           <option :value="4">IPv4</option><option :value="6">IPv6</option>
         </select>
-        <select v-if="p.family === 6" v-model="p.source" class="src" aria-label="Source">
+        <select v-if="p.family === 6" v-model="p.source" class="src small auto" aria-label="Source">
           <option value="static">static</option>
           <option value="delegated">delegated</option>
         </select>
@@ -65,7 +65,7 @@ const counts = computed(() => ({ 4: prefixes.value.filter((p) => p.family === 4)
           <input :value="split(p).addr" class="mono addr" :placeholder="p.family === 4 ? '10.0.10.0' : 'fd00:0:0:10::'"
                  :class="{ invalid: err(i, 'prefix') }" aria-label="Prefix" spellcheck="false" @change="setAddr(p, $event.target.value)">
           <span class="dash">/</span>
-          <select :value="split(p).len" class="len" aria-label="Mask" @change="setLen(p, $event.target.value)">
+          <select :value="split(p).len" class="len small auto" aria-label="Mask" @change="setLen(p, $event.target.value)">
             <option v-for="m in MASKS[p.family]" :key="m" :value="m">{{ m }}{{ p.family === 4 ? ` (${m >= 31 ? Math.pow(2, 32 - m) : Math.pow(2, 32 - m) - 2})` : '' }}</option>
           </select>
         </template>
@@ -75,7 +75,7 @@ const counts = computed(() => ({ 4: prefixes.value.filter((p) => p.family === 4)
           <span class="small faint">prefix ID</span>
           <input v-model.trim="p.prefix_id" class="mono short" placeholder="0x10" aria-label="Prefix ID" :class="{ invalid: err(i, 'prefix_id') }">
           <span class="dash">/</span>
-          <select v-model.number="p.length" class="len" aria-label="Length"><option v-for="m in [48, 52, 56, 60, 62, 63, 64]" :key="m" :value="m">{{ m }}</option></select>
+          <select v-model.number="p.length" class="len small auto" aria-label="Length"><option v-for="m in [48, 52, 56, 60, 62, 63, 64]" :key="m" :value="m">{{ m }}</option></select>
           <span v-if="p.prefix" class="small faint mono" title="Last seen on the firewall">now {{ p.prefix }}</span>
         </template>
         <button type="button" class="btn small ghost rm" aria-label="Remove prefix" @click="remove(i)"><X :size="14" /></button>
@@ -91,18 +91,18 @@ const counts = computed(() => ({ 4: prefixes.value.filter((p) => p.family === 4)
         <div v-if="err(i, k)" class="err">{{ err(i, k) }}</div>
       </div>
     </div>
-    <p v-if="!prefixes.length" class="faint small" style="margin: 0">No addresses yet. A network without prefixes is fine for tunnels and external ranges.</p>
+    <p v-if="!prefixes.length" class="empty-line small">No addresses yet. A network without prefixes is fine for tunnels and external ranges.</p>
     <p class="hint">Gateway and DHCP range: a full address or a suffix added to the prefix (254 → .254, ::1). A delegated IPv6 prefix comes from the firewall: the prefix it receives on the WAN interface plus the prefix ID (often the VLAN, in hex).</p>
   </div>
 </template>
 
 <style scoped>
-.pfx-row { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; }
+.pfx-row { border: 1px solid var(--line); border-radius: var(--r-box); padding: 8px 10px; margin-bottom: 8px; }
 .pfx-row.bad { border-color: var(--err); }
 .pfx-top, .pfx-sub { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .pfx-sub { margin-top: 6px; font-size: 12.5px; color: var(--faint); }
 .pfx-sub label { display: flex; gap: 6px; align-items: center; }
-.pfx-row select, .pfx-row input { width: auto !important; padding: 4px 8px !important; font-size: 13px !important; }
+.pfx-row input { width: auto !important; padding: 3px 8px !important; font-size: 12.5px !important; }
 .fam { min-width: 70px; } .src { min-width: 96px; } .len { min-width: 64px; }
 .addr { flex: 1 1 160px; min-width: 120px; width: 160px !important; }
 .pfx-row input.short { width: 72px !important; }

@@ -24,7 +24,7 @@ async function install() {
 
 <template>
   <div class="card stage" :class="`t-${staged.trust.status}`">
-    <div class="row"><h2 style="margin: 0">Install {{ staged.name }} {{ staged.version }}?</h2><TrustBadge :trust="staged.trust" />
+    <div class="row"><h2 class="m-0">Install {{ staged.name }} {{ staged.version }}?</h2><TrustBadge :trust="staged.trust" />
       <span class="grow"></span><button class="btn ghost small" @click="emit('cancel')">Cancel</button></div>
     <p class="muted">{{ staged.description }}</p>
     <dl class="kv small">
@@ -35,9 +35,9 @@ async function install() {
       <dt>files</dt><dd class="mono small">{{ staged.files.join(', ') }}</dd>
       <dt>from</dt><dd class="small">{{ staged.source }}</dd>
     </dl>
-    <div v-if="!staged.installable" class="errbox" style="margin-top: 12px">Refused: {{ staged.trust.detail }}. labdex never runs a plugin whose signature doesn't hold.</div>
+    <div v-if="!staged.installable" class="errbox mt-3">Refused: {{ staged.trust.detail }}. labdex never runs a plugin whose signature doesn't hold.</div>
     <template v-else>
-      <div v-if="staged.needs_confirmation" class="warnbox" style="margin-top: 12px">
+      <div v-if="staged.needs_confirmation" class="warnbox mt-3">
         <template v-if="isolates(staged.trust) && isolation.level === 'full'">This plugin isn't signed. Its code runs isolated: it can read the inventory
           and its own settings, but not labdex's database, other integrations' secrets or other plugins.</template>
         <template v-else-if="isolates(staged.trust)">This plugin isn't signed. Its code runs in its own process, but this machine can't lock it out of
@@ -45,7 +45,7 @@ async function install() {
         <template v-else>This plugin isn't signed. Its code runs inside labdex with access to the whole inventory and the integration secrets.</template>
         <label class="check tick" style="margin-top: 8px; display: flex"><input v-model="accept" type="checkbox"> I trust its author and have looked at the code</label>
       </div>
-      <button class="btn primary" style="margin-top: 12px" :disabled="busy || (staged.needs_confirmation && !accept)" @click="install">Install</button>
+      <button class="btn primary mt-3" :disabled="busy || (staged.needs_confirmation && !accept)" @click="install">Install</button>
     </template>
   </div>
 </template>

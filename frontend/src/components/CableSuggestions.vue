@@ -42,7 +42,7 @@ const newHost = (u) => `/hosts/new?${new URLSearchParams({ ...(u.ip ? { ip: u.ip
 
 <template>
   <div v-if="d">
-    <p v-if="!d.suggested.length && !d.conflicts.length && !d.unknown.length" class="emptyp">
+    <p v-if="!d.suggested.length && !d.conflicts.length && !d.unknown.length" class="empty">
       Nothing to suggest. {{ d.documented ? `The ${d.documented} cable${d.documented === 1 ? '' : 's'} the switches see ${d.documented === 1 ? 'is' : 'are'} all on record.` : '' }}
       Switches tell labdex about their neighbours through the <b>SNMP neighbours</b> plugin (LLDP and CDP) or the <b>UniFi</b> plugin signed in with a local account.
     </p>

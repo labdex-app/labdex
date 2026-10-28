@@ -41,7 +41,7 @@ async function revert() {
         <span>{{ stamp(e.ts) }}</span><span>· {{ e.actor }} ({{ e.actor_kind }})</span><span v-if="e.ip">· from {{ e.ip }}</span>
       </div>
       <div class="card">
-        <p style="margin-top: 0">{{ e.summary }}</p>
+        <p class="mt-0">{{ e.summary }}</p>
         <Diff :rows="e.diff" />
         <p><a href="#" class="small" @click.prevent="raw = !raw">{{ raw ? 'Hide' : 'Show' }} full snapshots</a></p>
         <div v-if="raw" class="grid2">

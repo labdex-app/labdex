@@ -89,13 +89,13 @@ const counts = computed(() => z.value && `${z.value.networks.length} network${z.
               <li v-for="c in z.policy_out" :key="c.dst"><RouterLink to="/policy" class="mono">{{ c.dst }}</RouterLink> <span class="faint">{{ ports(c) }}</span></li>
               <li v-if="!z.policy_out.length" class="faint">nothing (deny unless listed)</li>
             </ul>
-            <div class="small faint" style="margin-top: 8px">Reached from</div>
+            <div class="small faint mt-2">Reached from</div>
             <ul class="plain small">
               <li v-for="c in z.policy_in" :key="c.src"><RouterLink to="/policy" class="mono">{{ c.src }}</RouterLink> <span class="faint">{{ ports(c) }}</span></li>
               <li v-if="!z.policy_in.length" class="faint">nowhere</li>
             </ul>
           </div>
-          <RouterLink v-if="z.can_edit" to="/zones" class="btn small" style="margin-top: 4px">Edit on the Zones page</RouterLink>
+          <RouterLink v-if="z.can_edit" to="/zones" class="btn small mt-1">Edit on the Zones page</RouterLink>
         </aside>
       </div>
     </template>

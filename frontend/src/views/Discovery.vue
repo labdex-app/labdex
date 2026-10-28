@@ -8,6 +8,7 @@ import { api, enc } from '../api'
 import HostPicker from '../components/HostPicker.vue'
 import ZoneChip from '../components/ZoneChip.vue'
 import { ago, can, changed, state, toast } from '../store'
+import Loading from '../components/Loading.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -136,7 +137,7 @@ function go(p) { f.page = p; load() }
     <div class="filters">
       <template v-if="tab === 'services'">
         <FilterSelect :model-value="f.status" label="Show" any="" :options="[{ value: 'undocumented,unknown-host', label: 'To review' }, ...Object.entries(STATUS).map(([k, v]) => ({ value: k, label: v[1] })), { value: 'all', label: 'All' }]" @update:model-value="setStatus" />
-        <label class="check small" style="margin-left: 8px"><input v-model="f.closed" type="checkbox" @change="load"> closed too</label>
+        <label class="check small ml-2"><input v-model="f.closed" type="checkbox" @change="load"> closed too</label>
       </template>
       <span class="grow"></span>
       <input v-model="f.q" type="search" placeholder="Filter…" style="max-width: 240px" aria-label="Filter">
@@ -226,7 +227,8 @@ function go(p) { f.page = p; load() }
             </tr>
           </tbody>
         </table>
-        <div v-if="!data.items.length && !loading" class="empty">
+        <Loading v-if="!data.items.length && loading" />
+        <div v-else-if="!data.items.length" class="empty">
           {{ { services: 'Nothing to review here.', unknown: 'Every address seen is in the inventory.', macs: 'No MACs to fill in: every interface that was seen has one, or none was seen with a MAC.' }[tab] || 'Every declared service on a scanned host answered.' }}
           <template v-if="!summary?.open && !summary?.unknown_hosts && can('integration', 'admin')"><br>Nothing discovered yet: add nmap, OPNsense (ARP, DHCP leases) or Technitium (records) under <RouterLink to="/plugins">Plugins</RouterLink>.</template>
         </div>

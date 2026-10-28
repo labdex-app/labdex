@@ -241,10 +241,10 @@ const me = computed(() => state.auth.user.username)
             groups from the <span class="mono">{{ sso.oidc.groups_claim }}</span> claim<template v-if="sso.oidc.admin_groups">; administrators: <span class="mono">{{ sso.oidc.admin_groups }}</span></template></dd>
           <dt>Password sign-in</dt><dd>{{ sso.oidc.only ? 'hidden (LABDEX_OIDC_ONLY)' : 'still possible' }}</dd>
         </dl>
-        <p v-else class="small muted" style="margin: 0">Not set up. Set <code>LABDEX_OIDC_ISSUER</code>, <code>LABDEX_OIDC_CLIENT_ID</code> and
+        <p v-else class="small muted m-0">Not set up. Set <code>LABDEX_OIDC_ISSUER</code>, <code>LABDEX_OIDC_CLIENT_ID</code> and
           <code>LABDEX_OIDC_CLIENT_SECRET</code> for sign-in with Authentik, Keycloak, Authelia, Pocket ID …; register
           <span class="mono">{{ sso.oidc.redirect_uri }}</span> as the redirect URI there.</p>
-        <p v-if="sso.header" class="small muted" style="margin: 8px 0 0">Also: the SSO proxy header <span class="mono">{{ sso.header }}</span>.</p>
+        <p v-if="sso.header" class="small muted m-0 mt-2">Also: the SSO proxy header <span class="mono">{{ sso.header }}</span>.</p>
       </div>
     </section>
 
@@ -319,7 +319,7 @@ const me = computed(() => state.auth.user.username)
             <Field label="Name" :error="errors.name"><input v-model.trim="editRole.name" type="text" required></Field>
             <Field label="Description"><input v-model="editRole.description" type="text"></Field>
           </div>
-          <div class="table-wrap" style="margin-top: 14px">
+          <div class="table-wrap mt-4">
             <table class="perm">
               <thead><tr><th></th><th v-for="a in actions" :key="a">{{ a }}</th></tr></thead>
               <tbody>
@@ -466,19 +466,19 @@ const me = computed(() => state.auth.user.username)
             <input v-model.trim="settings.public_url" type="text" inputmode="url" class="mono" placeholder="https://labdex.lab.example.net">
           </Field>
         </div>
-        <label class="check" style="margin-top: 12px">
+        <label class="check mt-3">
           <input type="checkbox" :checked="settings.octet_matches_vlan === 'true'" @change="settings.octet_matches_vlan = $event.target.checked ? 'true' : 'false'">
           Warn when a network's third octet doesn't match its VLAN
         </label>
-        <label class="check" style="margin-top: 8px">
+        <label class="check mt-2">
           <input type="checkbox" :checked="settings.update_check === 'true'" @change="settings.update_check = $event.target.checked ? 'true' : 'false'">
           Check for new labdex releases (shown on the About page)
         </label>
-        <Field label="Project" :error="errors.project_url" style="margin-top: 10px"
+        <Field label="Project" :error="errors.project_url" class="mt-3"
                hint="Where labdex lives: GitHub, GitLab or Gitea/Forgejo (Codeberg). The release check asks its public API for the latest release; Help and the top bar link here.">
           <input v-model.trim="settings.project_url" type="url" class="mono" placeholder="https://github.com/labdex-app/labdex">
         </Field>
-        <div style="margin-top: 14px"><button class="btn primary" @click="saveSettings">Save</button></div>
+        <div class="mt-4"><button class="btn primary" @click="saveSettings">Save</button></div>
       </div>
       <aside class="card">
         <h3>Where things are</h3>
@@ -496,18 +496,18 @@ const me = computed(() => state.auth.user.username)
     <div v-else-if="tab === 'backup'" class="split">
       <div class="card">
         <h2>Restore inventory</h2>
-        <p class="muted small" style="margin-top: 0">Replaces networks, hosts, aliases, areas and conventions with a YAML file in one transaction. If anything is invalid, nothing changes. Users, roles, integrations and history stay.</p>
+        <p class="muted small mt-0">Replaces networks, hosts, aliases, areas and conventions with a YAML file in one transaction. If anything is invalid, nothing changes. Users, roles, integrations and history stay.</p>
         <input type="file" accept=".yaml,.yml,text/yaml" @change="pickFile">
-        <textarea v-model="restoreText" rows="8" placeholder="…or paste YAML here" style="margin-top: 10px"></textarea>
-        <div v-if="restoreErrors.length" class="errbox" style="margin-top: 10px">
+        <textarea v-model="restoreText" rows="8" placeholder="…or paste YAML here" class="mt-3"></textarea>
+        <div v-if="restoreErrors.length" class="errbox mt-3">
           <div v-for="(e, n) in restoreErrors.slice(0, 30)" :key="n" class="small"><code>{{ e.field }}</code> {{ e.message }}</div>
           <div v-if="restoreErrors.length > 30" class="small">… and {{ restoreErrors.length - 30 }} more</div>
         </div>
-        <button class="btn primary" style="margin-top: 12px" :disabled="busy || !restoreText.trim()" @click="restore">{{ busy ? 'Restoring…' : 'Replace inventory' }}</button>
+        <button class="btn primary mt-3" :disabled="busy || !restoreText.trim()" @click="restore">{{ busy ? 'Restoring…' : 'Replace inventory' }}</button>
       </div>
       <aside class="card">
         <h2>Backup</h2>
-        <p class="muted small" style="margin-top: 0">Full, scheduled and encrypted backups (database + inventory, to a folder, NFS or S3) are done by the <RouterLink to="/integrations/backup">backup module</RouterLink>. Keep <code>secret.key</code> separately: it isn't in any backup.</p>
+        <p class="muted small mt-0">Full, scheduled and encrypted backups (database + inventory, to a folder, NFS or S3) are done by the <RouterLink to="/integrations/backup">backup module</RouterLink>. Keep <code>secret.key</code> separately: it isn't in any backup.</p>
         <div class="row">
           <RouterLink class="btn primary" to="/integrations/backup">Backup module</RouterLink>
           <a class="btn" href="/api/admin/backup?download=1">Download inventory.yaml</a>
@@ -530,7 +530,6 @@ const me = computed(() => state.auth.user.username)
 .si.router-link-active { background: var(--accent-faint); color: var(--ink); }
 @media (max-width: 860px) { .adm { grid-template-columns: minmax(0, 1fr); } .subnav { position: static; flex-direction: row; flex-wrap: wrap; } .sg { display: none; } }
 .stack > * + * { margin-top: 12px; }
-select[multiple] { padding: 4px; }
 .perm { width: auto; }
 .lead { margin: 4px 0 0; max-width: 90ch; }
 .sections > * + * { margin-top: 28px; }

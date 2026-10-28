@@ -25,7 +25,7 @@ const opt = (o) => (typeof o === 'string' ? { value: o, label: o } : o)
   background: var(--panel); font-size: 13px; height: 32px; overflow: hidden; }
 .fsel.on { border-color: var(--accent); background: var(--accent-faint); }
 .fl { color: var(--faint); padding: 0 2px 0 10px; }
-.fsel select { border: 0; background: transparent; width: auto; padding: 0 26px 0 6px; height: 30px; line-height: 30px; color: var(--ink);
+.fsel select { border: 0; background-color: transparent; width: auto; padding: 0 26px 0 6px; height: 30px; line-height: 30px; color: var(--ink);
   cursor: pointer; font-weight: 500; }
 .fsel select:focus { box-shadow: none; }
 </style>
