@@ -2,7 +2,7 @@
 // Everything that can be installed: what the trusted repositories offer (downloaded, signature checked,
 // then confirmed), and development checkouts (LABDEX_DEV_PLUGINS: nothing to download).
 import { Check, Download, History, PackageOpen, RefreshCw, Undo2 } from 'lucide-vue-next'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from '../api'
 import { confirm } from '../confirm'
@@ -18,6 +18,7 @@ const show = ref('all')
 const tag = ref('')
 const open = ref(null)
 const staged = ref(null)
+const confirmBox = ref(null)
 const isolation = ref(null)
 const busy = ref('')
 // what you just installed stays where it was until you change the filter, so cards don't jump away
@@ -87,12 +88,20 @@ const canInstall = computed(() => !!data.value?.can_install)
 const capLabel = (c) => data.value?.capability_labels?.[c] || c
 const from = (p) => (p.bundled ? 'Development checkout' : p.repository || p.source)
 
+// The confirmation sits above the cards: bring it into view, or a click on a card further down seems to do nothing.
+async function stage(p, version) {
+  staged.value = await api.post('/api/marketplace/install', { repository_id: p.repository_id, id: p.id, ...(version ? { version } : {}) })
+  open.value = null
+  await nextTick()
+  const el = confirmBox.value?.$el
+  el?.scrollIntoView?.({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+  el?.querySelector('input[type=checkbox], .btn.primary:not(:disabled)')?.focus({ preventScroll: true })
+}
 async function install(p, version = null) {
   busy.value = p.id
   try {
     if (version) {
-      staged.value = await api.post('/api/marketplace/install', { repository_id: p.repository_id, id: p.id, version })
-      open.value = null
+      await stage(p, version)
     } else if (p.bundled && !p.installed) {
       await api.post('/api/marketplace/install', { id: p.id })
       kept.value = new Set([...kept.value, p.id])
@@ -100,8 +109,7 @@ async function install(p, version = null) {
       toast(`Installed ${p.name}`)
       changed()
     } else {
-      staged.value = await api.post('/api/marketplace/install', { repository_id: p.repository_id, id: p.id })
-      open.value = null
+      await stage(p)
     }
   } catch (e) { toast(e.message, 'error') } finally { busy.value = '' }
 }
@@ -159,7 +167,7 @@ async function changed() {
 
 <template>
   <div>
-    <PluginInstallConfirm v-if="staged" :staged="staged" :isolation="isolation" style="margin-bottom: 16px" @cancel="staged = null" @done="changed" />
+    <PluginInstallConfirm v-if="staged" ref="confirmBox" :staged="staged" :isolation="isolation" style="margin-bottom: 16px" @cancel="staged = null" @done="changed" />
 
     <div class="filters mtools">
       <div class="seg" role="radiogroup" aria-label="Show">

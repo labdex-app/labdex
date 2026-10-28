@@ -426,3 +426,44 @@ def test_marketplace_install_and_uninstall(page, server):
     page.locator(".dlg-foot").last.get_by_role("button", name="Uninstall", exact=True).click()
     page.wait_for_selector(".dlg-foot >> role=button[name='Install']")
     page.wait_for_function("(n) => document.querySelector('.tabs a').innerText.trim().endsWith(' ' + n)", arg=before)
+
+
+def test_marketplace_install_from_a_repository_below_the_fold(page, server, tmp_path):
+    """A repository's plugin is confirmed before it installs; the confirmation sits above the cards,
+    so a click on a card further down has to bring it into view (else the button seems to do nothing)."""
+    import shutil
+    from flask import Response
+    from labdex.plugins import installer, trust
+    from tests.fakes import FakeServer
+    from tests.test_v04 import make_plugin
+    src, out = tmp_path / "src", tmp_path / "out"
+    hello = make_plugin(tmp_path)
+    for i in range(1, 13):
+        d = src / f"hello{i}"
+        shutil.copytree(hello, d)
+        y = d / "plugin.yaml"
+        y.write_text(y.read_text().replace("id: hello", f"id: hello{i}").replace("name: Hello", f"name: Hello {i:02}"))
+    pem, _ = trust.keygen()
+    installer.build_repository(src, out, pem, "E2E repo")
+    repo = FakeServer(lambda req: Response((out / req.path.lstrip("/")).read_bytes()) if (out / req.path.lstrip("/")).is_file() else Response("", 404))
+    try:
+        assert page.evaluate("""async (url) => {
+          const h = { 'Content-Type': 'application/json', 'X-Requested-With': 'labdex' }
+          const k = await (await fetch('/api/plugin-repos/preview', { method: 'POST', headers: h, body: JSON.stringify({ url }) })).json()
+          return (await fetch('/api/plugin-repos', { method: 'POST', headers: h, body: JSON.stringify({ url, key_id: k.key_id }) })).status
+        }""", repo.url + "/index.json") == 201
+        page.goto(server + "/plugins?tab=market")
+        card = page.locator(".mcard", has=page.locator("button.mname", has_text="Hello 12"))
+        card.scroll_into_view_if_needed()
+        with page.expect_response(lambda r: r.url.endswith("/api/marketplace/install")) as r:
+            card.get_by_role("button", name="Install", exact=True).click()
+        staged = r.value.json()
+        assert r.value.ok and staged["id"] == "hello12" and staged["installable"], staged
+        confirm = page.locator(".stage", has_text="Install Hello 12 1.0?")
+        page.wait_for_function("(e) => { const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight }", arg=confirm.element_handle())
+        if staged["needs_confirmation"]:
+            confirm.locator("label.check input").check()
+        confirm.get_by_role("button", name="Install", exact=True).click()
+        card.locator(".done").wait_for()
+    finally:
+        repo.close()

@@ -12,6 +12,11 @@
   then **apply** it as one unit: all of it or none, one history entry per object named after the
   set, and each change checked against your permissions. See *Change sets* in the guide.
 
+### Fixes
+- **Install in the Marketplace seemed to do nothing** for a plugin further down the list: the
+  step that shows its signature and asks you to confirm opened above the cards, out of view. It
+  now scrolls into view.
+
 ### For plugin authors
 - **`labdex.testing`**: `PluginHarness` loads a plugin folder, validates its manifest and calls
   `run_`, `plan_`, `apply_`, `export_`, `endpoint_`, `page_`, `widget_` and `host_view` with a real
