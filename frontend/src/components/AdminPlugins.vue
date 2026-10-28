@@ -231,6 +231,6 @@ async function removeKey(k) {
 .stack > * + * { margin-top: 16px; }
 .kform > * + * { margin-top: 14px; }
 label.btn.disabled { opacity: .5; pointer-events: none; }
-.stage-box { margin-top: 10px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: 8px; display: flex; flex-direction: column; gap: 4px; }
+.stage-box { margin-top: 10px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: var(--r-box); display: flex; flex-direction: column; gap: 4px; }
 .repos li { padding: 6px 0; border-top: 1px solid var(--line); gap: 8px; flex-wrap: nowrap; }
 </style>

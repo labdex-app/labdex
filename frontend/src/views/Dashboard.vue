@@ -301,7 +301,7 @@ watch(() => route.query.d, () => { editing.value = false })
 .tools { position: absolute; top: 6px; right: 6px; left: 6px; display: flex; align-items: center; gap: 4px; z-index: 5;
   background: var(--card); border: 1px solid var(--line-strong); border-radius: var(--r-ctl); padding: 2px 4px; box-shadow: 0 4px 14px var(--shadow); }
 .tname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
-.tbtn { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 4px; border-radius: 5px; display: grid; place-items: center; }
+.tbtn { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 4px; border-radius: var(--r-ctl); display: grid; place-items: center; }
 .tbtn:hover { color: var(--ink); background: var(--raise); }
 .grip { cursor: grab; touch-action: none; }
 .grip:active { cursor: grabbing; }

@@ -175,7 +175,7 @@ const initial = (n) => (n || '?').trim().slice(0, 1).toUpperCase()
 section.card.cardfill:not(.flush) { padding: 12px 14px; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; height: 100%; }
 @container (max-width: 520px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tile .num { font-size: 24px; } }
-.tile { display: block; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; color: var(--ink); }
+.tile { display: block; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-box); padding: 12px 16px; color: var(--ink); }
 .tile:hover { text-decoration: none; border-color: var(--accent); }
 .tile .lbl { font-size: 13px; font-weight: 500; color: var(--muted); }
 .tile .num { font-size: 30px; font-weight: 650; line-height: 1.2; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
@@ -197,7 +197,7 @@ section.card.cardfill:not(.flush) { padding: 12px 14px; }
 @container (max-width: 420px) { .lgrid { grid-template-columns: minmax(0, 1fr); } }
 .lk { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-ctl); color: var(--ink); min-width: 0; background: var(--panel); }
 .lk:hover { text-decoration: none; border-color: var(--accent); }
-.mono-i { width: 28px; height: 28px; border-radius: 7px; display: grid; place-items: center; font-weight: 700; flex: none;
+.mono-i { width: 28px; height: 28px; border-radius: var(--r-ctl); display: grid; place-items: center; font-weight: 700; flex: none;
   background: var(--accent-faint); color: var(--accent-soft); }
 .lt { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .ln { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

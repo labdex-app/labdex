@@ -255,7 +255,7 @@ const resultText = computed(() => {
 .ba { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 8px; }
 .ba h3 { margin: 0 0 4px; font-size: 12px; color: var(--muted); }
 .approvals .alist { margin: 10px 0 4px; padding-left: 18px; }
-.okbox { padding: 8px 12px; border: 1px solid var(--ok); border-radius: 8px; color: var(--ok); }
+.okbox { padding: 8px 12px; border: 1px solid var(--ok); border-radius: var(--r-box); color: var(--ok); }
 .ba pre { max-height: 300px; white-space: pre-wrap; word-break: break-all; }
 pre.del { border-color: rgba(248, 113, 113, .35); }
 pre.add { border-color: rgba(74, 222, 128, .35); }

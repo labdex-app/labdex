@@ -84,7 +84,7 @@ function adopt(c) {
 <style scoped>
 .mapbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
 .grid { display: grid; gap: 3px; }
-.cell { font: inherit; font-family: var(--mono); font-size: 11px; height: 28px; border-radius: 4px; border: 1px solid transparent; cursor: pointer;
+.cell { font: inherit; font-family: var(--mono); font-size: 11px; height: 28px; border-radius: var(--r-sm); border: 1px solid transparent; cursor: pointer;
   background: var(--panel); color: var(--faint); padding: 0; position: relative; }
 .cell:hover, .cell.on { border-color: var(--ink); }
 .cell:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
@@ -97,7 +97,7 @@ function adopt(c) {
 .c-conflict { background-color: color-mix(in srgb, var(--err) 55%, var(--panel)); color: #fff; }
 .c-network, .c-broadcast { background-color: var(--bg); color: var(--faint); }
 .lg { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); }
-.lg i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; border: 1px solid var(--line); }
+.lg i { width: 11px; height: 11px; border-radius: var(--r-sm); display: inline-block; border: 1px solid var(--line); }
 .lg i.c-free { background: var(--panel); }
 .detail { margin-top: 12px; }
 @media (max-width: 640px) { .grid { grid-template-columns: repeat(8, minmax(0, 1fr)) !important; } }

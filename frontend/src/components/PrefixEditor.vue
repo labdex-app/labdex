@@ -97,7 +97,7 @@ const counts = computed(() => ({ 4: prefixes.value.filter((p) => p.family === 4)
 </template>
 
 <style scoped>
-.pfx-row { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; }
+.pfx-row { border: 1px solid var(--line); border-radius: var(--r-box); padding: 8px 10px; margin-bottom: 8px; }
 .pfx-row.bad { border-color: var(--err); }
 .pfx-top, .pfx-sub { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .pfx-sub { margin-top: 6px; font-size: 12.5px; color: var(--faint); }

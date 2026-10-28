@@ -77,5 +77,5 @@ onBeforeUnmount(() => { window.removeEventListener('scroll', onScroll, true); wi
 .hp-drop .fun-n { color: var(--faint); white-space: nowrap; }
 .hp-drop .zn { color: var(--faint); font-size: 11px; white-space: nowrap; }
 .hp-drop .zn.same { color: var(--ink); }
-.hp-drop .vip { font-size: 10px; padding: 0 5px; border: 1px solid var(--line); border-radius: 4px; color: var(--faint); }
+.hp-drop .vip { font-size: 10px; padding: 0 5px; border: 1px solid var(--line); border-radius: var(--r-sm); color: var(--faint); }
 </style>

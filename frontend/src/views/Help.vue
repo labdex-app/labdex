@@ -77,6 +77,6 @@ async function copyReport() {
 .split2 h2 { display: flex; align-items: center; gap: 8px; }
 .keys { display: grid; grid-template-columns: max-content 1fr; gap: 8px 14px; margin: 0; }
 .keys dd { margin: 0; color: var(--muted); }
-kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; background: var(--raise); }
+kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: var(--r-ctl); padding: 1px 6px; background: var(--raise); }
 .rep { background: var(--raise); border-radius: var(--r-ctl); padding: 10px 12px; font-size: 12px; white-space: pre-wrap; word-break: break-all; margin: 0 0 10px; }
 </style>

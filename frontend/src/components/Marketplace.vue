@@ -300,7 +300,7 @@ async function changed() {
 .mcard header { display: flex; flex-direction: column; gap: 1px; }
 .mname { all: unset; cursor: pointer; font-weight: 650; font-size: 15px; color: var(--ink); }
 .mname:hover { text-decoration: underline; }
-.mname:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.mname:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
 .mfrom { color: var(--faint); }
 .off { margin-left: 6px; font-size: 11px; font-weight: 700; color: var(--accent-soft); }
 .desc { margin: 0; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
