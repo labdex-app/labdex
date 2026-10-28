@@ -357,7 +357,7 @@ class Plugin(Base):
         return {"applied": len(changes)}
 
     def export_hosts_file(self, params):
-        return ExportFile("hosts", "\n".join(...), "text/plain")
+        return ExportFile("hosts.txt", "text/plain", "\n".join(...))
 
     def endpoint_targets(self, params):
         return [...]

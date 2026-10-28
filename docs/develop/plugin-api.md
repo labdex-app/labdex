@@ -92,7 +92,7 @@ custom, as the firewall sees them), `custom_aliases()`, `dns_records()`, `dns_zo
 ```python
 Change(op, kind, name, summary="", before=None, after=None, data={})
 # op: create | update | delete | ansible | other; data is what apply_ needs
-ExportFile(filename, content, mimetype)
+ExportFile(filename, mimetype, body)
 ```
 
 ## Views (pages and host panels)

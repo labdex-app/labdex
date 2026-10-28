@@ -51,7 +51,7 @@ Pull requests
   branch); see [Branches, versions and releases](docs/develop/releasing.md)
 * One topic per pull request; explain the problem and your solution
 * Cite issues: `Fixes: #123`, `Closes: #123` or `Ref: #123`
-* Add or change tests with your change, and run them (below); CI runs them all again
+* Add or change tests with your change, and run them (below); CI runs them all again. Name new test files after the feature, not the release (see `backend/tests/README.md`)
 * Keep the UI's voice: plain words, sentence case, what something does rather than how it's built
 * Update the docs and the CHANGELOG (under the next version) when behaviour changes
 * Database changes need a migration and must upgrade an existing database

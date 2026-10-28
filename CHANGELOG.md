@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### For plugin authors
+- **`labdex.testing`**: `PluginHarness` loads a plugin folder, validates its manifest and calls
+  `run_`, `plan_`, `apply_`, `export_`, `endpoint_`, `page_`, `widget_` and `host_view` with a real
+  `Context` over an inventory you give it; `FakeServer` is a recording HTTP server for the API
+  the plugin talks to. See *Testing* in the plugin guide.
+- The docs showed `ExportFile(filename, content, mimetype)`; the order is
+  `ExportFile(filename, mimetype, body)`. Fixed in the README and the plugin guide.
+
 ### Coming from another tool
 - **Add networks and hosts from NetBox, phpIPAM or CSV files**: Settings › *Add from other
   tools*, or `labdex import-from netbox|phpipam|csv`. It only adds (what exists is skipped),
