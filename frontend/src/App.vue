@@ -8,6 +8,7 @@ import {
 } from 'lucide-vue-next'
 import mark from './assets/mark.svg'
 import CommandPalette from './components/CommandPalette.vue'
+import Copy from './components/Copy.vue'
 import { setTextSize, setTheme, textSize, theme } from './theme'
 import ConfirmHost from './components/ConfirmHost.vue'
 import SideTree from './components/SideTree.vue'
@@ -95,6 +96,25 @@ const groupBadge = (g) => {
 const treeOpen = ref((() => { try { return localStorage.getItem('labdex-side-tree') !== 'closed' } catch { return true } })())
 watch(treeOpen, (v) => { try { localStorage.setItem('labdex-side-tree', v ? 'open' : 'closed') } catch { /* */ } })
 
+// A newer labdex (administrators, when Settings › General has the release check on): a bar with the
+// command to upgrade, until it's dismissed for that release in this browser.
+const update = ref(null)
+const DISMISSED = 'labdex-update-dismissed'
+const dismissed = ref((() => { try { return localStorage.getItem(DISMISSED) || '' } catch { return '' } })())
+const showUpdate = computed(() => update.value && update.value.tag !== dismissed.value)
+const upgradeDocs = computed(() => { // the docs site for a GitHub project (like Help), else the project's README
+  const m = (state.meta?.project_url || '').match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)$/)
+  return m ? `https://${m[1]}.github.io/${m[2]}/operate/upgrading/` : `${state.meta?.project_url}#readme`
+})
+function dismissUpdate() {
+  dismissed.value = update.value.tag
+  try { localStorage.setItem(DISMISSED, dismissed.value) } catch { /* */ }
+}
+async function loadUpdate() {
+  if (!state.meta?.is_admin) return
+  try { update.value = (await api.get('/api/about/update')).update } catch { /* the About page shows why */ }
+}
+
 async function start() {
   error.value = ''
   try {
@@ -104,6 +124,7 @@ async function start() {
     refreshLint()
     refreshPending()
     loadNav()
+    loadUpdate()
     startEvents()
   } catch (e) {
     error.value = `Can't reach the labdex API: ${e.message}`
@@ -222,6 +243,12 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
         </div>
       </header>
       <div v-if="menu" class="menu-scrim" @click="menu = false"></div>
+      <div v-if="showUpdate" class="updatebar" role="status">
+        <span>labdex <strong>{{ update.tag }}</strong> is out (this is {{ state.meta.version }}).
+          <a :href="update.url" target="_blank" rel="noopener">Release notes ↗</a></span>
+        <span>Upgrade: <Copy :text="update.command" /> <a :href="upgradeDocs" target="_blank" rel="noopener">How to upgrade ↗</a></span>
+        <button class="btn small" @click="dismissUpdate">Dismiss</button>
+      </div>
       <div v-if="state.meta.demo" class="demobar">Demo: a sample lab with a pretend DNS server and monitor. Resets {{ stamp(state.meta.demo.resets_at) }}.</div>
       <div v-if="state.nav && !state.nav.zones_defined && !($route.path.startsWith('/admin') || $route.path === '/zones')" class="page" style="padding-bottom: 0">
         <div class="warnbox">

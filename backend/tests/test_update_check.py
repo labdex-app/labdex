@@ -54,3 +54,30 @@ def test_check_now_skips_the_cache(admin, app, monkeypatch):
     about_api._release_cache[url] = (t - about_api.RELEASE_TTL - 1, rel)
     assert admin.get("/api/about").get_json()["update_check"]["latest"]["tag"] == "v1.26.0"
     about_api._release_cache.clear()
+
+
+def test_update_banner(admin, make_user, app, monkeypatch):
+    class Answer:
+        status_code = 200
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"tag_name": "v1.25.0", "name": "", "html_url": "https://x/r", "published_at": ""}
+
+    import requests
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: Answer())
+    about_api._release_cache.clear()
+    app.config["LABDEX_VERSION"] = "1.24.1.post1"
+    assert admin.get("/api/about/update").get_json() == {"update": None}  # the check is off in Settings
+    admin.put("/api/admin/settings", json={"update_check": "true"})
+    monkeypatch.setenv("LABDEX_CONTAINER", "1")
+    u = admin.get("/api/about/update").get_json()["update"]
+    assert u == {"tag": "v1.25.0", "url": "https://x/r", "current": "1.24.1.post1", "command": about_api.UPGRADE_COMMANDS["container"]}
+    monkeypatch.delenv("LABDEX_CONTAINER")
+    assert admin.get("/api/about/update").get_json()["update"]["command"] == about_api.UPGRADE_COMMANDS["package"]
+    assert make_user("vic", role="viewer").get("/api/about/update").get_json() == {"update": None}  # only administrators can act on it
+    app.config["LABDEX_VERSION"] = "1.25.0"
+    assert admin.get("/api/about/update").get_json() == {"update": None}  # up to date
+    about_api._release_cache.clear()
