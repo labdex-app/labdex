@@ -1,5 +1,10 @@
 # REST API
 
+An OpenAPI 3 description of every route is at `/api/openapi.json` (when signed in) and from
+`labdex openapi -o labdex-api.json`; point a client generator, Postman or Swagger UI at it.
+It is built from the routes themselves, so it lists exactly what the running version has.
+Request and response bodies are plain JSON objects there; the table below says what they hold.
+
 JSON under `/api`; sign in with the session cookie (browser; writes also need
 the header `X-Requested-With: labdex`) or a bearer token. Validation errors come
 back as `422` with a list of `{field, message}`; missing permissions as `403`;

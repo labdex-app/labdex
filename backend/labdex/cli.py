@@ -8,6 +8,7 @@
     labdex export [-o file]            write the inventory as YAML
     labdex lint                        check conventions; exit 1 on errors
     labdex diff --since 7d             what changed in the inventory since then
+    labdex openapi [-o file]           the OpenAPI description of the REST API
     labdex plugins                     list plugins and integrations
     labdex action INTEGRATION ACTION   run an integration action (plans are applied with --apply)
     labdex worker                      run queued jobs and the scheduler (with LABDEX_WORKER=external)
@@ -75,6 +76,21 @@ def register(app: Flask) -> None:
                    + (f", {n_accepted} accepted" if n_accepted else ""))
         if s["error"] or (warnings_as_errors and s["warning"]):
             sys.exit(1)
+
+    @app.cli.command("openapi")
+    @click.option("-o", "--output", type=click.Path(dir_okay=False), help="Write to a file instead of the terminal")
+    def openapi_cmd(output):
+        """The OpenAPI 3 description of the REST API, as JSON."""
+        import json
+
+        from . import openapi
+        text = json.dumps(openapi.build(app), indent=2, sort_keys=False) + "\n"
+        if output:
+            with open(output, "w", encoding="utf-8") as f:
+                f.write(text)
+            click.echo(f"Wrote {output}", err=True)
+        else:
+            click.echo(text, nl=False)
 
     @app.cli.command("diff")
     @click.option("--since", default="7d", show_default=True, help="24h, 7d, 2w or a date")

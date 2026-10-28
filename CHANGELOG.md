@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### API
+- **OpenAPI description** at `GET /api/openapi.json` (sign in like for any call) and as
+  `labdex openapi [-o file]`: every route with its methods, path parameters, who may call it
+  and its summary, built from the code so it can't fall behind. Feed it to a client
+  generator, Postman or Swagger UI. Bodies are described as plain JSON objects; the API
+  table in these docs says what they hold. A test keeps the tables in the README and the
+  docs pointing at routes that exist.
+
 ### Labels
 - **Host labels with a QR code**: *Label* on a host's page, or tick hosts and choose *Labels*
   to print a sheet. Each label has the fun name, hostname, addresses and zone, and a QR code
