@@ -1,4 +1,15 @@
-# labdex
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/labdex-logo-dark.svg">
+    <img src="docs/assets/labdex-logo-light.svg" alt="labdex" height="44">
+  </picture>
+</h1>
+
+[![CI](https://github.com/labdex-app/labdex/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/labdex-app/labdex/actions/workflows/ci.yml)
+[![Docs](https://github.com/labdex-app/labdex/actions/workflows/docs.yml/badge.svg?branch=main)](https://labdex-app.github.io/labdex/)
+[![Release](https://img.shields.io/github/v/release/labdex-app/labdex?color=7c3aed&labelColor=181b20)](https://github.com/labdex-app/labdex/releases/latest)
+[![Image](https://img.shields.io/badge/ghcr.io-labdex-7c3aed?labelColor=181b20)](https://github.com/labdex-app/labdex/pkgs/container/labdex)
+[![License](https://img.shields.io/github/license/labdex-app/labdex?color=7c3aed&labelColor=181b20)](LICENSE)
 
 A small inventory for homelabs that treats **zones and names as first-class**.
 You describe networks, hosts, interfaces and services once; labdex checks them

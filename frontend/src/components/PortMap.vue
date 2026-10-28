@@ -62,7 +62,7 @@ function show(p, ev) {
 .port { width: 26px; height: 22px; border-radius: var(--r-sm); border: 1.5px solid var(--line-strong); background: var(--bg); cursor: pointer; padding: 0;
   display: grid; place-items: center; font: inherit; }
 .cage .port { width: 30px; height: 16px; border-radius: 2px; }
-.port .n { font-size: 9px; color: var(--faint); font-family: var(--mono, 'IBM Plex Mono', monospace); }
+.port .n { font-size: calc(9px * var(--text)); color: var(--faint); font-family: var(--mono, 'Red Hat Mono', monospace); }
 .port.on { border-color: var(--pc); background: color-mix(in srgb, var(--pc) 28%, var(--bg)); }
 .port.on .n { color: var(--ink); }
 .port:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }

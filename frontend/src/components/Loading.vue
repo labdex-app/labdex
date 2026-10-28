@@ -17,6 +17,6 @@ onBeforeUnmount(() => window.clearTimeout(t))
 </template>
 
 <style scoped>
-.loading.inline { display: inline-flex; align-items: center; gap: 6px; color: var(--faint); font-size: 12.5px; }
+.loading.inline { display: inline-flex; align-items: center; gap: 6px; color: var(--faint); font-size: calc(12.5px * var(--text)); }
 .loading:not(.inline) { min-height: 86px; }
 </style>

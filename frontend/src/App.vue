@@ -6,8 +6,9 @@ import {
   AppWindow, Cable, ChevronRight, CircleCheck, GitFork, Github, Globe, History, Info, KeyRound, LayoutDashboard, Layers, LifeBuoy, ListTree, Menu, Network,
   GitPullRequestDraft, PanelLeftClose, PanelLeftOpen, Plug, Radar, Rows4, Search, Server, Settings, Shield, Tags, Waypoints,
 } from 'lucide-vue-next'
+import mark from './assets/mark.svg'
 import CommandPalette from './components/CommandPalette.vue'
-import { setTheme, theme } from './theme'
+import { setTextSize, setTheme, textSize, theme } from './theme'
 import ConfirmHost from './components/ConfirmHost.vue'
 import SideTree from './components/SideTree.vue'
 import Login from './views/Login.vue'
@@ -134,7 +135,7 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
     <a href="#main" class="skip">Skip to the page</a>
     <aside class="side">
       <div class="side-head">
-        <RouterLink to="/" class="brand" :title="state.nav?.instance_name">lab<span>dex</span></RouterLink>
+        <RouterLink to="/" class="brand" :title="state.nav?.instance_name"><img :src="mark" alt="" width="22" height="22"><span class="wm">lab<span>dex</span></span></RouterLink>
         <span v-if="state.nav?.instance_name && state.nav.instance_name !== 'labdex' && !small" class="inst">{{ state.nav.instance_name }}</span>
         <span class="grow"></span>
         <button class="icon-btn hide-m" :title="small ? 'Expand the sidebar' : 'Collapse the sidebar'" :aria-label="small ? 'Expand the sidebar' : 'Collapse the sidebar'" @click="small = !small">
@@ -183,7 +184,7 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
     <main id="main" class="main" tabindex="-1">
       <header class="tbar">
         <button class="icon-btn show-m" aria-label="Menu" @click="drawer = true"><Menu :size="18" /></button>
-        <RouterLink to="/" class="brand show-m">lab<span>dex</span></RouterLink>
+        <RouterLink to="/" class="brand show-m"><img :src="mark" alt="" width="22" height="22"><span class="wm">lab<span>dex</span></span></RouterLink>
         <span class="grow"></span>
         <button class="icon-btn show-m" aria-label="Search" @click="palette?.show()"><Search :size="18" /></button>
         <nav class="tlinks" aria-label="labdex">
@@ -203,6 +204,13 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
               <div class="seg">
                 <button v-for="t in ['system', 'light', 'dark']" :key="t" type="button" role="radio" :aria-checked="theme === t" :class="{ on: theme === t }"
                         @click="setTheme(t)">{{ t === 'system' ? 'Auto' : t[0].toUpperCase() + t.slice(1) }}</button>
+              </div>
+            </div>
+            <div class="themes" role="radiogroup" aria-label="Text size">
+              <span class="small faint">Text</span>
+              <div class="seg">
+                <button v-for="t in ['compact', 'comfortable', 'large']" :key="t" type="button" role="radio" :aria-checked="textSize === t" :class="{ on: textSize === t }"
+                        :title="{ compact: '14 px', comfortable: '15 px', large: '16 px' }[t]" @click="setTextSize(t)">{{ t[0].toUpperCase() + t.slice(1) }}</button>
               </div>
             </div>
             <RouterLink to="/account">Password &amp; API tokens</RouterLink>
@@ -240,11 +248,11 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 .skip:focus { top: 8px; }
 .main:focus { outline: none; }
 .themes { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 12px 8px; }
-.themes .seg button { padding: 3px 10px; font-size: 12px; }
+.themes .seg button { padding: 3px 10px; font-size: calc(12px * var(--text)); }
 .find { display: flex; align-items: center; gap: 8px; margin: 2px 10px 6px; padding: 6px 10px; border: 1px solid var(--line-strong); border-radius: var(--r-ctl);
-  background: var(--bg); color: var(--faint); font: inherit; font-size: 13px; cursor: pointer; }
+  background: var(--bg); color: var(--faint); font: inherit; font-size: calc(13px * var(--text)); cursor: pointer; }
 .find:hover { color: var(--ink); border-color: var(--accent); }
-.find kbd { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+.find kbd { font-family: var(--mono); font-size: calc(11px * var(--text)); color: var(--faint); }
 .small .find { justify-content: center; margin: 2px 6px 6px; }
 .small .find .lb { display: none; }
 .shell { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
@@ -252,10 +260,10 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 .side { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; background: var(--panel);
   border-right: 1px solid var(--line); z-index: 20; }
 .side-head { display: flex; align-items: center; gap: 8px; padding: 12px 12px 8px 16px; }
-.brand { font-weight: 600; font-size: 17px; color: var(--ink); letter-spacing: -.01em; }
-.brand span { color: var(--accent-soft); }
+.brand { display: inline-flex; align-items: center; gap: 8px; font-family: var(--disp); font-weight: 600; font-size: calc(17px * var(--text)); color: var(--ink); letter-spacing: -.01em; }
+.brand .wm span { color: var(--accent-soft); }
 .brand:hover { text-decoration: none; }
-.inst { font-size: 12px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.inst { font-size: calc(12px * var(--text)); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .side-scroll { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 0 8px; }
 .side-links { flex: none; max-height: 66vh; overflow-y: auto; padding: 2px 8px 6px; scrollbar-width: thin; }
 .side-zones { flex: 1; min-height: 120px; overflow-y: auto; scrollbar-gutter: stable; padding: 0 2px 0 8px; scrollbar-width: thin;
@@ -284,29 +292,29 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 .ic { color: var(--faint); flex: none; }
 .nl.router-link-active .ic { color: var(--accent-soft); }
 .lb { flex: 1; overflow: hidden; text-overflow: ellipsis; }
-.count { color: var(--faint); font-weight: 400; font-size: 12px; font-variant-numeric: tabular-nums; }
+.count { color: var(--faint); font-weight: 400; font-size: calc(12px * var(--text)); font-variant-numeric: tabular-nums; }
 .tbar { display: flex; align-items: center; gap: 6px; padding: 6px 16px 6px 20px; min-height: 46px; border-bottom: 1px solid var(--line);
   position: sticky; top: 0; z-index: 12; background: var(--bar-bg, var(--bg)); }
 .tlinks { display: flex; align-items: center; gap: 2px; }
-.tl { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: var(--r-ctl); color: var(--muted); font-size: 13px; font-weight: 500; }
+.tl { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: var(--r-ctl); color: var(--muted); font-size: calc(13px * var(--text)); font-weight: 500; }
 .tl:hover { color: var(--ink); background: var(--raise); text-decoration: none; }
 .tl.router-link-active, .tl.on { color: var(--ink); background: var(--accent-faint); }
 .who { position: relative; margin-left: 6px; }
 .avbtn { background: none; border: 0; padding: 2px; border-radius: 50%; cursor: pointer; display: grid; }
 .avbtn:hover .avatar, .avbtn[aria-expanded="true"] .avatar { box-shadow: 0 0 0 3px var(--accent-faint); }
-.avbtn .avatar { width: 28px; height: 28px; font-size: 12.5px; margin: 0; }
+.avbtn .avatar { width: 28px; height: 28px; font-size: calc(12.5px * var(--text)); margin: 0; }
 .mhead { padding: 8px 12px 6px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
 .menu-scrim { position: fixed; inset: 0; z-index: 11; }
 .show-m { display: none !important; }
 .avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; display: inline-grid; place-items: center;
-  font-size: 11px; font-weight: 700; flex: none; margin-left: -2px; }
+  font-size: calc(11px * var(--text)); font-weight: 700; flex: none; margin-left: -2px; }
 .menu { position: absolute; right: 0; top: 38px; z-index: 30; min-width: 240px; }
 .menu a, .menu button { display: block; width: 100%; text-align: left; font: inherit; color: var(--ink); background: none; border: 0;
   padding: 7px 12px; border-radius: var(--r-ctl); cursor: pointer; }
 .menu a:hover, .menu button:hover { background: var(--raise); text-decoration: none; }
 .icon-btn { font: inherit; background: none; border: 1px solid transparent; color: var(--faint); cursor: pointer; border-radius: var(--r-ctl); padding: 4px; display: inline-grid; place-items: center; }
 .icon-btn:hover { color: var(--ink); border-color: var(--line); }
-.small .lb, .small .count, .small .pill, .small .brand span { display: none; }
+.small .lb, .small .count, .small .pill, .small .brand .wm { display: none; }
 .small .grp { margin-top: 0; padding-top: 6px; border-top: 1px solid var(--line); }
 .small .grp:first-of-type { border-top: 0; }
 .small .side-head { padding: 12px 8px 8px; flex-direction: column; }

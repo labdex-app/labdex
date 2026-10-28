@@ -8,14 +8,17 @@ strict: true
 
 theme:
   name: material
+  logo: assets/labdex-mark-white.svg
+  favicon: assets/labdex-mark.svg
+  font: false  # Red Hat, self-hosted in docs/stylesheets/labdex.css: nothing loads from Google
   palette:
     - scheme: slate
-      primary: deep purple
-      accent: purple
+      primary: custom
+      accent: custom
       toggle: {icon: material/weather-sunny, name: Light}
     - scheme: default
-      primary: deep purple
-      accent: purple
+      primary: custom
+      accent: custom
       toggle: {icon: material/weather-night, name: Dark}
   features:
     - navigation.sections
@@ -23,6 +26,9 @@ theme:
     - navigation.footer
     - content.code.copy
     - search.highlight
+
+extra_css:
+  - stylesheets/labdex.css
 
 extra:
   version:

@@ -66,16 +66,16 @@ onBeforeUnmount(() => { window.removeEventListener('scroll', onScroll, true); wi
 
 <style scoped>
 .hp { position: relative; min-width: 190px; }
-.small-in { padding: 4px 8px !important; font-size: 12.5px !important; width: 100%; }
+.small-in { padding: 4px 8px !important; font-size: calc(12.5px * var(--text)) !important; width: 100%; }
 </style>
 
 <style>
 /* not scoped: the list lives on <body> */
 .hp-drop { position: fixed; z-index: 1000; max-height: 300px; overflow-y: auto; }
-.hp-drop li { align-items: baseline; font-size: 12.5px; }
+.hp-drop li { align-items: baseline; font-size: calc(12.5px * var(--text)); }
 .hp-drop .nm { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 .hp-drop .fun-n { color: var(--faint); white-space: nowrap; }
-.hp-drop .zn { color: var(--faint); font-size: 11px; white-space: nowrap; }
+.hp-drop .zn { color: var(--faint); font-size: calc(11px * var(--text)); white-space: nowrap; }
 .hp-drop .zn.same { color: var(--ink); }
-.hp-drop .vip { font-size: 10px; padding: 0 5px; border: 1px solid var(--line); border-radius: var(--r-sm); color: var(--faint); }
+.hp-drop .vip { font-size: calc(10px * var(--text)); padding: 0 5px; border: 1px solid var(--line); border-radius: var(--r-sm); color: var(--faint); }
 </style>

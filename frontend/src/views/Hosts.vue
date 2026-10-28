@@ -428,5 +428,5 @@ tr.sel td { background: color-mix(in srgb, var(--accent) 9%, transparent); }
 .ldot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--faint); opacity: .45; margin-right: 6px; vertical-align: middle; }
 .ldot.up { background: var(--ok); opacity: 1; }
 .ldot.down { background: var(--err); opacity: 1; }
-.srccol { text-align: center; font-size: 11px; white-space: nowrap; }
+.srccol { text-align: center; font-size: calc(11px * var(--text)); white-space: nowrap; }
 </style>

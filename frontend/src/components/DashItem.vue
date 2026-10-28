@@ -174,23 +174,23 @@ const initial = (n) => (n || '?').trim().slice(0, 1).toUpperCase()
 .cardfill > .body { overflow: auto; flex: 1; min-height: 0; }
 section.card.cardfill:not(.flush) { padding: 12px 14px; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; height: 100%; }
-@container (max-width: 520px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tile .num { font-size: 24px; } }
+@container (max-width: 520px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tile .num { font-size: calc(24px * var(--text)); } }
 .tile { display: block; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-box); padding: 12px 16px; color: var(--ink); }
 .tile:hover { text-decoration: none; border-color: var(--accent); }
-.tile .lbl { font-size: 13px; font-weight: 500; color: var(--muted); }
-.tile .num { font-size: 30px; font-weight: 650; line-height: 1.2; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+.tile .lbl { font-size: calc(13px * var(--text)); font-weight: 500; color: var(--muted); }
+.tile .num { font-size: calc(30px * var(--text)); font-weight: 650; line-height: 1.2; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
 .sp { margin-left: 10px; }
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
 .dot.up { background: var(--ok); } .dot.down { background: var(--err); }
 .ch { display: flex; align-items: center; gap: 10px; padding: 14px 18px 6px; }
-.ch h2, .ch h3 { margin: 0; flex: 1; font-size: 15px; }
+.ch h2, .ch h3 { margin: 0; flex: 1; font-size: calc(15px * var(--text)); }
 .ch.sub { padding-top: 10px; border-top: 1px solid var(--line); }
 .rows { list-style: none; margin: 0; padding: 0 0 6px; }
 .rows li { display: flex; align-items: center; gap: 10px; padding: 7px 18px; border-top: 1px solid var(--line); }
 .rows li:first-child { border-top: 0; }
 .rl { display: flex; flex-direction: column; min-width: 0; flex: 1; color: var(--ink); }
 .rl:hover { text-decoration: none; } .rl:hover .t { color: var(--accent-soft); }
-.empty-line { padding: 4px 18px 14px; font-size: 13px; }
+.empty-line { padding: 4px 18px 14px; font-size: calc(13px * var(--text)); }
 .zones { display: flex; flex-wrap: wrap; gap: 8px 14px; padding: 4px 18px 14px; }
 .zrow { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); }
 .lgrid { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 8px; padding: 4px 14px 14px; }

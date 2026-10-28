@@ -460,7 +460,8 @@ def test_marketplace_install_from_a_repository_below_the_fold(page, server, tmp_
         staged = r.value.json()
         assert r.value.ok and staged["id"] == "hello12" and staged["installable"], staged
         confirm = page.locator(".stage", has_text="Install Hello 12 1.0?")
-        page.wait_for_function("(e) => { const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight }", arg=confirm.element_handle())
+        # in view, give or take the fraction of a pixel that scaled font sizes leave (scrolling stops on whole pixels)
+        page.wait_for_function("(e) => { const r = e.getBoundingClientRect(); return r.top > -1 && r.bottom < innerHeight + 1 }", arg=confirm.element_handle())
         if staged["needs_confirmation"]:
             confirm.locator("label.check input").check()
         confirm.get_by_role("button", name="Install", exact=True).click()

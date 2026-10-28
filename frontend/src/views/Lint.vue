@@ -59,7 +59,7 @@ const link = (i) => (i.kind === 'host' ? `/hosts/${i.ref}` : i.kind === 'network
       </div>
 
       <div v-if="!data.issues.length" class="card empty">
-        <div style="font-size: 28px; color: var(--ok)">✓</div>
+        <div style="font-size: calc(28px * var(--text)); color: var(--ok)">✓</div>
         Everything follows the conventions.
       </div>
       <div v-else class="card flush">

@@ -233,13 +233,13 @@ async function draw() {
     minZoom: 0.15,
     maxZoom: 3,
     style: [
-      { selector: 'node', style: { 'font-family': 'IBM Plex Sans, system-ui, sans-serif', 'font-size': 11, color: ink, label: 'data(text)' } },
+      { selector: 'node', style: { 'font-family': 'Red Hat Text, system-ui, sans-serif', 'font-size': 11, color: ink, label: 'data(text)' } },
       { selector: 'node[type = "host"]', style: { shape: 'round-rectangle', width: 34, height: 34, 'background-color': card, 'border-width': 2,
         'border-color': 'data(colour)', 'background-image': 'data(picture)', 'background-width': '62%', 'background-height': '62%',
         'text-valign': 'bottom', 'text-margin-y': 5, 'text-wrap': 'wrap', 'text-max-width': 150, 'line-height': 1.25, 'font-size': 10,
         'text-background-color': bg, 'text-background-opacity': 0.85, 'text-background-padding': 1.5, 'text-background-shape': 'roundrectangle' } },
       // with a fun name above it, the hostname below is the technical one: mono and quieter
-      { selector: 'node[type = "host"][?fun]', style: { 'font-family': 'IBM Plex Mono, monospace', 'font-size': 9, color: muted } },
+      { selector: 'node[type = "host"][?fun]', style: { 'font-family': 'Red Hat Mono, monospace', 'font-size': 9, color: muted } },
       { selector: 'node[type = "name"]', style: { shape: 'round-rectangle', width: 'label', height: 'label', padding: 3, 'background-color': bg,
         'background-opacity': 0.85, 'border-width': 0, 'font-size': 11.5, 'font-weight': 600, color: ink, 'text-valign': 'center', 'text-halign': 'center' } },
       { selector: 'node[type = "host"][kind = "vip"]', style: { shape: 'ellipse', 'border-style': 'dashed' } },
@@ -249,13 +249,13 @@ async function draw() {
         'border-color': 'data(colour)', padding: 28, 'text-valign': 'top', 'text-halign': 'center', 'text-margin-y': -6, 'font-weight': 600,
         'font-size': 12, 'corner-radius': 10 } },
       { selector: 'node[type = "port"]', style: { shape: 'round-rectangle', width: 'label', height: 16, padding: 4, 'background-color': card,
-        'border-width': 1, 'border-color': line, 'font-family': 'IBM Plex Mono, monospace', 'font-size': 9.5, 'text-valign': 'center', color: muted } },
+        'border-width': 1, 'border-color': line, 'font-family': 'Red Hat Mono, monospace', 'font-size': 9.5, 'text-valign': 'center', color: muted } },
       { selector: 'node[type = "port"][kind = "bridge"]', style: { 'border-color': accent, color: ink } },
       { selector: 'node[type = "network"]', style: { shape: 'round-rectangle', width: 'label', height: 26, padding: 10, 'background-color': 'data(colour)',
         'background-opacity': 0.22, 'border-width': 1.5, 'border-color': 'data(colour)', 'text-valign': 'center', 'font-weight': 600,
-        'font-family': 'IBM Plex Mono, monospace', 'font-size': 10.5 } },
+        'font-family': 'Red Hat Mono, monospace', 'font-size': 10.5 } },
       { selector: 'edge', style: { width: 1.6, 'line-color': line, 'curve-style': 'bezier', 'font-size': 9, color: muted, 'text-background-color': card,
-        'text-background-opacity': 1, 'text-background-padding': 2, 'font-family': 'IBM Plex Mono, monospace' } },
+        'text-background-opacity': 1, 'text-background-padding': 2, 'font-family': 'Red Hat Mono, monospace' } },
       { selector: 'edge[kind = "cable"][colour]', style: { 'line-color': 'data(colour)' } },
       { selector: 'edge[kind = "cable"][outline]', style: { 'line-outline-width': 0.75, 'line-outline-color': 'data(outline)' } },
       { selector: 'edge[kind = "cable"][weight]', style: { width: 'data(weight)' } },
@@ -730,7 +730,7 @@ onBeforeUnmount(() => cy.value?.destroy())
 .ends .mono { margin-left: 4px; }
 .viewpick { max-width: 150px; }
 .netchips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
-.chip { font: inherit; font-size: 12px; font-family: var(--mono, 'IBM Plex Mono', monospace); border: 1px solid var(--line-strong); background: var(--card);
+.chip { font: inherit; font-size: calc(12px * var(--text)); font-family: var(--mono, 'Red Hat Mono', monospace); border: 1px solid var(--line-strong); background: var(--card);
   color: var(--ink); border-radius: 999px; padding: 2px 10px; cursor: pointer; }
 .chip.off { color: var(--faint); background: none; text-decoration: line-through; }
 .panel { position: absolute; top: 12px; right: 12px; width: 320px; max-height: calc(100% - 24px); overflow: auto; background: var(--card);
@@ -742,10 +742,10 @@ onBeforeUnmount(() => cy.value?.destroy())
 .tiny { padding: 2px; }
 .emptyhint { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 40px; color: var(--muted); max-width: 60ch; margin: auto; pointer-events: none; }
 .wirehint { position: absolute; top: 12px; left: 12px; background: var(--card); border: 1px solid var(--accent); border-radius: var(--r-ctl);
-  padding: 6px 6px 6px 12px; display: flex; gap: 10px; align-items: center; font-size: 13px; box-shadow: 0 8px 20px var(--shadow); }
+  padding: 6px 6px 6px 12px; display: flex; gap: 10px; align-items: center; font-size: calc(13px * var(--text)); box-shadow: 0 8px 20px var(--shadow); }
 .legend.onmap { position: absolute; left: 10px; bottom: 10px; z-index: 1; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 4px 10px 4px 4px;
   align-items: center; max-width: calc(100% - 20px); }
-.seg.mini button { font-size: 12px; padding: 2px 9px; }
+.seg.mini button { font-size: calc(12px * var(--text)); padding: 2px 9px; }
 .legend i.cc { box-shadow: 0 0 0 1px var(--line-strong); }
 .legend { display: inline-flex; gap: 10px; flex-wrap: wrap; color: var(--muted); }
 .legend span { display: inline-flex; align-items: center; gap: 4px; }

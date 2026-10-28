@@ -224,7 +224,7 @@ async function removeKey(k) {
 </template>
 
 <style scoped>
-.iso { margin-left: 6px; font-size: 11px; color: var(--ok); border: 1px solid currentColor; border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
+.iso { margin-left: 6px; font-size: calc(11px * var(--text)); color: var(--ok); border: 1px solid currentColor; border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
 .iso-line { margin: 0; color: var(--muted); }
 .iso-line.lvl-partial, .iso-line.lvl-none { color: var(--warn); }
 .iso-line.lvl-refused { color: var(--err); }

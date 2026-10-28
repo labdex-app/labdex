@@ -523,7 +523,7 @@ const me = computed(() => state.auth.user.username)
 <style scoped>
 .adm { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 22px; align-items: start; }
 .subnav { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 1px; }
-.sg { font-size: 12px; color: var(--faint); margin: 14px 10px 4px; font-weight: 500; }
+.sg { font-size: calc(12px * var(--text)); color: var(--faint); margin: 14px 10px 4px; font-weight: 500; }
 .sg:first-child { margin-top: 0; }
 .si { padding: 6px 10px; border-radius: var(--r-ctl); color: var(--muted); font-weight: 500; }
 .si:hover { background: var(--raise); color: var(--ink); text-decoration: none; }

@@ -522,8 +522,8 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
         <h1>
           <template v-if="isNew">New host</template>
           <template v-else>
-            <span v-if="derived?.fun" class="fun" style="font-size: 22px">{{ derived.fun }}</span>
-            <span class="mono" :class="{ muted: derived?.fun }" style="margin-left: 10px; font-size: 16px">{{ derived?.name || name }}</span>
+            <span v-if="derived?.fun" class="fun" style="font-size: calc(22px * var(--text))">{{ derived.fun }}</span>
+            <span class="mono" :class="{ muted: derived?.fun }" style="margin-left: 10px; font-size: calc(16px * var(--text))">{{ derived?.name || name }}</span>
           </template>
         </h1>
         <ZoneChip v-if="form.zone" :zone="form.zone" />
@@ -710,7 +710,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
             </div>
             <div class="mt-3">
               <Field label="Notes">
-                <textarea v-model="form.notes" rows="2" style="font-family: inherit; font-size: 14px"></textarea>
+                <textarea v-model="form.notes" rows="2" style="font-family: inherit; font-size: calc(14px * var(--text))"></textarea>
               </Field>
             </div>
             <button type="submit" hidden></button>
@@ -1225,17 +1225,17 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
 .rackrow > select:first-child { grid-column: 1 / -1; } /* the rack on its own line, unit and side below */
 .afis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 4px; }
 .afi { border: 1px solid var(--line); border-radius: var(--r-box); padding: 4px 14px 12px; margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
-.afi legend { font-weight: 600; font-size: 13px; padding: 0 6px; }
+.afi legend { font-weight: 600; font-size: calc(13px * var(--text)); padding: 0 6px; }
 @media (max-width: 700px) { .afis { grid-template-columns: minmax(0, 1fr); } }
 .spd { display: inline-block; width: 14px; height: 4px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
-.tsec .sect-head h2 { font-size: 15px; }
+.tsec .sect-head h2 { font-size: calc(15px * var(--text)); }
 .li-ic { color: var(--faint); flex: none; margin-top: 2px; }
 .li.bad { box-shadow: inset 3px 0 0 var(--err); }
 .li .cab { display: inline-flex; align-items: center; gap: 4px; }
 .li .seen { display: inline-flex; align-items: center; color: var(--faint); }
 .li .seen .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); margin-right: 5px; }
 .li .seen .dot.up { background: var(--ok); }
-.srcchip { display: inline-block; padding: 0 6px; margin-left: 4px; border-radius: var(--r-sm); background: var(--raise); color: var(--muted); font-size: 12px; }
+.srcchip { display: inline-block; padding: 0 6px; margin-left: 4px; border-radius: var(--r-sm); background: var(--raise); color: var(--muted); font-size: calc(12px * var(--text)); }
 .inline { display: flex; gap: 6px; }
 .checks { display: flex; flex-direction: column; gap: 6px; padding-top: 24px; }
 .v6more summary { cursor: pointer; color: var(--muted); }
@@ -1245,24 +1245,24 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
 .ip { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: var(--r-ctl); background: none; color: var(--muted); cursor: pointer; }
 .ip.on { border-color: var(--accent); color: var(--ink); }
 .lower1 > .card { margin-top: 16px; }
-.hstate { font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: var(--r-ctl); background: rgba(255, 255, 255, .05); color: var(--faint); }
+.hstate { font-size: calc(11.5px * var(--text)); font-weight: 600; padding: 1px 8px; border-radius: var(--r-ctl); background: rgba(255, 255, 255, .05); color: var(--faint); }
 .hstate.up { color: var(--ok); background: rgba(74, 222, 128, .1); }
 .hstate.down { color: var(--err); background: rgba(248, 113, 113, .12); }
 .span2 { grid-column: 1 / -1; }
-.flabel { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+.flabel { display: block; font-size: calc(12px * var(--text)); font-weight: 600; color: var(--muted); margin-bottom: 4px; }
 .builder { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .builder { flex-wrap: nowrap; }
 .builder select, .builder .role-in { flex: 1; min-width: 0; font-family: var(--mono); }
 /* a phone: category and type on one line, role and number on the next, no dashes between */
 @media (max-width: 640px) { .builder { flex-wrap: wrap; gap: 6px; } .builder .dash { display: none; } .builder select, .builder .role-in { flex: 1 1 calc(50% - 6px); } }
-.tcount { margin-left: 6px; font-size: 11px; color: var(--faint); font-weight: 600; }
+.tcount { margin-left: 6px; font-size: calc(11px * var(--text)); color: var(--faint); font-weight: 600; }
 .builder .nn { width: 60px; }
 .dash { color: var(--faint); font-family: var(--mono); }
 .v6row { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; margin-top: 6px; }
 .v6addr { padding: 1px 6px; border: 1px solid var(--line); border-radius: var(--r-sm); }
 .v6more { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 6px 0 2px; }
 .v6more label { display: flex; gap: 6px; align-items: center; color: var(--faint); }
-.v6more input { width: 220px !important; padding: 3px 6px !important; font-size: 12.5px !important; }
+.v6more input { width: 220px !important; padding: 3px 6px !important; font-size: calc(12.5px * var(--text)) !important; }
 .sugg { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; padding: 8px; border: 1px dashed var(--line); border-radius: var(--r-box); }
 .fundns { display: flex; flex-wrap: wrap; column-gap: 8px; min-width: 0; overflow-wrap: anywhere; }
 .zsel { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; margin-top: 6px; max-width: 460px; }

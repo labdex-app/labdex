@@ -63,18 +63,18 @@ const current = computed(() => (route.path.startsWith('/hosts/') ? route.params.
 </template>
 
 <style scoped>
-.sect { font-size: 12px; color: var(--faint); margin: 0 8px 4px 0; padding-left: 8px; font-weight: 500; }
+.sect { font-size: calc(12px * var(--text)); color: var(--faint); margin: 0 8px 4px 0; padding-left: 8px; font-weight: 500; }
 .thead { position: sticky; top: 30px; z-index: 2; background: var(--panel); padding: 2px 0; }
-.tq { margin: 2px 0 8px; padding: 5px 9px !important; font-size: 12.5px !important; }
+.tq { margin: 2px 0 8px; padding: 5px 9px !important; font-size: calc(12.5px * var(--text)) !important; }
 .row-btn { width: 100%; display: flex; align-items: center; gap: 6px; font: inherit; background: none; border: 0; color: var(--muted);
   padding: 3px 8px; border-radius: var(--r-ctl); cursor: pointer; text-align: left; }
 .row-btn:hover { background: var(--raise); color: var(--ink); }
-.car { width: 10px; color: var(--faint); font-size: 10px; }
-.zcode { font-family: var(--mono); font-size: 12px; font-weight: 700; }
-.cnt { font-size: 11px; color: var(--faint); }
+.car { width: 10px; color: var(--faint); font-size: calc(10px * var(--text)); }
+.zcode { font-family: var(--mono); font-size: calc(12px * var(--text)); font-weight: 700; }
+.cnt { font-size: calc(11px * var(--text)); color: var(--faint); }
 .n .row-btn { padding-left: 20px; }
-.nname { color: var(--muted); font-size: 13px; }
-.h { display: flex; align-items: center; gap: 7px; padding: 2px 8px 2px 40px; font-size: 13px; color: var(--muted); border-radius: var(--r-ctl);
+.nname { color: var(--muted); font-size: calc(13px * var(--text)); }
+.h { display: flex; align-items: center; gap: 7px; padding: 2px 8px 2px 40px; font-size: calc(13px * var(--text)); color: var(--muted); border-radius: var(--r-ctl);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .h.lone { padding-left: 26px; }
 .h:hover { background: var(--raise); color: var(--ink); text-decoration: none; }

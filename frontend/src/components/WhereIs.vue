@@ -73,7 +73,7 @@ watch(() => route.query.q, (v) => { if (v && v !== q.value) { q.value = String(v
 .ask input { flex: 1; max-width: 420px; }
 .mres { margin: 0 0 12px; }
 .mres header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
-.mac { font-weight: 600; font-size: 14px; }
+.mac { font-weight: 600; font-size: calc(14px * var(--text)); }
 tr.best td { background: var(--accent-faint); }
 .pin { color: var(--accent-soft); margin-right: 4px; vertical-align: -2px; }
 </style>

@@ -11,6 +11,12 @@ RUN mkdir -p /src/backend/labdex && npm run build
 
 # ---- app --------------------------------------------------------------------
 FROM python:3.12-slim
+# what the GHCR package page and `docker inspect` show
+LABEL org.opencontainers.image.title="labdex" \
+      org.opencontainers.image.description="A small homelab inventory with zones, naming rules, IPAM, plans you approve and plugins." \
+      org.opencontainers.image.source="https://github.com/labdex-app/labdex" \
+      org.opencontainers.image.documentation="https://labdex-app.github.io/labdex/" \
+      org.opencontainers.image.licenses="AGPL-3.0-only"
 # nmap for service discovery (TCP connect scans, no root); git for the YAML mirror.
 # ansible-core is optional: docker build --build-arg ANSIBLE=1 .
 ARG ANSIBLE=0

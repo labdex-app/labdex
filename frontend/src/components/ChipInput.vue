@@ -87,12 +87,12 @@ function paste(e) {
   border: 1px solid var(--line-strong); border-radius: var(--r-ctl); background: var(--panel); }
 .chipin.focus { border-color: var(--accent); }
 .chipin input { flex: 1; min-width: 90px; border: 0 !important; background: none !important; padding: 4px !important; outline: none; box-shadow: none !important; }
-.ch { display: inline-flex; align-items: center; gap: 4px; padding: 1px 4px 1px 9px; border-radius: 999px; background: var(--raise); font-size: 12.5px; }
+.ch { display: inline-flex; align-items: center; gap: 4px; padding: 1px 4px 1px 9px; border-radius: 999px; background: var(--raise); font-size: calc(12.5px * var(--text)); }
 .ch.col { color: var(--tc); background: color-mix(in srgb, var(--tc) 14%, transparent); }
 .ch.warnch { background: rgba(251, 191, 36, .14); color: var(--c-yellow); }
-.ch button { border: 0; background: none; color: var(--faint); cursor: pointer; font-size: 11px; padding: 0 3px; }
+.ch button { border: 0; background: none; color: var(--faint); cursor: pointer; font-size: calc(11px * var(--text)); padding: 0 3px; }
 .ch button:hover { color: var(--ink); }
 .dd { position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; z-index: 20; max-height: 260px; overflow: auto; }
 .dd li { gap: 6px; align-items: baseline; }
-.grp { margin-left: auto; font-size: 11px; color: var(--faint); }
+.grp { margin-left: auto; font-size: calc(11px * var(--text)); color: var(--faint); }
 </style>

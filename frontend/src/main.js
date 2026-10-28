@@ -2,9 +2,10 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import { router } from './router'
 import './style.css'
-import { applyTheme } from './theme'
+import { applyTextSize, applyTheme } from './theme'
 
 applyTheme()
+applyTextSize()
 
 // v-rowlink: a table row (or any element) you click to open something is also reachable
 // with Tab and opens with Enter, like a link.
