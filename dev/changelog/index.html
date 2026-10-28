@@ -1634,6 +1634,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#web-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Web UI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#fixes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4418,6 +4429,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#web-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Web UI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#fixes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -7184,8 +7206,25 @@
   then <strong>apply</strong> it as one unit: all of it or none, one history entry per object named after the
   set, and each change checked against your permissions. See <em>Change sets</em> in the guide.</li>
 </ul>
+<h3 id="web-ui">Web UI<a class="headerlink" href="#web-ui" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Dropdowns look the same everywhere</strong>: every select has one chevron in the theme's colours
+  (the browser's own arrow differed between Chrome, Firefox and Safari, and between light and
+  dark), with a compact size for toolbars and table rows. The menus and suggestion lists that
+  drop down from a button or a field (the ⋯ menus, the host picker, tags and fun names, the
+  account menu) share one look too.</li>
+<li><strong>Empty and loading states look the same everywhere</strong>: a page, table or card with nothing in
+  it shows one centred note (several views showed plain unstyled text), and one that's still
+  waiting shows a spinner with <em>Loading…</em> instead of nothing, <code>…</code>, or its own wording.</li>
+<li><strong>The host picker and the tag and name fields</strong> tell screen readers which suggestion is
+  highlighted.</li>
+<li><strong>The changelog on About is paged</strong>, five releases at a time, instead of one page of well
+  over a thousand lines.</li>
+</ul>
 <h3 id="fixes">Fixes<a class="headerlink" href="#fixes" title="Permanent link">&para;</a></h3>
 <ul>
+<li>The <em>Accept…</em> and <em>Count again</em> buttons on Lint were full size in their table rows; they're
+  the small ones now, like the other row actions.</li>
 <li><strong>Install in the Marketplace seemed to do nothing</strong> for a plugin further down the list: the
   step that shows its signature and asks you to confirm opened above the cards, out of view. It
   now scrolls into view.</li>
