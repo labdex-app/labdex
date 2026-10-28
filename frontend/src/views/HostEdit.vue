@@ -530,6 +530,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
         <span class="grow"></span>
         <span v-if="readOnly" class="lock" title="Your roles don't allow changing this host">🔒 read-only for you</span>
         <template v-else>
+          <a v-if="!isNew" class="btn" :href="`/api/hosts/${encodeURIComponent(derived?.name || name)}/label.svg`" target="_blank" rel="noopener" title="A printable label with a QR code">Label</a>
           <button v-if="!isNew" class="btn danger" @click="remove">Delete</button>
           <button class="btn primary" :disabled="busy || (!dirty && !isNew)" @click="save">
             {{ busy ? 'Saving…' : isNew ? 'Create host' : dirty ? 'Save changes' : 'Saved' }}

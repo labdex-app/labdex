@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 import { api, setUnauthorizedHandler } from './api'
 import {
   AppWindow, Cable, ChevronRight, CircleCheck, GitFork, Github, Globe, History, Info, KeyRound, LayoutDashboard, Layers, LifeBuoy, ListTree, Menu, Network,
-  PanelLeftClose, PanelLeftOpen, Plug, Radar, Rows4, Search, Server, Settings, Shield, Tags, Waypoints,
+  GitPullRequestDraft, PanelLeftClose, PanelLeftOpen, Plug, Radar, Rows4, Search, Server, Settings, Shield, Tags, Waypoints,
 } from 'lucide-vue-next'
 import CommandPalette from './components/CommandPalette.vue'
 import { setTheme, theme } from './theme'
@@ -48,6 +48,7 @@ const groups = computed(() => {
     ]),
     G('automation', 'Automation', [
       { to: '/features', label: 'Features', icon: GitFork },
+      { to: '/changesets', label: 'Change sets', icon: GitPullRequestDraft },
       n?.show.integrations && { to: '/plugins', label: 'Plugins', icon: Plug, pending: state.pending },
     ]),
     G('audit', 'Audit', [

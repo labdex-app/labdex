@@ -379,6 +379,14 @@ def service_url(h: Host, s: Service) -> str:
     return f"{s.scheme}://{host}{port}{s.path or ''}"
 
 
+def ensure_transaction() -> None:
+    """Make everything that follows one transaction that rolls back as a whole. SQLite's driver only begins a
+    transaction at the first write, so a SAVEPOINT released before that would commit; a write that changes
+    nothing begins it. (For previews: apply the changes, look, roll back.)"""
+    from .models import Setting
+    db.session.execute(db.update(Setting).where(Setting.key == "").values(value=""))
+
+
 def find_host(name: str) -> Host | None:
     """By hostname, any of its fun names, or its stable id."""
     name = (name or "").lower()

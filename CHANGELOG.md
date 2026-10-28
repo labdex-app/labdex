@@ -1,5 +1,76 @@
 # Changelog
 
+## Unreleased
+
+- **Change sets** (Automation › Change sets, `labdex changeset FILE`): write a batch of network,
+  host and alias changes (and deletions) as YAML, **preview** it (what each change does, the lint
+  findings it adds or resolves, the firewall aliases and DNS records that change; nothing is saved),
+  then **apply** it as one unit: all of it or none, one history entry per object named after the
+  set, and each change checked against your permissions. See *Change sets* in the guide.
+
+### For plugin authors
+- **`labdex.testing`**: `PluginHarness` loads a plugin folder, validates its manifest and calls
+  `run_`, `plan_`, `apply_`, `export_`, `endpoint_`, `page_`, `widget_` and `host_view` with a real
+  `Context` over an inventory you give it; `FakeServer` is a recording HTTP server for the API
+  the plugin talks to. See *Testing* in the plugin guide.
+- The docs showed `ExportFile(filename, content, mimetype)`; the order is
+  `ExportFile(filename, mimetype, body)`. Fixed in the README and the plugin guide.
+
+### Coming from another tool
+- **Add networks and hosts from NetBox, phpIPAM or CSV files**: Settings › *Add from other
+  tools*, or `labdex import-from netbox|phpipam|csv`. It only adds (what exists is skipped),
+  everything comes in under a zone you choose (or one per network), a preview keeps nothing, and
+  every new object is a History entry you can revert. IPv4 only for now. API:
+  `POST /api/admin/import/external`. See *Coming from another tool* in the guide.
+
+### API
+- **OpenAPI description** at `GET /api/openapi.json` (sign in like for any call) and as
+  `labdex openapi [-o file]`: every route with its methods, path parameters, who may call it
+  and its summary, built from the code so it can't fall behind. Feed it to a client
+  generator, Postman or Swagger UI. Bodies are described as plain JSON objects; the API
+  table in these docs says what they hold. A test keeps the tables in the README and the
+  docs pointing at routes that exist.
+
+### Labels
+- **Host labels with a QR code**: *Label* on a host's page, or tick hosts and choose *Labels*
+  to print a sheet. Each label has the fun name, hostname, addresses and zone, and a QR code
+  that opens the host. SVG in millimetres (62 × 29, 50 × 25 or 89 × 36), so it prints true on
+  a label printer. `GET /api/hosts/<name>/label.svg?size=…`.
+- **Cable labels with a QR code** next to each cable on the Cables page
+  (`GET /api/cables/label.svg?host=&port=`); the code opens the cable's trace.
+- Set the address of your labdex (Settings › General) so the codes work from outside; without
+  it they use the address you opened labdex with. New dependency: `segno` (pure Python).
+
+### Hosts
+- **Saved searches**: a *Saved* menu on the Hosts page keeps the search text, filters, tab and
+  grouping under a name. Yours are private; administrators can share one with everyone.
+  API: `/api/searches`. New table `saved_search` (migration 0035).
+- **Bulk change** can also add and remove **features** and **pin a host to a zone** (or let it
+  follow its network again), next to status, runs on, tags and integrations.
+
+### History
+- **Net change since…** on the History page (last day, week or 30 days): one row per
+  object with what changed overall, so five edits of a host read as one diff, and an object
+  created and deleted in between isn't listed. Also `labdex diff --since 7d [--fields]` and
+  `GET /api/history/changes?since=7d` (`24h`, `2w` or a date work too).
+
+### Weekly digest
+- New notification event **`digest.weekly`**: one message a week with what changed, the
+  lint errors and warnings, addresses Discovery saw that aren't in the inventory and plans
+  waiting. Tick it on a channel under Settings › Notifications; the first one arrives a week
+  later.
+
+### Lint
+- New checks: **overlapping prefixes** between networks (error), a **gateway outside its
+  prefix**, a **DHCP range** that is reversed, reaches outside its prefix or contains the
+  gateway, an **IPv6 prefix that isn't a /64** (note), and **two services on one host using
+  the same port and protocol** (when they can listen on the same address).
+- **Accept a finding** on the Lint page (administrators): give a reason and it no longer
+  counts in `labdex lint`, the dashboard or the sidebar. It stays on the page under *Show
+  accepted*, the change is in History, and *Count again* takes it back. API:
+  `POST`/`DELETE /api/lint/accept`; the list is the `lint_accepted` setting, so it's in the
+  inventory YAML and in backups.
+
 ## 1.24.1-1
 
 ### Fixes

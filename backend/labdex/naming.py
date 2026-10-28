@@ -26,6 +26,7 @@ DEFAULT_SETTINGS = {
     "update_check_repo": "",  # before 1.24: owner/repo on GitHub (read as https://github.com/<it>)
     "public_url": "",
     "status_stale_minutes": "15",  # a monitoring report older than this counts as unknown  # how people reach labdex, for links in notifications
+    "lint_accepted": "[]",  # findings accepted on purpose: [{code, kind, ref, reason}] (Lint page)
     "fun_pools_seeded": "false",  # internal: built-in fun name pools were added once
     "official_repo_seeded": "false",  # internal: the official plugin repository was added once
 }

@@ -121,6 +121,36 @@ class Dashboard(db.Model):
     updated_at: Mapped[datetime | None] = mapped_column(default=lambda: utcnow())
 
 
+class SavedSearch(db.Model):
+    """A saved filter of the Hosts page (search text, facets, tab, grouping). owner '' = shared with
+    everyone (administrators change it); else the username it belongs to."""
+    __table_args__ = (UniqueConstraint("owner", "name"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    uid: Mapped[str] = mapped_column(String(12), unique=True, default=new_uid)
+    name: Mapped[str] = mapped_column(String(64))
+    owner: Mapped[str] = mapped_column(String(128), default="", index=True)
+    query: Mapped[dict] = mapped_column(JSONValue, default=dict)
+    updated_by: Mapped[str] = mapped_column(String(128), default="")
+    updated_at: Mapped[datetime | None] = mapped_column(default=lambda: utcnow())
+
+
+class ChangeSet(db.Model):
+    """A set of inventory changes (networks, hosts, aliases to add, change or delete) reviewed as one
+    unit before anything is saved. patch: {networks: [...], hosts: [...], aliases: [...], delete: {hosts: [...], ...}}."""
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    uid: Mapped[str] = mapped_column(String(12), unique=True, default=new_uid)
+    name: Mapped[str] = mapped_column(String(64), unique=True)
+    description: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(16), default="draft")  # draft | applied
+    patch: Mapped[dict] = mapped_column(JSONValue, default=dict)
+    created_by: Mapped[str] = mapped_column(String(128), default="")
+    updated_at: Mapped[datetime | None] = mapped_column(default=lambda: utcnow())
+    applied_by: Mapped[str] = mapped_column(String(128), default="")
+    applied_at: Mapped[datetime | None] = mapped_column(default=None)
+
+
 class Area(db.Model):
     code: Mapped[str] = mapped_column(String(16), primary_key=True)
     name: Mapped[str] = mapped_column(String(64))

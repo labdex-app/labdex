@@ -6,6 +6,7 @@ import Field from '../components/Field.vue'
 import Modal from '../components/Modal.vue'
 import { Copy as CopyIcon, Pencil, Plus, Trash2 } from 'lucide-vue-next'
 import AdminApprovals from '../components/AdminApprovals.vue'
+import AdminImport from '../components/AdminImport.vue'
 import AdminNotifications from '../components/AdminNotifications.vue'
 import AdminPlugins from '../components/AdminPlugins.vue'
 import { ago, changed, state, toast } from '../store'
@@ -16,7 +17,7 @@ const GROUPS = [
   ['People', [['users', 'Users'], ['groups', 'Groups'], ['roles', 'Roles'], ['access', 'Access']]],
   ['Operate', [['approvals', 'Approvals & windows'], ['notifications', 'Notifications']]],
   ['Extensions', [['plugins', 'Plugins']]],
-  ['Data', [['backup', 'Backup & restore']]],
+  ['Data', [['backup', 'Backup & restore'], ['import', 'Add from other tools']]],
 ]
 
 const users = ref([])
@@ -431,6 +432,7 @@ const me = computed(() => state.auth.user.username)
     <AdminPlugins v-else-if="tab === 'plugins'" />
     <AdminApprovals v-else-if="tab === 'approvals'" />
     <AdminNotifications v-else-if="tab === 'notifications'" />
+    <AdminImport v-else-if="tab === 'import'" />
 
     <div v-else-if="tab === 'general'" class="split">
       <div class="card">

@@ -1,5 +1,5 @@
 <script setup>
-import { Pencil, Plus, Trash2, X } from 'lucide-vue-next'
+import { Bookmark, Pencil, Plus, Tag, Trash2, X } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, ApiError } from '../api'
@@ -8,6 +8,7 @@ import { prefetch, useQuery } from '../query'
 import ChipInput from '../components/ChipInput.vue'
 import Field from '../components/Field.vue'
 import HostPicker from '../components/HostPicker.vue'
+import MenuButton from '../components/MenuButton.vue'
 import Modal from '../components/Modal.vue'
 import Copy from '../components/Copy.vue'
 import FilterSelect from '../components/FilterSelect.vue'
@@ -135,6 +136,48 @@ function syncQuery() {
   router.replace({ query })
 }
 
+// ------------------------------------------------------------ saved searches
+const saved = useQuery('/api/searches')
+const searches = computed(() => saved.data.value?.searches || [])
+const current = computed(() => Object.fromEntries(Object.entries({ q: q.value.trim(), ...filter.value, kind: tab.value === 'physical' ? null : tab.value,
+  group: groupBy.value || null }).filter(([, v]) => v)))
+const sameQuery = (a, b) => JSON.stringify(Object.entries(a).sort()) === JSON.stringify(Object.entries(b).sort())
+const activeSearch = computed(() => searches.value.find((s) => sameQuery(s.query, current.value)))
+const canSave = computed(() => saved.data.value?.can_own && Object.keys(current.value).length && !activeSearch.value)
+const searchItems = computed(() => [
+  ...searches.value.map((sr) => ({ label: `${sr.name}${sr.shared ? ' (shared)' : ''}`, run: () => applySearch(sr) })),
+  ...(activeSearch.value?.can_edit ? [{ label: `Delete “${activeSearch.value.name}”`, danger: true, run: () => deleteSearch(activeSearch.value) }] : []),
+  ...(canSave.value ? [{ label: 'Save this search …', run: openSave }] : []),
+])
+const saveDlg = ref(null)
+function openSave() { saveDlg.value = { name: '', shared: false, error: '' } }
+function applySearch(s) {
+  q.value = s.query.q || ''
+  filter.value = { zone: s.query.zone || null, cat: s.query.cat || null, status: s.query.status || null, tag: s.query.tag || null }
+  tab.value = fromQuery(s.query.kind)
+  groupBy.value = s.query.group || ''
+  syncQuery()
+}
+async function saveSearch() {
+  busy.value = true
+  saveDlg.value.error = ''
+  try {
+    await api.post('/api/searches', { name: saveDlg.value.name, shared: saveDlg.value.shared, query: current.value })
+    saveDlg.value = null
+    await saved.refresh()
+    toast('Search saved')
+  } catch (e) {
+    saveDlg.value.error = e instanceof ApiError && e.fields.name ? e.fields.name : e.fields?.query || e.message
+  } finally { busy.value = false }
+}
+async function deleteSearch(s) {
+  if (!(await confirm({ title: `Delete the search “${s.name}”?`, body: s.shared ? 'It disappears for everyone.' : '', action: 'Delete', danger: true }))) return
+  try {
+    await api.del(`/api/searches/${s.uid}`)
+    await saved.refresh()
+  } catch (e) { toast(e.message, 'error') }
+}
+
 // ------------------------------------------------------------ selection and bulk changes
 const picked = ref(new Set())
 const editable = can('host', 'edit')
@@ -160,9 +203,11 @@ const busy = ref(false)
 const plugins = useQuery(() => (bulk.value ? '/api/plugins' : null))
 const perHost = computed(() => (plugins.data.value?.plugins || []).filter((p) => p.per_host).flatMap((p) => p.instances.map((i) => ({ name: i.name, plugin: p.name }))))
 const allTags = computed(() => uniq(hosts.value.flatMap((h) => h.tags || [])).sort())
+const featureList = useQuery(() => (bulk.value ? '/api/features' : null))
+const allFeatures = computed(() => (featureList.data.value || []).map((f) => f.path).sort())
 function openBulk() {
   bulkErrors.value = []
-  bulk.value = { status: '', runs: 'keep', runs_on: '', add_tags: [], remove_tags: [], module: '', enabled: 'on' }
+  bulk.value = { status: '', runs: 'keep', runs_on: '', add_tags: [], remove_tags: [], add_features: [], remove_features: [], zone: 'keep', module: '', enabled: 'on' }
 }
 async function saveBulk() {
   const b = bulk.value
@@ -170,6 +215,10 @@ async function saveBulk() {
   if (b.status) body.status = b.status
   if (b.runs === 'set') body.runs_on = b.runs_on
   if (b.runs === 'clear') body.runs_on = ''
+  if (b.zone === 'follow') body.zone = ''
+  else if (b.zone !== 'keep') body.zone = b.zone
+  if (b.add_features.length) body.add_features = b.add_features
+  if (b.remove_features.length) body.remove_features = b.remove_features
   if (b.add_tags.length) body.add_tags = b.add_tags
   if (b.remove_tags.length) body.remove_tags = b.remove_tags
   if (b.module) body.module = { integration: b.module, enabled: { on: true, off: false, auto: null }[b.enabled] }
@@ -211,6 +260,7 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
       <span class="grow"></span>
       <input v-model="q" type="search" placeholder="Search, or tag:backup zone:DC_TC on:pve …" title="Plain text searches everything; tag: zone: status: on: net: cat: narrow it" style="max-width: 340px"
              aria-label="Search hosts" @input="syncQuery">
+      <MenuButton v-if="searchItems.length" :items="searchItems" :icon="Bookmark" label="Saved" title="Saved searches" />
       <RouterLink v-if="can('host', 'edit')" :to="tab === 'vip' ? '/hosts/new?kind=vip' : tab === 'virtual' ? '/hosts/new?virtual=1' : '/hosts/new'" class="btn primary"><Plus :size="15" /> {{ tab === 'vip' ? 'VIP' : 'Host' }}</RouterLink>
     </div>
 
@@ -230,6 +280,7 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
     <div v-if="picked.size" class="bulkbar" role="region" aria-label="Selected hosts">
       <b>{{ picked.size }} selected</b>
       <button class="btn small primary" @click="openBulk"><Pencil :size="14" /> Change</button>
+      <RouterLink class="btn small" :to="{ path: '/labels', query: { hosts: [...picked].join(',') } }"><Tag :size="14" /> Labels</RouterLink>
       <button class="btn small danger" @click="deleteBulk"><Trash2 :size="14" /> Delete</button>
       <span class="grow"></span>
       <span class="small faint hide-m">Shift-click selects a range</span>
@@ -318,6 +369,16 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
       </div>
     </div>
 
+    <Modal v-if="saveDlg" title="Save this search" :busy="busy" @close="saveDlg = null">
+      <p class="small muted" style="margin: 0">Saves the search text, the filters, the tab and the grouping as they are now.</p>
+      <Field label="Name" :error="saveDlg.error"><input v-model.trim="saveDlg.name" maxlength="64" placeholder="k3s nodes that are up" @keydown.enter="saveDlg.name && saveSearch()"></Field>
+      <label v-if="saved.data.value?.can_share" class="check small"><input v-model="saveDlg.shared" type="checkbox"> Share with everyone</label>
+      <template #foot>
+        <button class="btn ghost" @click="saveDlg = null">Cancel</button>
+        <button class="btn primary" :disabled="busy || !saveDlg.name" @click="saveSearch">Save</button>
+      </template>
+    </Modal>
+
     <Modal v-if="bulk" :title="`Change ${picked.size} host${picked.size === 1 ? '' : 's'}`" :busy="busy" @close="bulk = null">
       <p class="small muted" style="margin: 0">Only what you set here changes; everything else stays as it is on each host. All of them change, or none.</p>
       <div class="g2">
@@ -330,6 +391,11 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
           <HostPicker style="flex: 1" placeholder="Hypervisor or host…" @pick="(n) => (bulk.runs_on = n)" /></div></Field>
       <Field label="Add tags"><ChipInput v-model="bulk.add_tags" :suggestions="allTags" :colour="tagColour" placeholder="backup" label="Add a tag" /></Field>
       <Field label="Remove tags"><ChipInput v-model="bulk.remove_tags" :suggestions="allTags" :colour="tagColour" strict placeholder="old-tag" label="Remove a tag" /></Field>
+      <Field label="Add features"><ChipInput v-model="bulk.add_features" :suggestions="allFeatures" strict placeholder="server.packages" label="Add a feature" /></Field>
+      <Field label="Remove features"><ChipInput v-model="bulk.remove_features" :suggestions="allFeatures" strict placeholder="server.packages" label="Remove a feature" /></Field>
+      <Field label="Zone" hint="Pinning overrides the zone of the network; “follows the network” undoes it">
+        <select v-model="bulk.zone"><option value="keep">keep</option><option value="follow">follows its network</option>
+          <option v-for="z in state.meta.zones" :key="z.code" :value="z.code">pin to {{ z.code }}</option></select></Field>
       <div class="g2">
         <Field label="Integration" hint="Turn it on or off for these hosts"><select v-model="bulk.module"><option value="">leave as is</option>
           <option v-for="i in perHost" :key="i.name" :value="i.name">{{ i.name }} ({{ i.plugin }})</option></select></Field>

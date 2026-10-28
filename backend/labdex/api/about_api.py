@@ -139,3 +139,10 @@ def about():
         out["update_check"] = {"project": out["project_url"], "latest": rel if ok else None, "error": rel.get("error", ""),
                                "newer": bool(ok and _newer(rel["tag"], version))}
     return jsonify(out)
+
+
+@bp.get("/openapi.json")
+def openapi_spec():
+    """The OpenAPI 3 description of this API, built from its routes."""
+    from .. import openapi
+    return jsonify(openapi.build(current_app))

@@ -59,7 +59,7 @@ class Plugin(Base):
         return {"applied": len(changes)}
 
     def export_hosts_file(self, params):
-        return ExportFile("hosts", "...", "text/plain")
+        return ExportFile("hosts.txt", "text/plain", "...")
 
     def endpoint_targets(self, params):
         return [...]
@@ -80,6 +80,31 @@ Raise `PluginError("…")` for errors the user should read. The
 
 ## Testing
 
-Run labdex locally (`labdex run --debug`) with `LABDEX_PLUGIN_DIR` pointing at your
-plugins folder. labdex's own tests use small fake servers for each API
-(`backend/tests/fakes.py`); the same pattern works for plugins.
+`labdex.testing` tests a plugin without a running labdex. `PluginHarness` loads your plugin
+folder, checks the manifest the way labdex does at install, and calls the plugin with a real
+`Context`: the real inventory (from a YAML file, text or dict, in a throw-away database), state
+kept in memory, the log in `h.logs`, notifications in `h.notifications`. `FakeServer` is a small
+HTTP server on localhost for the API your plugin talks to; it records every request.
+
+```python
+from labdex.testing import FakeServer, PluginHarness
+
+def test_sync_adds_missing_records():
+    with FakeServer() as api, PluginHarness("plugins/my-dns", settings={"url": api.url}, inventory="examples/homelab.yaml") as h:
+        api.route("GET", "/records", json=[]).route("POST", "/records", status=201)
+        changes = h.plan("sync")                  # plan_sync(params) → [Change, …]
+        assert changes and changes[0].op == "create"
+        h.apply("sync", changes)                  # apply_sync(changes, params)
+        assert api.calls("POST", "/records")[0].json["name"] == changes[0].name
+```
+
+`h.run(action)`, `h.plan`, `h.apply`, `h.export`, `h.endpoint`, `h.page`, `h.widget` and
+`h.host_view(host)` call the methods of the same names; `host_settings={host: {…}}` fills a
+host's `module_settings`. `api.route(method, path, json=…, status=…, text=…, handler=fn)` answers a
+request (a path ending in `*` matches everything below it), `api.calls(method, path)` lists what
+came in. Your plugin's code runs in the test process, not in the sandbox that isolates community
+plugins, so you test its logic; the sandbox's rules are labdex's own tests.
+
+To try it in a running labdex, start `labdex run --debug` with `LABDEX_PLUGIN_DIR` pointing at your
+plugins folder. labdex's own tests use the same kind of fake servers
+(`backend/tests/fakes.py`).

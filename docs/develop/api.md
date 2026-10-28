@@ -1,5 +1,10 @@
 # REST API
 
+An OpenAPI 3 description of every route is at `/api/openapi.json` (when signed in) and from
+`labdex openapi -o labdex-api.json`; point a client generator, Postman or Swagger UI at it.
+It is built from the routes themselves, so it lists exactly what the running version has.
+Request and response bodies are plain JSON objects there; the table below says what they hold.
+
 JSON under `/api`; sign in with the session cookie (browser; writes also need
 the header `X-Requested-With: labdex`) or a bearer token. Validation errors come
 back as `422` with a list of `{field, message}`; missing permissions as `403`;
@@ -32,8 +37,14 @@ takes a host or network name (`/api/hosts/<name>`, `/api/networks/<name>`, …) 
 | GET | `/api/zones/zones/<code or uid>` | One zone: its networks, hosts at home there, policy cells from and to it |
 | GET, PUT · POST, PUT, DELETE | `/api/topology?view=physical\|l3` · `/api/topology/layout`, `/api/topology/cables[/<id>]` | The pictures, their shared arrangement, cables drawn on the map (both ends may be one host, on different ports); `PUT …/cables/<id>` `{medium, speed, notes}` changes one |
 | GET, POST, PUT, DELETE | `/api/aliases[/<name>]` | Aliases, generated and custom |
-| GET | `/api/services`, `/api/lint` | Services, convention checks |
+| GET | `/api/services`, `/api/lint` | Services, convention checks (accepted ones carry `accepted`: the reason) |
+| POST, DELETE | `/api/lint/accept` | Accept a finding `{code, kind, ref, reason}` / count it again (administrators) |
 | GET · GET · POST | `/api/history` · `/api/history/<id>` · `/api/history/<id>/revert` | Audit log with diffs |
+| GET, POST · PUT, DELETE | `/api/searches` · `/api/searches/<uid>` | Saved Hosts searches, yours and shared ones |
+| POST | `/api/hosts/bulk` | One change to many hosts: status, runs on, tags, features, zone, integration, delete |
+| GET | `/api/hosts/<name>/label.svg` · `/api/cables/label.svg?host=&port=` | Printable labels with a QR code (`size=62x29`, `50x25`, `89x36`) |
+| POST | `/api/admin/import/external` | Add networks and hosts from NetBox, phpIPAM or CSV (`apply: false` previews) |
+| GET | `/api/history/changes?since=7d` | Net change per object since a point in time (`24h`, `2w`, a date; `until` optional) |
 | GET | `/api/discovery/{summary,services,missing,unknown-hosts}` | Discovery |
 | GET, POST · GET, PUT, DELETE | `/api/integrations` · `/api/integrations/<name>` | Integration instances |
 | POST | `/api/integrations/<name>/actions/<action>` | Start a job (`202`) |
@@ -68,3 +79,7 @@ takes a host or network name (`/api/hosts/<name>`, `/api/networks/<name>`, …) 
 
 Within 1.x, fields and endpoints are added, not removed or renamed
 ([Upgrading](../operate/upgrading.md#within-1x)).
+
+## Change sets
+
+`GET/POST /api/changesets`, `GET/PUT/DELETE /api/changesets/<uid>`, `POST /api/changesets/<uid>/preview` and `/apply` (422 with the report when a change is refused). A body is `{name, description, yaml}`.

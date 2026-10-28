@@ -17,6 +17,7 @@ dependencies = [
   "requests>=2.31",
   "alembic>=1.13",
   "packaging>=23",
+  "segno>=1.6",
 ]
 
 [project.optional-dependencies]

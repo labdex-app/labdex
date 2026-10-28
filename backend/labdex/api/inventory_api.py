@@ -389,7 +389,8 @@ def delete_host(name):
 def bulk_hosts():
     """One change to many hosts, in one transaction: all of them or none.
     {"names": [...], "status": "active", "runs_on": "srv-pm-pve-01" | "", "add_tags": [...],
-     "remove_tags": [...], "module": {"integration": "pve", "enabled": true|false|null}, "delete": true}
+     "remove_tags": [...], "add_features": [...], "remove_features": [...], "zone": "DC_TC" (pins it) | "" (follows
+     the primary interface's network again), "module": {"integration": "pve", "enabled": true|false|null}, "delete": true}
     Each host gets its own history entry, all with the same summary."""
     from .. import hostmodules
     from ..models import HostModule, Integration
@@ -409,6 +410,8 @@ def bulk_hosts():
         hosts.append((h, before))
     add = [str(t).strip().lower() for t in data.get("add_tags") or [] if str(t).strip()]
     drop = {str(t).strip().lower() for t in data.get("remove_tags") or []}
+    add_f = [str(t).strip() for t in data.get("add_features") or [] if str(t).strip()]
+    drop_f = {str(t).strip() for t in data.get("remove_features") or []}
     what = []
     if data.get("delete"):
         what.append("deleted")
@@ -416,6 +419,12 @@ def bulk_hosts():
         what.append(f"status {data['status']}")
     if "runs_on" in data:
         what.append(f"runs on {data['runs_on'] or 'nothing'}")
+    if "zone" in data:
+        what.append(f"zone {str(data['zone']).upper()} (pinned)" if data["zone"] else "zone follows the network")
+    if add_f:
+        what.append("features +" + " +".join(add_f))
+    if drop_f:
+        what.append("features −" + " −".join(sorted(drop_f)))
     if add:
         what.append("tags +" + " +".join(add))
     if drop:
@@ -444,6 +453,13 @@ def bulk_hosts():
             changes["status"] = data["status"]
         if "runs_on" in data:
             changes["runs_on"] = data["runs_on"] or ""
+        if "zone" in data:
+            if data["zone"]:
+                changes["zone"], changes["zone_pinned"] = str(data["zone"]).upper(), True
+            else:
+                changes["zone_pinned"] = False
+        if add_f or drop_f:
+            changes["features"] = [t for t in dict.fromkeys([*before["features"], *add_f]) if t not in drop_f]
         if add or drop:
             changes["tags"] = [t for t in dict.fromkeys([*before["tags"], *add]) if t not in drop]
         if changes:
@@ -567,7 +583,7 @@ def delete_alias(name):
 
 # --------------------------------------------------------------- lint/services
 def visible_issues(p) -> list[dict]:
-    all_issues = lint.run()
+    all_issues = lint.run_all()
     if p.is_admin:
         return list(all_issues)
     issues = []
@@ -596,6 +612,48 @@ def visible_issues(p) -> list[dict]:
 def get_lint():
     issues = visible_issues(g.principal)
     return jsonify({"summary": lint.summary(issues), "issues": issues})
+
+
+def _accept_key(data: dict) -> tuple[str, str, str]:
+    key = tuple(str(data.get(k) or "").strip() for k in ("code", "kind", "ref"))
+    if not all(key):
+        raise store.ValidationError([{"field": k, "message": "required"} for k, v in zip(("code", "kind", "ref"), key) if not v])
+    return key
+
+
+def _save_accepted(rows: list[dict], before: list[dict], name: str) -> None:
+    import json
+    store.save_settings({"lint_accepted": json.dumps(rows, sort_keys=True)})
+    audit.record("update", "setting", name, {"lint_accepted": before}, {"lint_accepted": rows},
+                 summary=f"lint: {name}")
+    db.session.commit()
+    jobs.emit("setting.updated")
+
+
+@bp.post("/lint/accept")
+def accept_finding():
+    """Accept a finding on purpose: it stays visible, but no longer counts (CLI, dashboard)."""
+    rbac.require_admin()
+    data = body()
+    code, kind, ref = _accept_key(data)
+    reason = str(data.get("reason") or "").strip()
+    if not reason:
+        raise store.ValidationError([{"field": "reason", "message": "say why it's fine"}])
+    before = lint.accepted()
+    rows = [r for r in before if (r["code"], r["kind"], r["ref"]) != (code, kind, ref)]
+    rows.append({"code": code, "kind": kind, "ref": ref, "reason": reason[:200]})
+    _save_accepted(rows, before, f"accept {code} {ref}")
+    return jsonify({"accepted": rows})
+
+
+@bp.delete("/lint/accept")
+def unaccept_finding():
+    rbac.require_admin()
+    code, kind, ref = _accept_key(body())
+    before = lint.accepted()
+    rows = [r for r in before if (r["code"], r["kind"], r["ref"]) != (code, kind, ref)]
+    _save_accepted(rows, before, f"unaccept {code} {ref}")
+    return jsonify({"accepted": rows})
 
 
 @bp.get("/services")

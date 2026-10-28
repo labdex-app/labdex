@@ -328,6 +328,30 @@ def admin_settings():
     return jsonify(naming.settings_dict())
 
 
+@bp.post("/admin/import/external")
+def admin_import_external():
+    """Add networks and hosts from NetBox, phpIPAM or CSV without replacing anything: what exists is skipped.
+    {"source": "csv" | "netbox" | "phpipam", "zone": "DC_TC", "zone_map": {"network": "ZONE"}, "apply": false (a preview),
+     csv: "hosts_text", "networks_text"; netbox: "url", "token"; phpipam: "url", "app_id", "username", "password"; "verify_tls": true}"""
+    import requests
+
+    from .. import importers
+    data = body()
+    src = str(data.get("source") or "")
+    try:
+        plan = importers.build_plan(data)
+    except requests.RequestException as exc:
+        return err(502, f"couldn't read from {src}: {exc.__class__.__name__}")
+    apply = bool(data.get("apply"))
+    out = importers.run(plan, str(data.get("zone") or ""), data.get("zone_map") or {}, apply=apply)
+    if apply and (out["created"]["networks"] or out["created"]["hosts"]):
+        audit.record("import", "inventory", src, None, {"networks": len(out["created"]["networks"]), "hosts": len(out["created"]["hosts"])},
+                     summary=f"added from {src}: {len(out['created']['networks'])} networks, {len(out['created']['hosts'])} hosts")
+        db.session.commit()
+        jobs.emit("inventory.imported")
+    return jsonify(out | {"applied": apply})
+
+
 @bp.get("/admin/backup")
 def admin_backup():
     return text_response(inventory.export_yaml(), "application/yaml", "inventory.yaml")

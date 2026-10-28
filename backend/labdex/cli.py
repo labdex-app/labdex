@@ -7,6 +7,10 @@
     labdex import inventory.yaml       replace the inventory with a YAML file
     labdex export [-o file]            write the inventory as YAML
     labdex lint                        check conventions; exit 1 on errors
+    labdex diff --since 7d             what changed in the inventory since then
+    labdex changeset FILE [--apply]    preview (or apply) a file of inventory changes as one unit
+    labdex openapi [-o file]           the OpenAPI description of the REST API
+    labdex import-from SOURCE          add networks and hosts from netbox, phpipam or csv (preview first)
     labdex plugins                     list plugins and integrations
     labdex action INTEGRATION ACTION   run an integration action (plans are applied with --apply)
     labdex worker                      run queued jobs and the scheduler (with LABDEX_WORKER=external)
@@ -66,12 +70,137 @@ def register(app: Flask) -> None:
     def lint_cmd(warnings_as_errors):
         """Check conventions; exits 1 on errors."""
         issues = lint.run()
+        n_accepted = len(lint.run_all()) - len(issues)
         for i in issues:
             click.echo(f"{i['severity']:<8} {i['kind']:<8} {i['ref']:<32} {i['message']}")
         s = lint.summary(issues)
-        click.echo(f"\n{s['error']} error(s), {s['warning']} warning(s), {s['info']} note(s)")
+        click.echo(f"\n{s['error']} error(s), {s['warning']} warning(s), {s['info']} note(s)"
+                   + (f", {n_accepted} accepted" if n_accepted else ""))
         if s["error"] or (warnings_as_errors and s["warning"]):
             sys.exit(1)
+
+    @app.cli.command("import-from")
+    @click.argument("source", type=click.Choice(["csv", "netbox", "phpipam"]))
+    @click.option("--zone", required=True, help="The zone everything comes in under (a code like DC_TC)")
+    @click.option("--zone-map", "zone_map", multiple=True, metavar="NETWORK=ZONE", help="Another zone for one network (repeatable)")
+    @click.option("--hosts", "hosts_file", type=click.Path(exists=True, dir_okay=False), help="csv: hosts file (name, ip, mac, network, …)")
+    @click.option("--networks", "networks_file", type=click.Path(exists=True, dir_okay=False), help="csv: networks file (name, prefix, vlan, gateway, …)")
+    @click.option("--url", help="netbox / phpipam: the address of the server")
+    @click.option("--app-id", help="phpipam: the API application's id")
+    @click.option("--username", help="phpipam: user name; the password is read from LABDEX_IMPORT_PASSWORD or asked for")
+    @click.option("--no-verify-tls", is_flag=True, help="Don't check the server's certificate")
+    @click.option("--apply", "do_apply", is_flag=True, help="Add them. Without it nothing is kept: a preview")
+    def import_from_cmd(source, zone, zone_map, hosts_file, networks_file, url, app_id, username, no_verify_tls, do_apply):
+        """Add networks and hosts from NetBox, phpIPAM or CSV files; what already exists is skipped.
+
+        The NetBox token is read from LABDEX_IMPORT_TOKEN (never put on the command line)."""
+        import os
+
+        from . import importers
+        data = {"source": source, "verify_tls": not no_verify_tls, "url": url, "app_id": app_id, "username": username,
+                "token": os.environ.get("LABDEX_IMPORT_TOKEN", "")}
+        if source == "netbox" and not data["token"]:
+            data["token"] = click.prompt("NetBox API token", hide_input=True)
+        if source == "phpipam":
+            data["password"] = os.environ.get("LABDEX_IMPORT_PASSWORD") or click.prompt("phpIPAM password", hide_input=True)
+        for key, path in (("hosts_text", hosts_file), ("networks_text", networks_file)):
+            if path:
+                with open(path, encoding="utf-8-sig") as f:
+                    data[key] = f.read()
+        pairs = [m.partition("=") for m in zone_map]
+        if any(not k or not v for k, _, v in pairs):
+            raise click.UsageError("--zone-map wants NETWORK=ZONE")
+        try:
+            out = importers.run(importers.build_plan(data), zone, {k: v for k, _, v in pairs}, apply=do_apply)
+        except store.ValidationError as exc:
+            raise click.ClickException("; ".join(f"{e['field']}: {e['message']}" for e in exc.errors)) from None
+        for kind in ("networks", "hosts"):
+            for n in out["created"][kind]:
+                click.echo(f"{'added' if do_apply else 'would add':<10} {kind[:-1]:<8} {n}")
+        for sk in out["skipped"]:
+            click.echo(f"{'skipped':<10} {sk['kind']:<8} {sk['name']}: {sk['why']}")
+        for f in out["failed"]:
+            click.echo(f"{'FAILED':<10} {f['kind']:<8} {f['name']}: {'; '.join(f['errors'])}")
+        for w in out["warnings"]:
+            click.echo(f"note: {w}", err=True)
+        click.echo(f"\n{len(out['created']['networks'])} network(s), {len(out['created']['hosts'])} host(s) "
+                   f"{'added' if do_apply else 'to add (preview: run again with --apply)'}; {len(out['skipped'])} skipped, {len(out['failed'])} failed")
+        if do_apply and (out["created"]["networks"] or out["created"]["hosts"]):
+            audit.record("import", "inventory", source, None, {"networks": len(out["created"]["networks"]), "hosts": len(out["created"]["hosts"])},
+                         summary=f"added from {source}")
+            db.session.commit()
+
+    @app.cli.command("changeset")
+    @click.argument("file", type=click.Path(exists=True, dir_okay=False))
+    @click.option("--name", help="Name for the history entries (default: the file name)")
+    @click.option("--apply", "do_apply", is_flag=True, help="Save the changes. Without it nothing is kept: a preview")
+    def changeset_cmd(file, name, do_apply):
+        """Preview or apply a YAML file of network, host and alias changes as one unit: all or nothing.
+
+        Exits 1 when any change is refused. See docs/guide/change-sets.md for the format."""
+        import os
+
+        from . import changesets
+        try:
+            with open(file, encoding="utf-8") as f:
+                patch = changesets.parse(f.read())
+            rep = changesets.run(patch, name or os.path.basename(file), None, apply=do_apply)
+        except changesets.PatchError as exc:
+            raise click.ClickException(str(exc)) from None
+        for o in rep["operations"]:
+            click.echo(f"{o['action'] or o['op']:<8} {o['type']:<8} {o['name']}" + (f"  ({', '.join(o['fields'])})" if o["fields"] else ""))
+            for e in o["errors"]:
+                click.echo(f"    ! {e}")
+        if rep["ok"]:
+            for i in rep["lint"]["new"]:
+                click.echo(f"new lint  {i['severity']:<8} {i['message']}")
+            for i in rep["lint"]["resolved"]:
+                click.echo(f"resolved  {i['message']}")
+            click.echo(f"aliases +{len(rep['aliases']['added'])} -{len(rep['aliases']['removed'])} ~{len(rep['aliases']['changed'])}; "
+                       f"DNS +{len(rep['dns']['added'])} -{len(rep['dns']['removed'])}")
+        if rep["applied"]:
+            click.echo("applied")
+        elif rep["ok"]:
+            click.echo("preview only: nothing was saved (run again with --apply)")
+        else:
+            click.echo("nothing was saved", err=True)
+            sys.exit(1)
+
+    @app.cli.command("openapi")
+    @click.option("-o", "--output", type=click.Path(dir_okay=False), help="Write to a file instead of the terminal")
+    def openapi_cmd(output):
+        """The OpenAPI 3 description of the REST API, as JSON."""
+        import json
+
+        from . import openapi
+        text = json.dumps(openapi.build(app), indent=2, sort_keys=False) + "\n"
+        if output:
+            with open(output, "w", encoding="utf-8") as f:
+                f.write(text)
+            click.echo(f"Wrote {output}", err=True)
+        else:
+            click.echo(text, nl=False)
+
+    @app.cli.command("diff")
+    @click.option("--since", default="7d", show_default=True, help="24h, 7d, 2w or a date")
+    @click.option("--until", default=None, help="Same forms; default: now")
+    @click.option("--fields", is_flag=True, help="Show before and after of every field")
+    def diff_cmd(since, until, fields):
+        """What changed in the inventory between two points in time."""
+        try:
+            start = audit.parse_since(since)
+            end = audit.parse_since(until) if until else None
+        except ValueError as e:
+            raise click.UsageError(f"{e}: use 24h, 7d, 2w or a date like 2026-10-01") from None
+        rows = audit.changes_since(start, end, only_visible=False)
+        sign = {"created": "+", "deleted": "-", "updated": "~"}
+        for r in rows:
+            extra = f"  ({', '.join(r['fields'])})" if r["fields"] and not fields else ""
+            click.echo(f"{sign[r['change']]} {r['object_type']:<10} {r['object_name']}{extra}")
+            if fields:
+                for d in r["diff"]:
+                    click.echo(f"    {d['path']}: {d['before']!r} -> {d['after']!r}")
+        click.echo(f"\n{len(rows)} object(s) changed since {start:%Y-%m-%d %H:%M} UTC", err=True)
 
     # ------------------------------------------------------------------ users
     @app.cli.group("user")

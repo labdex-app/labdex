@@ -1,6 +1,8 @@
 """Change history: every create/update/delete, import, revert, plan apply and login."""
 from __future__ import annotations
 
+from datetime import UTC
+
 from flask import has_request_context, request
 
 from . import rbac, store
@@ -66,6 +68,53 @@ def diff(before: dict | None, after: dict | None, prefix: str = "") -> list[dict
     if before != after:
         out.append({"path": prefix, "before": before, "after": after})
     return out
+
+
+CHANGE_TYPES = tuple(t for t in INVENTORY_TYPES if t not in ("inventory", "setting"))
+
+
+def parse_since(text: str, now=None):
+    """'24h', '7d', '2w' or a date (2026-10-01, 2026-10-01T08:00) → a naive UTC datetime. ValueError otherwise."""
+    from datetime import datetime, timedelta
+    text = (text or "").strip()
+    now = now or datetime.now(UTC).replace(tzinfo=None)
+    if len(text) > 1 and text[:-1].isdigit() and text[-1] in "hdw":
+        n = int(text[:-1])
+        unit = {"h": "hours", "d": "days", "w": "weeks"}[text[-1]]
+        return now - timedelta(**{unit: n})
+    when = datetime.fromisoformat(text.removesuffix("Z"))
+    return when.replace(tzinfo=None) if when.tzinfo is None else when.astimezone(UTC).replace(tzinfo=None)
+
+
+def changes_since(start, end=None, only_visible: bool = True) -> list[dict]:
+    """What changed between two points, per object: the first state before and the last state after,
+    so five edits of a host read as one diff, and a host created and deleted in between isn't listed."""
+    q = db.select(AuditEvent).where(AuditEvent.ts >= start, AuditEvent.object_type.in_(CHANGE_TYPES),
+                                    AuditEvent.action.in_(("create", "update", "delete", "revert"))).order_by(AuditEvent.id)
+    if end is not None:
+        q = q.where(AuditEvent.ts < end)
+    groups: dict[tuple[str, str], list[AuditEvent]] = {}
+    for ev in db.session.scalars(q):
+        groups.setdefault((ev.object_type, ev.object_name), []).append(ev)
+    out = []
+    for (otype, name), evs in groups.items():
+        first, last = evs[0], evs[-1]
+        before = first.before if first.action != "create" else None
+        after = last.after if last.action != "delete" else None
+        if before is None and after is None:
+            continue
+        d = diff(before, after)
+        if before is not None and after is not None and not d:
+            continue  # changed and changed back
+        if only_visible and not visible(last):
+            continue
+        out.append({"object_type": otype, "object_name": name,
+                    "change": "created" if before is None else "deleted" if after is None else "updated",
+                    "events": len(evs), "actors": sorted({e.actor for e in evs}),
+                    "first": first.ts.isoformat() + "Z", "last": last.ts.isoformat() + "Z",
+                    "fields": [x["path"] for x in d] if before is not None and after is not None else [],
+                    "diff": d if before is not None and after is not None else []})
+    return sorted(out, key=lambda r: (r["object_type"], r["object_name"]))
 
 
 def to_dict(ev: AuditEvent, with_diff=False) -> dict:
