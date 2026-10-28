@@ -66,6 +66,6 @@ def text_response(text: str, mimetype: str, filename: str):
 # the route modules register themselves on bp when imported
 from . import (  # noqa: E402, F401
     about_api, admin, auth_routes, dashboard_api, dashboards_api, discovery_api, dns_api, events_api, features_api, history,
-    hostmodules_api, inventory_api, nav_api, naming_api, operate_api, plugins_api, pluginstore_api, racks_api, search_api, secrets_api,
+    hostmodules_api, inventory_api, nav_api, naming_api, operate_api, plugins_api, pluginstore_api, racks_api, search_api, searches_api, secrets_api,
     tags_api, topology_api, vault_api, zones_api,
 )

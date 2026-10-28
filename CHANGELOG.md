@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Hosts
+- **Saved searches**: a *Saved* menu on the Hosts page keeps the search text, filters, tab and
+  grouping under a name. Yours are private; administrators can share one with everyone.
+  API: `/api/searches`. New table `saved_search` (migration 0035).
+- **Bulk change** can also add and remove **features** and **pin a host to a zone** (or let it
+  follow its network again), next to status, runs on, tags and integrations.
+
 ### History
 - **Net change since…** on the History page (last day, week or 30 days): one row per
   object with what changed overall, so five edits of a host read as one diff, and an object

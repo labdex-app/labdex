@@ -53,13 +53,18 @@ Values with spaces go in quotes: `tag:"off site"`. A tag chip in the list adds i
 **Group by** (tag, zone, runs on, category or status) puts a heading over each group;
 a host with two tags shows under both. *Only these* narrows the list to one group.
 
+**Saved searches.** When the search or a filter is set, the *Saved* menu offers *Save this
+search …*: it keeps the search text, filters, tab and grouping under a name, and picking it
+later sets them all again. Searches are yours; an administrator can share one with everyone.
+
 ## Many hosts at once
 
 On the hosts list, tick the hosts (<kbd>Shift</kbd>-click ticks a range; the box in
 the header ticks every host the filters show). The bar that appears offers:
 
-- **Change**: status, runs on, tags to add or remove, and an integration turned on or
-  off for these hosts. Only what you set changes.
+- **Change**: status, runs on, tags and features to add or remove, a zone (pinned, or
+  following the network again), and an integration turned on or off for these hosts.
+  Only what you set changes.
 - **Delete**, after a confirmation.
 
 A change applies to all of them or to none: if one host doesn't accept it, nothing
