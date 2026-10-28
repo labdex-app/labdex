@@ -596,6 +596,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guide/import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coming from another tool
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/change-sets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change sets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guide/dns/" class="md-nav__link">
         
   
@@ -1701,7 +1757,7 @@ playbooks. Drop it into <code>/data/plugins/&lt;id&gt;/</code> and restart (or P
         <span class="k">return</span> <span class="p">{</span><span class="s2">"applied"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">changes</span><span class="p">)}</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">export_hosts_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">ExportFile</span><span class="p">(</span><span class="s2">"hosts"</span><span class="p">,</span> <span class="s2">"..."</span><span class="p">,</span> <span class="s2">"text/plain"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ExportFile</span><span class="p">(</span><span class="s2">"hosts.txt"</span><span class="p">,</span> <span class="s2">"text/plain"</span><span class="p">,</span> <span class="s2">"..."</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">endpoint_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">[</span><span class="o">...</span><span class="p">]</span>
@@ -1719,9 +1775,30 @@ playbooks. Drop it into <code>/data/plugins/&lt;id&gt;/</code> and restart (or P
 Raise <code>PluginError("…")</code> for errors the user should read. The
 <a href="../plugin-api/">reference</a> lists everything a plugin can use.</p>
 <h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
-<p>Run labdex locally (<code>labdex run --debug</code>) with <code>LABDEX_PLUGIN_DIR</code> pointing at your
-plugins folder. labdex's own tests use small fake servers for each API
-(<code>backend/tests/fakes.py</code>); the same pattern works for plugins.</p>
+<p><code>labdex.testing</code> tests a plugin without a running labdex. <code>PluginHarness</code> loads your plugin
+folder, checks the manifest the way labdex does at install, and calls the plugin with a real
+<code>Context</code>: the real inventory (from a YAML file, text or dict, in a throw-away database), state
+kept in memory, the log in <code>h.logs</code>, notifications in <code>h.notifications</code>. <code>FakeServer</code> is a small
+HTTP server on localhost for the API your plugin talks to; it records every request.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">labdex.testing</span><span class="w"> </span><span class="kn">import</span> <span class="n">FakeServer</span><span class="p">,</span> <span class="n">PluginHarness</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test_sync_adds_missing_records</span><span class="p">():</span>
+    <span class="k">with</span> <span class="n">FakeServer</span><span class="p">()</span> <span class="k">as</span> <span class="n">api</span><span class="p">,</span> <span class="n">PluginHarness</span><span class="p">(</span><span class="s2">"plugins/my-dns"</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="p">{</span><span class="s2">"url"</span><span class="p">:</span> <span class="n">api</span><span class="o">.</span><span class="n">url</span><span class="p">},</span> <span class="n">inventory</span><span class="o">=</span><span class="s2">"examples/homelab.yaml"</span><span class="p">)</span> <span class="k">as</span> <span class="n">h</span><span class="p">:</span>
+        <span class="n">api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">"GET"</span><span class="p">,</span> <span class="s2">"/records"</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="p">[])</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">"POST"</span><span class="p">,</span> <span class="s2">"/records"</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="mi">201</span><span class="p">)</span>
+        <span class="n">changes</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">plan</span><span class="p">(</span><span class="s2">"sync"</span><span class="p">)</span>                  <span class="c1"># plan_sync(params) → [Change, …]</span>
+        <span class="k">assert</span> <span class="n">changes</span> <span class="ow">and</span> <span class="n">changes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">op</span> <span class="o">==</span> <span class="s2">"create"</span>
+        <span class="n">h</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="s2">"sync"</span><span class="p">,</span> <span class="n">changes</span><span class="p">)</span>                  <span class="c1"># apply_sync(changes, params)</span>
+        <span class="k">assert</span> <span class="n">api</span><span class="o">.</span><span class="n">calls</span><span class="p">(</span><span class="s2">"POST"</span><span class="p">,</span> <span class="s2">"/records"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span> <span class="o">==</span> <span class="n">changes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
+</code></pre></div>
+<p><code>h.run(action)</code>, <code>h.plan</code>, <code>h.apply</code>, <code>h.export</code>, <code>h.endpoint</code>, <code>h.page</code>, <code>h.widget</code> and
+<code>h.host_view(host)</code> call the methods of the same names; <code>host_settings={host: {…}}</code> fills a
+host's <code>module_settings</code>. <code>api.route(method, path, json=…, status=…, text=…, handler=fn)</code> answers a
+request (a path ending in <code>*</code> matches everything below it), <code>api.calls(method, path)</code> lists what
+came in. Your plugin's code runs in the test process, not in the sandbox that isolates community
+plugins, so you test its logic; the sandbox's rules are labdex's own tests.</p>
+<p>To try it in a running labdex, start <code>labdex run --debug</code> with <code>LABDEX_PLUGIN_DIR</code> pointing at your
+plugins folder. labdex's own tests use the same kind of fake servers
+(<code>backend/tests/fakes.py</code>).</p>
 
 
 

@@ -596,6 +596,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guide/import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coming from another tool
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/change-sets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change sets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guide/dns/" class="md-nav__link">
         
   
@@ -2039,7 +2095,7 @@ custom, as the firewall sees them), <code>custom_aliases()</code>, <code>dns_rec
 <h2 id="change-and-exportfile">Change and ExportFile<a class="headerlink" href="#change-and-exportfile" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><span class="n">Change</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">kind</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">summary</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span> <span class="n">before</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">after</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="p">{})</span>
 <span class="c1"># op: create | update | delete | ansible | other; data is what apply_ needs</span>
-<span class="n">ExportFile</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">content</span><span class="p">,</span> <span class="n">mimetype</span><span class="p">)</span>
+<span class="n">ExportFile</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">mimetype</span><span class="p">,</span> <span class="n">body</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="views-pages-and-host-panels">Views (pages and host panels)<a class="headerlink" href="#views-pages-and-host-panels" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><span class="p">{</span><span class="s2">"summary"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"label"</span><span class="p">:</span> <span class="s2">"…"</span><span class="p">,</span> <span class="s2">"value"</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">"tone"</span><span class="p">:</span> <span class="s2">"ok|warn|err|"</span><span class="p">}],</span>

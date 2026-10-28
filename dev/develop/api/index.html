@@ -596,6 +596,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guide/import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coming from another tool
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/change-sets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change sets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guide/dns/" class="md-nav__link">
         
   
@@ -1428,6 +1484,24 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    REST API
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -1444,6 +1518,36 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#change-sets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Change sets
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -1560,6 +1664,25 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#change-sets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Change sets
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1579,6 +1702,10 @@
 
 
 <h1 id="rest-api">REST API<a class="headerlink" href="#rest-api" title="Permanent link">&para;</a></h1>
+<p>An OpenAPI 3 description of every route is at <code>/api/openapi.json</code> (when signed in) and from
+<code>labdex openapi -o labdex-api.json</code>; point a client generator, Postman or Swagger UI at it.
+It is built from the routes themselves, so it lists exactly what the running version has.
+Request and response bodies are plain JSON objects there; the table below says what they hold.</p>
 <p>JSON under <code>/api</code>; sign in with the session cookie (browser; writes also need
 the header <code>X-Requested-With: labdex</code>) or a bearer token. Validation errors come
 back as <code>422</code> with a list of <code>{field, message}</code>; missing permissions as <code>403</code>;
@@ -1674,12 +1801,42 @@ takes a host or network name (<code>/api/hosts/&lt;name&gt;</code>, <code>/api/n
 <tr>
 <td>GET</td>
 <td><code>/api/services</code>, <code>/api/lint</code></td>
-<td>Services, convention checks</td>
+<td>Services, convention checks (accepted ones carry <code>accepted</code>: the reason)</td>
+</tr>
+<tr>
+<td>POST, DELETE</td>
+<td><code>/api/lint/accept</code></td>
+<td>Accept a finding <code>{code, kind, ref, reason}</code> / count it again (administrators)</td>
 </tr>
 <tr>
 <td>GET · GET · POST</td>
 <td><code>/api/history</code> · <code>/api/history/&lt;id&gt;</code> · <code>/api/history/&lt;id&gt;/revert</code></td>
 <td>Audit log with diffs</td>
+</tr>
+<tr>
+<td>GET, POST · PUT, DELETE</td>
+<td><code>/api/searches</code> · <code>/api/searches/&lt;uid&gt;</code></td>
+<td>Saved Hosts searches, yours and shared ones</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/hosts/bulk</code></td>
+<td>One change to many hosts: status, runs on, tags, features, zone, integration, delete</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/hosts/&lt;name&gt;/label.svg</code> · <code>/api/cables/label.svg?host=&amp;port=</code></td>
+<td>Printable labels with a QR code (<code>size=62x29</code>, <code>50x25</code>, <code>89x36</code>)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/admin/import/external</code></td>
+<td>Add networks and hosts from NetBox, phpIPAM or CSV (<code>apply: false</code> previews)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/history/changes?since=7d</code></td>
+<td>Net change per object since a point in time (<code>24h</code>, <code>2w</code>, a date; <code>until</code> optional)</td>
 </tr>
 <tr>
 <td>GET</td>
@@ -1840,6 +1997,8 @@ takes a host or network name (<code>/api/hosts/&lt;name&gt;</code>, <code>/api/n
 </table>
 <p>Within 1.x, fields and endpoints are added, not removed or renamed
 (<a href="../../operate/upgrading/#within-1x">Upgrading</a>).</p>
+<h2 id="change-sets">Change sets<a class="headerlink" href="#change-sets" title="Permanent link">&para;</a></h2>
+<p><code>GET/POST /api/changesets</code>, <code>GET/PUT/DELETE /api/changesets/&lt;uid&gt;</code>, <code>POST /api/changesets/&lt;uid&gt;/preview</code> and <code>/apply</code> (422 with the report when a change is refused). A body is <code>{name, description, yaml}</code>.</p>
 
 
 
