@@ -45,7 +45,7 @@ watch(() => route.query.q, (v) => { if (v && v !== q.value) { q.value = String(v
             <span v-if="r.owner.port" class="mono"> {{ r.owner.port }}</span></span>
           <span v-else-if="r.why" class="small faint">from {{ r.why }}</span>
         </header>
-        <p v-if="!r.seen.length" class="small muted" style="margin: 6px 0 0">No switch has it in its table right now.</p>
+        <p v-if="!r.seen.length" class="small muted m-0 mt-2">No switch has it in its table right now.</p>
         <table v-else class="small">
           <thead><tr><th>Switch</th><th>Port</th><th class="hide-m">VLAN</th><th class="hide-m">MACs on the port</th><th>Cabled to</th><th class="hide-m">Seen</th></tr></thead>
           <tbody>

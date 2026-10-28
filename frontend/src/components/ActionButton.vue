@@ -58,7 +58,7 @@ async function go() {
     </div>
     <form v-if="open" class="params" @submit.prevent="go">
       <SettingsForm :fields="action.params" v-model:values="values" :errors="errors" />
-      <div class="row" style="margin-top: 10px">
+      <div class="row mt-3">
         <button class="btn primary small" :disabled="busy">Run</button>
         <button type="button" class="btn ghost small" @click="open = false">Cancel</button>
       </div>

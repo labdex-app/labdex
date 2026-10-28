@@ -160,22 +160,22 @@ const resultText = computed(() => {
       </div>
 
       <div v-if="Object.entries(j.params || {}).filter(([k, v]) => k !== 'host' && v !== '' && v != null).length" class="small muted" style="margin: -8px 0 16px">
-        Parameters: <code v-for="(v, k) in j.params" v-show="k !== 'host' && v !== '' && v != null" :key="k" style="margin-right: 10px">{{ k }}={{ Array.isArray(v) ? v.join(',') : v }}</code>
+        Parameters: <code v-for="(v, k) in j.params" v-show="k !== 'host' && v !== '' && v != null" :key="k" class="mr-3">{{ k }}={{ Array.isArray(v) ? v.join(',') : v }}</code>
       </div>
-      <div v-if="j.result?.error" class="errbox" style="margin-bottom: 16px"><b>Failed:</b> {{ j.result.error }}</div>
-      <div v-else-if="resultText" class="card" style="margin-bottom: 16px">{{ resultText }}</div>
-      <div v-if="waiting && queue && !queue.ok" class="warnbox" style="margin-bottom: 16px">
+      <div v-if="j.result?.error" class="errbox mb-4"><b>Failed:</b> {{ j.result.error }}</div>
+      <div v-else-if="resultText" class="card mb-4">{{ resultText }}</div>
+      <div v-if="waiting && queue && !queue.ok" class="warnbox mb-4">
         Waiting for a worker: jobs are left to <code>labdex worker</code> (LABDEX_WORKER=external), and none was seen in the last minute.
       </div>
-      <div v-if="j.status === 'stale'" class="warnbox" style="margin-bottom: 16px">
+      <div v-if="j.status === 'stale'" class="warnbox mb-4">
         This plan is out of date: the inventory changed or a newer plan replaced it.
         <RouterLink v-if="j.replanned_as" :to="`/jobs/${j.replanned_as}`">See the new plan (job #{{ j.replanned_as }})</RouterLink>
         <template v-else>Run the action again for a fresh plan.</template>
       </div>
 
-      <div v-if="j.mode === 'plan' && j.policy" class="card approvals" style="margin-bottom: 16px">
+      <div v-if="j.mode === 'plan' && j.policy" class="card approvals mb-4">
         <div class="row">
-          <h2 style="margin: 0">Approvals</h2>
+          <h2 class="m-0">Approvals</h2>
           <span class="small muted">policy <b>{{ j.policy }}</b> ·
             <template v-if="j.needed === 0">applies without approval</template>
             <template v-else>{{ (j.approvals || []).length }} of {{ j.needed }}</template>
@@ -188,15 +188,15 @@ const resultText = computed(() => {
           <li v-for="(a, n) in j.approvals" :key="n"><b>{{ a.by }}</b> <span class="faint small">{{ stamp(a.at) }}</span><span v-if="a.comment" class="small"> · {{ a.comment }}</span></li>
         </ul>
         <div v-if="j.replaces && j.approvals?.length" class="small faint">Carried over from job <RouterLink :to="`/jobs/${j.replaces}`">#{{ j.replaces }}</RouterLink>: the same changes.</div>
-        <div v-if="j.status === 'approved'" class="okbox small" style="margin-top: 8px">Approved. Applies {{ stamp(j.apply_after) }}<template v-if="j.policy_detail?.window"> (change window)</template>.</div>
-        <div v-if="j.status === 'planned' && j.can_apply" class="row" style="margin-top: 10px">
+        <div v-if="j.status === 'approved'" class="okbox small mt-2">Approved. Applies {{ stamp(j.apply_after) }}<template v-if="j.policy_detail?.window"> (change window)</template>.</div>
+        <div v-if="j.status === 'planned' && j.can_apply" class="row mt-3">
           <input v-if="j.can_approve" v-model="comment" type="text" placeholder="Comment (optional)" aria-label="Comment" style="max-width: 420px">
           <span v-else class="small muted">You can't approve this: {{ j.why_not }}.</span>
         </div>
-        <div v-if="j.result?.discarded_by" class="small muted" style="margin-top: 8px">Discarded by {{ j.result.discarded_by }}<template v-if="j.result.comment">: {{ j.result.comment }}</template></div>
+        <div v-if="j.result?.discarded_by" class="small muted mt-2">Discarded by {{ j.result.discarded_by }}<template v-if="j.result.comment">: {{ j.result.comment }}</template></div>
       </div>
 
-      <div v-if="j.mode === 'plan' && j.plan.length" class="plan" style="margin-bottom: 16px">
+      <div v-if="j.mode === 'plan' && j.plan.length" class="plan mb-4">
         <div class="sect-head">
           <h2>Plan</h2>
           <span v-for="(n, op) in counts" :key="op" class="op" :class="`op-${op}`">{{ n }} {{ op }}</span>
@@ -219,7 +219,7 @@ const resultText = computed(() => {
                 <div class="li-title"><span class="op" :class="`op-${c.op}`">{{ c.op }}</span><span class="mono">{{ c.name }}</span>
                   <span class="small muted">{{ c.summary }}</span></div>
                 <template v-if="open.has(c.n) && (c.before != null || c.after != null)">
-                  <Diff v-if="c.op === 'update' && structured(c)" :rows="fields(c)" style="margin-top: 8px" />
+                  <Diff v-if="c.op === 'update' && structured(c)" :rows="fields(c)" class="mt-2" />
                   <div v-else class="ba">
                     <div v-if="c.before != null"><h3>Before</h3><pre class="code del">{{ fmt(c.before) }}</pre></div>
                     <div v-if="c.after != null"><h3>After</h3><pre class="code add">{{ fmt(c.after) }}</pre></div>
@@ -232,12 +232,12 @@ const resultText = computed(() => {
           </div>
         </section>
       </div>
-      <div v-else-if="j.mode === 'plan' && !RUNNING.includes(j.status) && j.status !== 'failed'" class="card" style="margin-bottom: 16px">
+      <div v-else-if="j.mode === 'plan' && !RUNNING.includes(j.status) && j.status !== 'failed'" class="card mb-4">
         Nothing to change: the target already matches the inventory.
       </div>
 
       <div class="card">
-        <div class="row" style="margin-bottom: 8px"><h3 style="margin: 0">Log</h3><span class="grow"></span>
+        <div class="row mb-2"><h3 class="m-0">Log</h3><span class="grow"></span>
           <span v-if="RUNNING.includes(j.status)" class="small muted"><span class="live"></span> live</span>
           <label class="check small"><input v-model="follow" type="checkbox"> follow</label></div>
         <pre ref="logEl" class="code">{{ j.log || (RUNNING.includes(j.status) ? 'Waiting for output…' : '(empty)') }}</pre>

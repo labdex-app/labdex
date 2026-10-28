@@ -75,8 +75,8 @@ function toggleDay(d) { const a = edit.value.days; const i = a.indexOf(d); i < 0
 
 <template>
   <div class="card">
-    <div class="row" style="margin-bottom: 6px">
-      <h2 style="margin: 0">Templates</h2><span class="grow"></span>
+    <div class="row mb-2">
+      <h2 class="m-0">Templates</h2><span class="grow"></span>
       <button v-if="integration.can_apply" type="button" class="btn small" @click="start(null)"><Plus :size="14" /> Template</button>
     </div>
     <ul v-if="list.length" class="plain tlist">
@@ -97,7 +97,7 @@ function toggleDay(d) { const a = edit.value.days; const i = a.indexOf(d); i < 0
         </div>
       </li>
     </ul>
-    <p v-else class="small muted" style="margin: 0">An action with its parameters saved: run it in one click, or on a schedule. Scheduled plans go through approvals like any other.</p>
+    <p v-else class="small muted m-0">An action with its parameters saved: run it in one click, or on a schedule. Scheduled plans go through approvals like any other.</p>
 
     <Modal v-if="edit" wide :busy="busy" :title="edit.id ? `Edit ${edit.name}` : 'New template'" @close="edit = null">
     <form id="tpl-form" class="tform" @submit.prevent="save">

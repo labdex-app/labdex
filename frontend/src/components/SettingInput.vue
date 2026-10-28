@@ -92,7 +92,7 @@ function setCell(i, key, v) { set(rows.value.map((r, n) => (n === i ? { ...r, [k
           </tr>
         </tbody>
       </table>
-      <button type="button" class="btn small" style="margin-top: 6px" @click="set([...rows, blankRow()])"><Plus :size="14" /> Row</button>
+      <button type="button" class="btn small mt-2" @click="set([...rows, blankRow()])"><Plus :size="14" /> Row</button>
     </div>
     <input v-else type="text" :value="modelValue" :placeholder="f.placeholder" :class="{ mono: /url|path|host|zone|endpoint|bucket|prefix|server|room|topic/.test(f.key) }" spellcheck="false"
            @input="set($event.target.value)">

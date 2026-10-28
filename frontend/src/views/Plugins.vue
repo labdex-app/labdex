@@ -141,7 +141,7 @@ const dot = (i) => (!i.enabled ? 'off' : i.last_status === 'failed' ? 'bad' : 'o
     </div>
     <p class="small muted more">Firewalls, DNS, hypervisors, monitoring and more: <a href="#" @click.prevent="setTab('market')">find plugins in the Marketplace</a>.</p>
     </template>
-    <div v-if="loadErrors.length" class="errbox" style="margin-top: 16px"><div v-for="e in loadErrors" :key="e.path" class="small"><code>{{ e.path }}</code> {{ e.error }}</div></div>
+    <div v-if="loadErrors.length" class="errbox mt-4"><div v-for="e in loadErrors" :key="e.path" class="small"><code>{{ e.path }}</code> {{ e.error }}</div></div>
     <Modal v-if="adding" :title="`New ${adding.name || adding.id} instance`" @close="adding = null">
       <form id="inst-form" @submit.prevent="create">
         <Field label="Instance name" :error="nameError" hint="Lowercase letters, digits and dashes. You set it up on the next page.">

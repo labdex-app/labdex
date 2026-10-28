@@ -137,7 +137,7 @@ function go(p) { f.page = p; load() }
     <div class="filters">
       <template v-if="tab === 'services'">
         <FilterSelect :model-value="f.status" label="Show" any="" :options="[{ value: 'undocumented,unknown-host', label: 'To review' }, ...Object.entries(STATUS).map(([k, v]) => ({ value: k, label: v[1] })), { value: 'all', label: 'All' }]" @update:model-value="setStatus" />
-        <label class="check small" style="margin-left: 8px"><input v-model="f.closed" type="checkbox" @change="load"> closed too</label>
+        <label class="check small ml-2"><input v-model="f.closed" type="checkbox" @change="load"> closed too</label>
       </template>
       <span class="grow"></span>
       <input v-model="f.q" type="search" placeholder="Filter…" style="max-width: 240px" aria-label="Filter">

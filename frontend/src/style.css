@@ -385,6 +385,13 @@ ul.pop { margin: 0; list-style: none; }
 .g3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 14px; align-items: start; }
 @media (max-width: 700px) { .g2, .g3 { grid-template-columns: minmax(0, 1fr); } }
 
+/* spacing on one scale (4, 8, 12, 16 px), for the one-off gap a layout rule doesn't give; !important so they win
+   like the inline styles they replace */
+.m-0 { margin: 0 !important; }
+.mt-0 { margin-top: 0 !important; } .mt-1 { margin-top: 4px !important; } .mt-2 { margin-top: 8px !important; } .mt-3 { margin-top: 12px !important; } .mt-4 { margin-top: 16px !important; }
+.mb-0 { margin-bottom: 0 !important; } .mb-1 { margin-bottom: 4px !important; } .mb-2 { margin-bottom: 8px !important; } .mb-3 { margin-bottom: 12px !important; } .mb-4 { margin-bottom: 16px !important; }
+.ml-1 { margin-left: 4px !important; } .ml-2 { margin-left: 8px !important; } .mr-1 { margin-right: 4px !important; } .mr-2 { margin-right: 8px !important; } .mr-3 { margin-right: 12px !important; }
+
 /* not on a phone (the sidebar's breakpoint) */
 @media (max-width: 860px) { .hide-m { display: none !important; } }
 /* phones: .hide-p goes, .show-p comes (a column folded into another one) */

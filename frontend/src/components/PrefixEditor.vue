@@ -45,8 +45,8 @@ const counts = computed(() => ({ 4: prefixes.value.filter((p) => p.family === 4)
 
 <template>
   <div class="pfx">
-    <div class="row" style="margin-bottom: 8px">
-      <span class="flabel" style="margin: 0">Addresses</span>
+    <div class="row mb-2">
+      <span class="flabel m-0">Addresses</span>
       <span class="small faint">{{ counts[4] }} IPv4 · {{ counts[6] }} IPv6</span>
       <span class="grow"></span>
       <button type="button" class="btn small" @click="add(4)"><Plus :size="14" /> IPv4</button>

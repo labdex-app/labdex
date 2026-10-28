@@ -75,7 +75,7 @@ async function save(m, extra = {}) {
       </div>
 
       <div v-if="open === m.integration" class="body">
-        <div class="row" style="margin-bottom: 12px">
+        <div class="row mb-3">
           <span class="small muted">For this host:</span>
           <div class="seg" role="radiogroup" :aria-label="`${m.integration} for this host`">
             <button v-for="o in [[null, `Follow “${m.selectors.join(' ') || 'none'}”`], [true, 'Always on'], [false, 'Off']]" :key="String(o[0])" type="button" role="radio"
@@ -86,7 +86,7 @@ async function save(m, extra = {}) {
         <div class="split inner">
           <div>
             <div v-if="m.has_view && m.enabled && m.integration_enabled">
-              <div class="row" style="margin-bottom: 8px"><span class="grow"></span>
+              <div class="row mb-2"><span class="grow"></span>
                 <button class="btn small ghost" @click="loadView(m)">Refresh</button></div>
               <p v-if="views[m.integration]?.loading" class="faint">Asking {{ m.integration }}…</p>
               <ModuleView v-else :view="views[m.integration]" />
@@ -103,7 +103,7 @@ async function save(m, extra = {}) {
             <h3>Settings for this host</h3>
             <SettingsForm :fields="m.host_settings" v-modelv-model:values="values[m.integration]" :errors="errors" :secrets-set="m.secrets_set"
                           :secret-refs="m.secret_refs" :secrets="secrets" :disabled="!m.can_edit" />
-            <button v-if="m.can_edit" class="btn primary small" style="margin-top: 12px">Save</button>
+            <button v-if="m.can_edit" class="btn primary small mt-3">Save</button>
           </form>
         </div>
       </div>

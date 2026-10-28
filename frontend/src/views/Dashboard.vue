@@ -204,7 +204,7 @@ watch(() => route.query.d, () => { editing.value = false })
       <a href="#" class="c-red" @click.prevent="deleteDash">Delete this dashboard</a>
     </div>
 
-    <div v-if="d && !d.health.jobs.ok" class="warnbox" style="margin-bottom: 16px">
+    <div v-if="d && !d.health.jobs.ok" class="warnbox mb-4">
       Jobs are left to <code>labdex worker</code>, and none was seen in the last minute: {{ d.health.jobs.waiting }} waiting.
     </div>
 
@@ -233,7 +233,7 @@ watch(() => route.query.d, () => { editing.value = false })
         </template>
       </div>
       <template v-if="plugins.length">
-        <h3 style="margin: 16px 0 8px">A plugin widget</h3>
+        <h3 class="m-0 mt-4 mb-2">A plugin widget</h3>
         <div class="choices">
           <button v-for="p in plugins" :key="`${p.integration}/${p.widget}`" class="choice" @click="addCard('widget', { integration: p.integration, widget: p.widget })">
             <b>{{ p.label }}</b><span class="mono small faint">{{ p.integration }}</span></button>

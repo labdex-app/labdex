@@ -50,8 +50,8 @@ const dhcp = (n) => (n.dhcp_start ? `${n.dhcp_start.split('.').pop()}–${n.dhcp
               <td>
                 <div v-for="(p, i) in n.prefixes" :key="i">
                   <Copy v-if="p.prefix" :text="p.prefix" /><span v-else class="mono faint">{{ p.delegated_from }} #{{ p.prefix_id }}/{{ p.length }}</span>
-                  <span v-if="p.source === 'delegated'" class="vipb" style="margin-left: 4px">PD</span>
-                  <span v-if="p.description" class="small faint" style="margin-left: 4px">{{ p.description }}</span>
+                  <span v-if="p.source === 'delegated'" class="vipb ml-1">PD</span>
+                  <span v-if="p.description" class="small faint ml-1">{{ p.description }}</span>
                 </div>
                 <span v-if="!n.prefixes?.length" class="faint">—</span>
               </td>

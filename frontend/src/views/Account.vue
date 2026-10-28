@@ -55,9 +55,9 @@ const PERM_LABEL = { host: 'Hosts', network: 'Networks', alias: 'Aliases', integ
       <div>
         <div class="card">
           <h2>API tokens</h2>
-          <p class="muted small" style="margin-top: 0">For scripts, Ansible and Prometheus. Send as <code>Authorization: Bearer ldx_…</code>. A token acts as you, with your permissions; a read-only token can never change anything.</p>
-          <div v-if="created" class="warnbox" style="margin-bottom: 14px">
-            <div class="small" style="margin-bottom: 6px"><b>Copy “{{ created.name }}” now.</b> It isn't shown again.</div>
+          <p class="muted small mt-0">For scripts, Ansible and Prometheus. Send as <code>Authorization: Bearer ldx_…</code>. A token acts as you, with your permissions; a read-only token can never change anything.</p>
+          <div v-if="created" class="warnbox mb-4">
+            <div class="small mb-2"><b>Copy “{{ created.name }}” now.</b> It isn't shown again.</div>
             <Copy :text="created.token" />
           </div>
           <div class="table-wrap" v-if="tokens.length">
@@ -74,7 +74,7 @@ const PERM_LABEL = { host: 'Hosts', network: 'Networks', alias: 'Aliases', integ
               </tbody>
             </table>
           </div>
-          <form class="row" style="margin-top: 14px" @submit.prevent="createToken">
+          <form class="row mt-4" @submit.prevent="createToken">
             <input v-model.trim="tok.name" type="text" placeholder="Name, e.g. prometheus" style="flex: 1; min-width: 180px" required>
             <select v-model.number="tok.expires_days" class="auto">
               <option :value="30">30 days</option><option :value="90">90 days</option><option :value="365">1 year</option><option :value="0">never expires</option>
@@ -91,7 +91,7 @@ const PERM_LABEL = { host: 'Hosts', network: 'Networks', alias: 'Aliases', integ
             <Field label="New" :error="pwErrors.new" hint="10+ characters"><input v-model="pw.new" type="password" autocomplete="new-password" required></Field>
             <Field label="New again" :error="pwErrors.again"><input v-model="pw.again" type="password" autocomplete="new-password" required></Field>
           </div>
-          <button class="btn primary" style="margin-top: 12px">Change password</button>
+          <button class="btn primary mt-3">Change password</button>
         </form>
       </div>
       <aside class="card">

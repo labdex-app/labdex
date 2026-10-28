@@ -43,7 +43,7 @@ function adopt(c) {
 
 <template>
   <div class="amap">
-    <div v-if="d && !d.prefixes.length" class="card"><p class="faint" style="margin: 0">This network has no IPv4 prefix to draw.</p></div>
+    <div v-if="d && !d.prefixes.length" class="card"><p class="faint m-0">This network has no IPv4 prefix to draw.</p></div>
     <template v-else-if="d">
       <div class="mapbar">
         <label v-if="d.prefixes.length > 1" class="small">Prefix <select v-model="prefix" class="auto">
@@ -66,15 +66,15 @@ function adopt(c) {
         <div class="row"><b class="mono">{{ sel.ip }}</b><span class="lg small"><i :class="`c-${sel.state}`"></i>{{ STATES[sel.state][0] }}</span>
           <span v-if="sel.pool" class="tag">in the DHCP pool</span><span v-if="sel.gateway" class="tag">gateway</span>
           <span class="grow"></span><button class="btn small ghost" @click="sel = null">Close</button></div>
-        <div v-for="(o, n) in sel.owners" :key="n" class="small" style="margin-top: 6px">
+        <div v-for="(o, n) in sel.owners" :key="n" class="small mt-2">
           <RouterLink v-if="o.host" :to="`/hosts/${o.host}?tab=network`">{{ o.fun || o.host }}</RouterLink><span v-else class="faint">a host you can’t see</span>
           <span v-if="o.label" class="mono faint"> {{ o.label }}</span><span v-if="o.mac" class="mono faint"> · {{ o.mac }}</span>
           <span v-if="o.status" class="faint"> · {{ o.status }}</span>
         </div>
-        <div v-if="sel.seen" class="small" style="margin-top: 6px">Discovery saw <span v-if="sel.seen.hostname" class="mono">{{ sel.seen.hostname }}</span>
+        <div v-if="sel.seen" class="small mt-2">Discovery saw <span v-if="sel.seen.hostname" class="mono">{{ sel.seen.hostname }}</span>
           <span v-if="sel.seen.mac" class="mono"> {{ sel.seen.mac }}</span><span v-if="sel.seen.vendor" class="faint"> ({{ sel.seen.vendor }})</span>
           <span v-if="sel.state === 'conflict' && sel.owners[0]?.mac && sel.seen.mac !== sel.owners[0].mac" class="c-red"> — not the MAC the inventory has</span></div>
-        <button v-if="sel.state === 'seen' && can('host', 'edit')" class="btn small primary" style="margin-top: 10px" @click="adopt(sel)">Add it as a host</button>
+        <button v-if="sel.state === 'seen' && can('host', 'edit')" class="btn small primary mt-3" @click="adopt(sel)">Add it as a host</button>
       </div>
       <p class="hint">Click a free address to make a host with it, a used one to see who has it. Shaded cells are in the DHCP pool.</p>
     </template>

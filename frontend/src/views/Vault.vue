@@ -111,13 +111,13 @@ async function savePassphrase() {
             <button class="btn primary" style="margin-top: 20px" :disabled="busy || !pass.one">Unseal</button>
           </form>
         </template>
-        <p v-else class="small muted" style="margin: 0">Names show, values don’t, until an administrator unseals the vault with its passphrase.</p>
+        <p v-else class="small muted m-0">Names show, values don’t, until an administrator unseals the vault with its passphrase.</p>
       </div>
       <SecretList ref="list" :search="search" />
     </template>
 
     <Modal v-if="change" title="Change the passphrase" :busy="busy" @close="change = null">
-      <p class="small muted" style="margin: 0">The secrets stay as they are; only the passphrase that opens them changes.</p>
+      <p class="small muted m-0">The secrets stay as they are; only the passphrase that opens them changes.</p>
       <Field label="Current passphrase" :error="change.errors.current"><input v-model="change.current" type="password" autocomplete="current-password"></Field>
       <Field label="New passphrase" :error="change.errors.next" hint="At least 12 characters"><input v-model="change.next" type="password" autocomplete="new-password"></Field>
       <Field label="Once more" :error="change.errors.again"><input v-model="change.again" type="password" autocomplete="new-password"></Field>

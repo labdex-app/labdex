@@ -71,7 +71,7 @@ async function turn(p) {
 <template>
   <div class="page">
     <div class="page-head"><h1>About labdex</h1><span class="sub">{{ data?.version || state.meta.version }}</span></div>
-    <div class="warnbox small" style="margin-bottom: 16px"><b>Built with AI, for home labs only.</b> labdex was written largely with an AI coding
+    <div class="warnbox small mb-4"><b>Built with AI, for home labs only.</b> labdex was written largely with an AI coding
       assistant (Claude), directed and reviewed by a human. It hasn't had an independent security audit and may contain security problems:
       run it on a trusted home network, not on the internet or for production.</div>
     <div v-if="data" class="split">
@@ -87,12 +87,12 @@ async function turn(p) {
       <aside>
         <div v-if="data.update_check" class="card">
           <h3>Updates</h3>
-          <p v-if="!data.update_check.latest" class="faint" style="margin: 0">No answer from <a :href="data.update_check.project" target="_blank" rel="noopener">{{ data.update_check.project.replace('https://', '') }}</a>: {{ data.update_check.error || 'unknown' }}.</p>
-          <p v-else-if="data.update_check.newer" style="margin: 0">
+          <p v-if="!data.update_check.latest" class="faint m-0">No answer from <a :href="data.update_check.project" target="_blank" rel="noopener">{{ data.update_check.project.replace('https://', '') }}</a>: {{ data.update_check.error || 'unknown' }}.</p>
+          <p v-else-if="data.update_check.newer" class="m-0">
             <strong>{{ data.update_check.latest.tag }}</strong> is out.
             <a :href="data.update_check.latest.url" target="_blank" rel="noopener">Release notes ↗</a>
           </p>
-          <p v-else style="margin: 0">Up to date (latest: {{ data.update_check.latest.tag }}).</p>
+          <p v-else class="m-0">Up to date (latest: {{ data.update_check.latest.tag }}).</p>
           <div class="check-row">
             <span v-if="checkedAt" class="faint small">Checked {{ checkedAt }}</span>
             <button class="btn small" :disabled="checking" @click="checkNow">{{ checking ? 'Checking…' : 'Check now' }}</button>

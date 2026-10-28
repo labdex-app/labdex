@@ -22,7 +22,7 @@ const emit = defineEmits(['tab'])
             <td><RouterLink :to="`/integrations/${x.integration}`" class="mono">{{ x.integration }}</RouterLink></td>
             <td><span class="hstate" :class="x.state">{{ x.state }}</span></td><td class="small faint">{{ x.detail }}</td></tr></tbody>
         </table>
-        <p v-else class="small faint" style="margin: 8px 0 0">{{ host.health?.discovery ? 'Seen by Discovery; no monitor reports this host.' : 'No monitor reports this host.' }}</p>
+        <p v-else class="small faint m-0 mt-2">{{ host.health?.discovery ? 'Seen by Discovery; no monitor reports this host.' : 'No monitor reports this host.' }}</p>
       </div>
       <div class="card">
         <h3>Addresses</h3>
@@ -30,7 +30,7 @@ const emit = defineEmits(['tab'])
           <span class="faint small">{{ i.label || i.network }}</span>
           <span class="addrs"><Copy v-for="a in [i.ip4, i.ip6, ...(i.extra_ips || [])].filter(Boolean)" :key="a" :text="a" /></span>
         </div>
-        <p v-if="!host.interfaces.some((x) => x.ip4 || x.ip6)" class="small faint" style="margin: 0">No addresses.</p>
+        <p v-if="!host.interfaces.some((x) => x.ip4 || x.ip6)" class="small faint m-0">No addresses.</p>
       </div>
       <div class="card">
         <h3>Where</h3>

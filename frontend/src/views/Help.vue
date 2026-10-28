@@ -59,7 +59,7 @@ async function copyReport() {
         <h2><LifeBuoy :size="17" /> For a bug report</h2>
         <pre class="rep">{{ report }}</pre>
         <button class="btn small" @click="copyReport"><CopyIcon :size="14" /> Copy</button>
-        <p class="small faint" style="margin-bottom: 0">Nothing is sent anywhere; this only goes where you paste it.</p>
+        <p class="small faint mb-0">Nothing is sent anywhere; this only goes where you paste it.</p>
       </section>
     </div>
     <p class="small muted">labdex was built with an AI coding assistant and is meant for home labs: keep it on a trusted network.</p>

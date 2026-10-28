@@ -5,7 +5,7 @@ import Modal from './Modal.vue'
 
 <template>
   <Modal v-if="confirmState.open" :title="confirmState.title" @close="answer(false)">
-    <p v-if="confirmState.body" style="margin: 0" class="muted">{{ confirmState.body }}</p>
+    <p v-if="confirmState.body" class="muted m-0">{{ confirmState.body }}</p>
     <template #foot>
       <span class="grow"></span>
       <button class="btn" @click="answer(false)">Cancel</button>
