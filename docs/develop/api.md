@@ -79,3 +79,7 @@ takes a host or network name (`/api/hosts/<name>`, `/api/networks/<name>`, …) 
 
 Within 1.x, fields and endpoints are added, not removed or renamed
 ([Upgrading](../operate/upgrading.md#within-1x)).
+
+## Change sets
+
+`GET/POST /api/changesets`, `GET/PUT/DELETE /api/changesets/<uid>`, `POST /api/changesets/<uid>/preview` and `/apply` (422 with the report when a change is refused). A body is `{name, description, yaml}`.

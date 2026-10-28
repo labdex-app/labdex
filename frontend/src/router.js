@@ -27,6 +27,7 @@ export const router = createRouter({
     { path: '/m/:integration/:page', redirect: (to) => ({ path: `/integrations/${to.params.integration}`, query: { tab: to.params.page } }) }, // old links
     { path: '/history', component: () => import('./views/History.vue'), meta: { title: 'History' } },
     { path: '/history/:id', component: () => import('./views/HistoryEvent.vue'), props: true, meta: { title: 'Change' } },
+    { path: '/changesets', component: () => import('./views/ChangeSets.vue'), meta: { title: 'Change sets' } },
     { path: '/lint', component: () => import('./views/Lint.vue'), meta: { title: 'Lint' } },
     { path: '/account', component: () => import('./views/Account.vue'), meta: { title: 'Account' } },
     { path: '/topology', component: () => import('./views/Topology.vue'), meta: { title: 'Topology' } },

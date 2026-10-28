@@ -1,10 +1,11 @@
 // Thin fetch wrapper. The browser session cookie carries the login; the custom
 // header is labdex's CSRF guard (a cross-site form can't set it).
 export class ApiError extends Error {
-  constructor(status, message, errors = []) {
+  constructor(status, message, errors = [], body = {}) {
     super(message)
     this.status = status
     this.errors = errors
+    this.body = body
   }
 
   // { 'interfaces[0].ip4': 'message', ... }
@@ -29,7 +30,7 @@ async function request(method, path, body, { text = false } = {}) {
     let data = {}
     try { data = await res.json() } catch { /* not JSON */ }
     if (res.status === 401 && !path.startsWith('/api/auth/')) onUnauthorized()
-    throw new ApiError(res.status, data.error || `${res.status} ${res.statusText}`, data.errors || [])
+    throw new ApiError(res.status, data.error || `${res.status} ${res.statusText}`, data.errors || [], data)
   }
   return text ? res.text() : res.json()
 }

@@ -19,7 +19,7 @@ import re
 import requests
 
 from . import audit, naming, store
-from .models import Host, Network, Setting, db
+from .models import Host, Network, db
 
 STATUS = {"active": "active", "planned": "planned", "staged": "planned", "inventory": "planned", "offline": "offline",
           "failed": "offline", "decommissioning": "legacy", "retired": "legacy", "legacy": "legacy"}
@@ -357,9 +357,7 @@ def run(plan: dict, zone: str, zone_map: dict | None = None, apply: bool = False
         raise store.ValidationError([{"field": "zone_map", "message": f"unknown zone '{bad[0]}'"}])
 
     out = {"created": {"networks": [], "hosts": []}, "skipped": [], "failed": [], "warnings": list(plan.get("warnings", []))}
-    # SQLite's driver only begins a transaction at the first write; a SAVEPOINT released before that would commit
-    # everything. A write that changes nothing makes the whole run one transaction, so a preview can be rolled back.
-    db.session.execute(db.update(Setting).where(Setting.key == "").values(value=""))
+    store.ensure_transaction()  # a preview applies everything and rolls it back
     taken_vlans = {n.vlan for n in db.session.scalars(db.select(Network)) if n.vlan}
     existing_prefixes = {str(net) for net, _ in _networks_by_prefix()}
     try:

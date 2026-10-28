@@ -53,6 +53,7 @@ nav:
       - Hosts, networks, services: guide/inventory.md
       - Working fast: guide/working-fast.md
       - Coming from another tool: guide/import.md
+      - Change sets: guide/change-sets.md
       - DNS: guide/dns.md
       - Zone policy and firewall: guide/policy.md
       - Plans and approvals: guide/plans.md

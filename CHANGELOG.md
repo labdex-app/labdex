@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Change sets** (Automation › Change sets, `labdex changeset FILE`): write a batch of network,
+  host and alias changes (and deletions) as YAML, **preview** it (what each change does, the lint
+  findings it adds or resolves, the firewall aliases and DNS records that change; nothing is saved),
+  then **apply** it as one unit: all of it or none, one history entry per object named after the
+  set, and each change checked against your permissions. See *Change sets* in the guide.
+
 ### For plugin authors
 - **`labdex.testing`**: `PluginHarness` loads a plugin folder, validates its manifest and calls
   `run_`, `plan_`, `apply_`, `export_`, `endpoint_`, `page_`, `widget_` and `host_view` with a real

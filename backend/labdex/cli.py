@@ -8,6 +8,7 @@
     labdex export [-o file]            write the inventory as YAML
     labdex lint                        check conventions; exit 1 on errors
     labdex diff --since 7d             what changed in the inventory since then
+    labdex changeset FILE [--apply]    preview (or apply) a file of inventory changes as one unit
     labdex openapi [-o file]           the OpenAPI description of the REST API
     labdex import-from SOURCE          add networks and hosts from netbox, phpipam or csv (preview first)
     labdex plugins                     list plugins and integrations
@@ -128,6 +129,42 @@ def register(app: Flask) -> None:
             audit.record("import", "inventory", source, None, {"networks": len(out["created"]["networks"]), "hosts": len(out["created"]["hosts"])},
                          summary=f"added from {source}")
             db.session.commit()
+
+    @app.cli.command("changeset")
+    @click.argument("file", type=click.Path(exists=True, dir_okay=False))
+    @click.option("--name", help="Name for the history entries (default: the file name)")
+    @click.option("--apply", "do_apply", is_flag=True, help="Save the changes. Without it nothing is kept: a preview")
+    def changeset_cmd(file, name, do_apply):
+        """Preview or apply a YAML file of network, host and alias changes as one unit: all or nothing.
+
+        Exits 1 when any change is refused. See docs/guide/change-sets.md for the format."""
+        import os
+
+        from . import changesets
+        try:
+            with open(file, encoding="utf-8") as f:
+                patch = changesets.parse(f.read())
+            rep = changesets.run(patch, name or os.path.basename(file), None, apply=do_apply)
+        except changesets.PatchError as exc:
+            raise click.ClickException(str(exc)) from None
+        for o in rep["operations"]:
+            click.echo(f"{o['action'] or o['op']:<8} {o['type']:<8} {o['name']}" + (f"  ({', '.join(o['fields'])})" if o["fields"] else ""))
+            for e in o["errors"]:
+                click.echo(f"    ! {e}")
+        if rep["ok"]:
+            for i in rep["lint"]["new"]:
+                click.echo(f"new lint  {i['severity']:<8} {i['message']}")
+            for i in rep["lint"]["resolved"]:
+                click.echo(f"resolved  {i['message']}")
+            click.echo(f"aliases +{len(rep['aliases']['added'])} -{len(rep['aliases']['removed'])} ~{len(rep['aliases']['changed'])}; "
+                       f"DNS +{len(rep['dns']['added'])} -{len(rep['dns']['removed'])}")
+        if rep["applied"]:
+            click.echo("applied")
+        elif rep["ok"]:
+            click.echo("preview only: nothing was saved (run again with --apply)")
+        else:
+            click.echo("nothing was saved", err=True)
+            sys.exit(1)
 
     @app.cli.command("openapi")
     @click.option("-o", "--output", type=click.Path(dir_okay=False), help="Write to a file instead of the terminal")
