@@ -2,6 +2,7 @@
 // Plugin widgets, drawn by labdex from declarative data (no plugin code in the browser).
 import { computed, ref } from 'vue'
 import { useQuery } from '../query'
+import Loading from './Loading.vue'
 
 // only: {integration, widget} draws just that one (a dashboard card); bare: no margin around it
 const props = defineProps({ url: { type: String, required: true }, title: { type: String, default: '' }, only: { type: Object, default: null }, bare: Boolean, flat: Boolean })
@@ -42,7 +43,7 @@ const key = (w) => `${w.integration}/${w.id}`
           <component :is="w.data?.link ? 'RouterLink' : 'span'" :to="w.data?.link" class="wlabel">{{ w.label }}</component>
           <RouterLink :to="`/integrations/${w.integration}`" class="wsrc">{{ w.integration }}</RouterLink>
         </div>
-        <div v-if="!w.data" class="faint small">…</div>
+        <Loading v-if="!w.data" inline />
         <div v-else-if="w.data.kind === 'error'" class="small c-red werr" :title="w.data.error">✕ {{ w.data.error }}</div>
 
         <template v-else-if="w.data.kind === 'stat'">

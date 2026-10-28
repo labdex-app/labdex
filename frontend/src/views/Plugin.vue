@@ -55,16 +55,16 @@ async function create() {
         <TrustBadge :trust="d.trust" /><span v-if="d.isolated" class="tag" title="Its code runs in a locked-down process of its own">isolated</span>
       </div>
       <p class="muted" style="margin-top: -6px">{{ d.description }}</p>
-      <div v-if="d.installed === false" class="warnbox row" style="margin-bottom: 16px">
+      <div v-if="d.installed === false" class="warnbox row mb-4">
         <span class="grow">Not installed. It's a development checkout; install it to add instances.</span>
         <button v-if="d.can_install" class="btn primary small" @click="install">Install</button>
       </div>
-      <div v-if="d.error" class="errbox" style="margin-bottom: 16px">The plugin failed to load: <code>{{ d.error }}</code></div>
+      <div v-if="d.error" class="errbox mb-4">The plugin failed to load: <code>{{ d.error }}</code></div>
 
       <div class="split">
         <div class="stack">
           <div class="card flush">
-            <div class="row" style="padding: 14px 18px 4px"><h2 style="margin: 0">Instances</h2></div>
+            <div class="row" style="padding: 14px 18px 4px"><h2 class="m-0">Instances</h2></div>
             <div class="table-wrap">
               <table>
                 <thead><tr><th>Name</th><th>State</th><th>Last run</th><th>Applies to</th></tr></thead>
@@ -89,7 +89,7 @@ async function create() {
           </div>
 
           <div v-if="d.jobs.length" class="card flush">
-            <div class="row" style="padding: 14px 18px 4px"><h2 style="margin: 0">Recent jobs</h2></div>
+            <div class="row" style="padding: 14px 18px 4px"><h2 class="m-0">Recent jobs</h2></div>
             <div class="table-wrap">
               <table>
                 <thead><tr><th>#</th><th>Instance</th><th>Action</th><th>Status</th><th>When</th></tr></thead>
@@ -106,7 +106,7 @@ async function create() {
 
         <aside class="stack">
           <div class="card">
-            <h3 style="margin-top: 0">Brings</h3>
+            <h3 class="mt-0">Brings</h3>
             <ul class="plain caps">
               <li v-for="(label, c) in d.capability_labels" :key="c"><span class="tag">{{ c }}</span> <span class="small muted">{{ label }}</span></li>
             </ul>
@@ -123,7 +123,7 @@ async function create() {
             </template>
           </div>
           <div class="card">
-            <h3 style="margin-top: 0">About</h3>
+            <h3 class="mt-0">About</h3>
             <dl class="kv small">
               <dt>version</dt><dd class="mono">{{ d.version || '—' }}</dd>
               <template v-if="d.requires"><dt>works with</dt><dd class="mono">labdex {{ d.requires }}</dd></template>

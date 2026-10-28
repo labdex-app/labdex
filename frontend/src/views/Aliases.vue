@@ -101,13 +101,13 @@ async function remove() {
           <input v-model.trim="form.fw_id" type="text" class="mono" :class="{ invalid: errors.fw_id }" placeholder="HG_SPECIAL_ADMIN" :maxlength="max">
         </Field>
       </div>
-      <div class="grid2" style="margin-top: 14px">
+      <div class="grid2 mt-4">
         <Field label="Type" :error="errors.type">
           <select v-model="form.type"><option v-for="t in state.meta.alias_types" :key="t">{{ t }}</option></select>
         </Field>
         <Field label="Description"><input v-model="form.description" type="text"></Field>
       </div>
-      <div class="grid2" style="margin-top: 14px">
+      <div class="grid2 mt-4">
         <Field label="Members, one per line" :error="errors.members">
           <textarea v-model="form.members" rows="8" class="mono" placeholder="host:srv-vm-dns-01&#10;network:mgmt&#10;zone:DC_TC&#10;alias:HG_ZONE_CA_ST_ADMIN&#10;10.0.0.0/8"></textarea>
         </Field>

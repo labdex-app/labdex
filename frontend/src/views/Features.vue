@@ -118,7 +118,7 @@ async function remove() {
               <textarea v-model="form.roles" rows="2" spellcheck="false" placeholder="geerlingguy.ntp"></textarea>
             </Field>
           </fieldset>
-          <div v-if="canEdit" class="row" style="margin-top: 14px">
+          <div v-if="canEdit" class="row mt-4">
             <button class="btn primary">Save</button>
             <button v-if="sel" type="button" class="btn danger" @click="remove">Delete</button>
             <button type="button" class="btn ghost" @click="form = sel = null">Close</button>
@@ -133,8 +133,8 @@ async function remove() {
             </ol>
             <h3>Merged variables here</h3>
             <pre class="code">{{ Object.keys(sel.merged_vars).length ? toYaml(sel.merged_vars) : '(none)' }}</pre>
-            <h3 style="margin-top: 14px">Hosts ({{ sel.hosts.length }})</h3>
-            <p class="small" style="margin: 0">
+            <h3 class="mt-4">Hosts ({{ sel.hosts.length }})</h3>
+            <p class="small m-0">
               <RouterLink v-for="(h, n) in sel.hosts" :key="h" :to="`/hosts/${h}`" class="mono">{{ h }}{{ n < sel.hosts.length - 1 ? ', ' : '' }}</RouterLink>
               <span v-if="!sel.hosts.length" class="faint">None yet: add the feature on a host's page.</span>
             </p>

@@ -59,7 +59,7 @@ async function copyReport() {
         <h2><LifeBuoy :size="17" /> For a bug report</h2>
         <pre class="rep">{{ report }}</pre>
         <button class="btn small" @click="copyReport"><CopyIcon :size="14" /> Copy</button>
-        <p class="small faint" style="margin-bottom: 0">Nothing is sent anywhere; this only goes where you paste it.</p>
+        <p class="small faint mb-0">Nothing is sent anywhere; this only goes where you paste it.</p>
       </section>
     </div>
     <p class="small muted">labdex was built with an AI coding assistant and is meant for home labs: keep it on a trusted network.</p>
@@ -77,6 +77,6 @@ async function copyReport() {
 .split2 h2 { display: flex; align-items: center; gap: 8px; }
 .keys { display: grid; grid-template-columns: max-content 1fr; gap: 8px 14px; margin: 0; }
 .keys dd { margin: 0; color: var(--muted); }
-kbd { font-family: var(--mono); font-size: calc(12px * var(--text)); border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; background: var(--raise); }
+kbd { font-family: var(--mono); font-size: calc(12px * var(--text)); border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: var(--r-ctl); padding: 1px 6px; background: var(--raise); }
 .rep { background: var(--raise); border-radius: var(--r-ctl); padding: 10px 12px; font-size: calc(12px * var(--text)); white-space: pre-wrap; word-break: break-all; margin: 0 0 10px; }
 </style>

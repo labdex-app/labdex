@@ -7,7 +7,7 @@ const tone = (t) => ({ ok: 'ok', warn: 'warn', err: 'err' }[t] || '')
 <template>
   <div v-if="view?.error" class="errbox small">{{ view.error }}</div>
   <template v-else-if="view">
-    <div v-if="view.summary?.length" class="row" style="margin-bottom: 10px">
+    <div v-if="view.summary?.length" class="row mb-3">
       <span v-for="s in view.summary" :key="s.label" class="sumchip" :class="tone(s.tone)"><b>{{ s.value }}</b> {{ s.label }}</span>
     </div>
     <div v-for="(sec, n) in view.sections || []" :key="n" class="sec">
@@ -26,7 +26,7 @@ const tone = (t) => ({ ok: 'ok', warn: 'warn', err: 'err' }[t] || '')
             </tbody>
           </table>
         </div>
-        <p v-else class="faint small" style="margin: 0">{{ sec.empty || 'Nothing.' }}</p>
+        <p v-else class="faint small m-0">{{ sec.empty || 'Nothing.' }}</p>
       </template>
       <ul v-else-if="sec.type === 'list'" class="plain">
         <li v-for="x in sec.items" :key="x" class="mono small">{{ x }}</li>

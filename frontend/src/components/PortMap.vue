@@ -59,7 +59,7 @@ function show(p, ev) {
   border-radius: var(--r-box); padding: 10px 12px; overflow-x: auto; }
 .block { display: flex; flex-direction: column; gap: 4px; }
 .prow { display: flex; gap: 4px; }
-.port { width: 26px; height: 22px; border-radius: 3px; border: 1.5px solid var(--line-strong); background: var(--bg); cursor: pointer; padding: 0;
+.port { width: 26px; height: 22px; border-radius: var(--r-sm); border: 1.5px solid var(--line-strong); background: var(--bg); cursor: pointer; padding: 0;
   display: grid; place-items: center; font: inherit; }
 .cage .port { width: 30px; height: 16px; border-radius: 2px; }
 .port .n { font-size: calc(9px * var(--text)); color: var(--faint); font-family: var(--mono, 'Red Hat Mono', monospace); }

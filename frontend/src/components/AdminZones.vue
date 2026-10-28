@@ -170,7 +170,7 @@ const areaHex = computed(() => Object.fromEntries((z.value?.areas || []).map((a)
 .lead { margin: 0; max-width: 78ch; }
 .ahead { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
 .adesc { margin-left: 4px; }
-.swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.swatch { width: 12px; height: 12px; border-radius: var(--r-sm); flex: none; }
 .ah { font-size: calc(15px * var(--text)); font-weight: 600; }
 .ah .mono { margin-right: 6px; }
 .ph { visibility: hidden; }

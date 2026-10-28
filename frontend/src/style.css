@@ -24,6 +24,8 @@
   --ok: #4ade80;
   --warn: #fbbf24;
   --err: #f87171;
+  --err-solid: #b91c1c;        /* filled danger: a destructive button, an error toast (both themes) */
+  --err-solid-hover: #991b1b;
   --c-magenta: #e879f9;
   --c-green: #4ade80;
   --c-yellow: #fbbf24;
@@ -36,6 +38,7 @@
   --text: 1.0714;    /* every font size is a 14px-base size times this: Comfortable (15px); see theme.js */
   --r-ctl: 6px;      /* inputs, buttons, chips */
   --r-box: 10px;     /* cards, dialogs */
+  --r-sm: 4px;       /* badges, swatches, small marks */
   --gap: 16px;
   --code: #d9cffd;
   --scrim: rgba(8, 9, 12, .62);
@@ -190,6 +193,15 @@ input:not([type]), input[type=text], input[type=search], input[type=password], i
 textarea { font-family: var(--mono); font-size: calc(12.5px * var(--text)); resize: vertical; }
 input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-faint); }
 input.invalid, select.invalid, textarea.invalid { border-color: var(--err); }
+/* every dropdown: one chevron, drawn in the theme's colours, the same in every browser.
+   .auto sizes it to its options instead of the column; .small is the compact one (like .btn.small) for toolbars and table rows */
+select:not([multiple]):not([size]) { appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 28px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
+select.auto { width: auto; max-width: 100%; }
+select.small { padding-top: 3px; padding-bottom: 3px; padding-left: 8px; font-size: calc(12.5px * var(--text)); }
+select.small:not([multiple]):not([size]) { padding-right: 24px; background-position: calc(100% - 13px) 52%, calc(100% - 8px) 52%; }
+select[multiple], select[size] { padding: 4px; }
 .err { color: var(--err); font-size: calc(12px * var(--text)); margin-top: 3px; }
 .hint { color: var(--faint); font-size: calc(12px * var(--text)); margin-top: 3px; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
@@ -222,7 +234,8 @@ tbody tr:last-child td { border-bottom: 0; }
 tr.click { cursor: pointer; }
 tr.click:hover td { background: var(--hover); }
 table.edit td { padding: 5px 6px; vertical-align: middle; }
-table.edit input, table.edit select { padding: 5px 8px; }
+table.edit input, table.edit select { padding-top: 5px; padding-bottom: 5px; padding-left: 8px; }
+table.edit input { padding-right: 8px; }
 
 /* chips and badges */
 .chip {
@@ -236,18 +249,18 @@ table.edit input, table.edit select { padding: 5px 8px; }
 .filters .lbl:first-child { margin-left: 0; }
 .zone {
   color: color-mix(in srgb, var(--zc, var(--muted)) var(--zone-mix), var(--ink));
-  display: inline-block; padding: 0 7px; border-radius: 4px; font-size: calc(12px * var(--text)); font-weight: 500; line-height: 20px;
+  display: inline-block; padding: 0 7px; border-radius: var(--r-sm); font-size: calc(12px * var(--text)); font-weight: 500; line-height: 20px;
   border: 1px solid color-mix(in srgb, currentColor 55%, transparent); background: color-mix(in srgb, currentColor 9%, transparent);
   white-space: nowrap; font-family: var(--mono);
 }
 .c-magenta { color: var(--c-magenta); } .c-green { color: var(--c-green); } .c-yellow { color: var(--c-yellow); }
 .c-blue { color: var(--c-blue); } .c-red { color: var(--c-red); } .c-white { color: var(--c-white); }
-.status { font-size: calc(11.5px * var(--text)); font-weight: 600; padding: 1px 8px; border-radius: 6px; white-space: nowrap; }
+.status { font-size: calc(11.5px * var(--text)); font-weight: 600; padding: 1px 8px; border-radius: var(--r-ctl); white-space: nowrap; }
 .s-active { color: var(--ok); background: rgba(74, 222, 128, .1); }
 .s-planned { color: var(--accent-soft); background: var(--accent-faint); }
 .s-legacy { color: var(--warn); background: rgba(251, 191, 36, .1); }
 .s-offline { color: var(--faint); background: rgba(255, 255, 255, .05); }
-.sev { font-size: calc(12px * var(--text)); font-weight: 500; padding: 1px 7px; border-radius: 4px; }
+.sev { font-size: calc(12px * var(--text)); font-weight: 500; padding: 1px 7px; border-radius: var(--r-sm); }
 .sev-error { color: var(--err); background: rgba(248, 113, 113, .12); }
 .sev-warning { color: var(--warn); background: rgba(251, 191, 36, .12); }
 .sev-info { color: var(--muted); background: rgba(255, 255, 255, .06); }
@@ -267,7 +280,18 @@ pre.code {
 .bar { height: 6px; background: var(--raise); border-radius: 3px; overflow: hidden; min-width: 80px; }
 .bar > div { height: 100%; background: var(--accent); }
 .bar.hot > div { background: var(--warn); }
-.empty { padding: 32px; text-align: center; color: var(--faint); }
+.empty { padding: 32px 16px; text-align: center; color: var(--faint); }
+/* nothing to show. .empty centres a quiet note in a page, card or table cell (an icon, a line, an action);
+   .boxed draws the space it would fill; .list-empty is the row of an empty .list; .empty-line is a one-line note in a card */
+.empty > svg { display: block; margin: 0 auto 8px; }
+.empty > p { margin: 0 auto; max-width: 60ch; }
+.empty > p + p { margin-top: 4px; }
+.empty > .btn { margin-top: 12px; }
+.empty.boxed { border: 1px dashed var(--line-strong); border-radius: var(--r-box); }
+.empty-line { margin: 0; color: var(--faint); }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
 .kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; }
 .kv dt { color: var(--muted); }
 .kv dd { margin: 0; word-break: break-word; }
@@ -284,7 +308,7 @@ ul.plain li { padding: 3px 0; word-break: break-all; }
 .tabs a { padding: 8px 12px; color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; white-space: nowrap; }
 .tabs a:hover { color: var(--ink); text-decoration: none; }
 .tabs a.router-link-active { color: var(--ink); border-bottom-color: var(--accent); }
-.js { font-size: calc(11.5px * var(--text)); font-weight: 600; padding: 1px 8px; border-radius: 6px; white-space: nowrap; }
+.js { font-size: calc(11.5px * var(--text)); font-weight: 600; padding: 1px 8px; border-radius: var(--r-ctl); white-space: nowrap; }
 .js-succeeded, .js-applied { color: var(--ok); background: rgba(74, 222, 128, .1); }
 .js-planned { color: var(--accent-soft); background: var(--accent-faint); }
 .js-approved { color: var(--warn); background: rgba(251, 191, 36, .1); }
@@ -308,7 +332,7 @@ ul.plain li { padding: 3px 0; word-break: break-all; }
 fieldset.bare { border: 0; padding: 0; margin: 0; min-width: 0; }
 fieldset.bare.wide { margin-top: 16px; }
 .more { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
-.vipb { font-size: calc(11.5px * var(--text)); padding: 0 6px; border: 1px solid var(--line-strong); border-radius: 4px; }
+.vipb { font-size: calc(11.5px * var(--text)); padding: 0 6px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); }
 select:disabled, input:disabled { opacity: .55; cursor: not-allowed; }
 .tcount { margin-left: 6px; font-size: calc(11px * var(--text)); color: var(--faint); font-weight: 600; }
 .demobar { background: rgba(96, 165, 250, .12); border-bottom: 1px solid rgba(96, 165, 250, .3); color: var(--ink); font-size: calc(12.5px * var(--text)); padding: 6px 18px; text-align: center; }
@@ -331,6 +355,15 @@ select:disabled, input:disabled { opacity: .55; cursor: not-allowed; }
 .li.nested2 { padding-left: 64px; }
 .list-empty { padding: 20px 16px; color: var(--faint); }
 
+/* menus and suggestion lists that drop down from a control: MenuButton, HostPicker, ChipInput, the account menu */
+.pop { background: var(--card); border: 1px solid var(--line-strong); border-radius: var(--r-box); padding: 4px; box-shadow: 0 12px 30px var(--shadow); }
+ul.pop { margin: 0; list-style: none; }
+.pop-item { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; font: inherit; font-size: calc(13px * var(--text)); color: var(--ink);
+  background: none; border: 0; border-radius: var(--r-ctl); padding: 7px 10px; cursor: pointer; }
+.pop-item:hover, .pop-item:focus-visible, .pop-item.on { background: var(--raise); outline: none; text-decoration: none; }
+.pop-item.danger { color: var(--err); }
+.pop-item:disabled { opacity: .45; cursor: not-allowed; }
+
 /* dialogs */
 .dlg-back { position: fixed; inset: 0; background: var(--scrim); display: grid; place-items: start center; padding: 8vh 16px 16px; z-index: 50; overflow-y: auto; }
 .dlg { width: min(560px, 100%); background: var(--card); border: 1px solid var(--line-strong); border-radius: var(--r-box);
@@ -341,8 +374,8 @@ select:disabled, input:disabled { opacity: .55; cursor: not-allowed; }
 .dlg-body { padding: 16px 20px; overflow-y: auto; }
 .dlg-body > * + * { margin-top: 14px; }
 .dlg-foot { display: flex; align-items: center; gap: 8px; justify-content: flex-end; padding: 12px 20px; border-top: 1px solid var(--line); background: var(--panel); border-radius: 0 0 var(--r-box) var(--r-box); }
-.btn.danger-solid { background: #b91c1c; border-color: #b91c1c; color: #fff; }
-.btn.danger-solid:hover { background: #991b1b; }
+.btn.danger-solid { background: var(--err-solid); border-color: var(--err-solid); color: #fff; }
+.btn.danger-solid:hover { background: var(--err-solid-hover); border-color: var(--err-solid-hover); }
 ::placeholder { color: var(--faint); opacity: .75; }
 .seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--r-ctl); overflow: hidden; align-self: flex-start; }
 .seg button { font: inherit; font-size: calc(13px * var(--text)); padding: 5px 14px; background: none; border: 0; color: var(--muted); cursor: pointer; }
@@ -357,6 +390,13 @@ select:disabled, input:disabled { opacity: .55; cursor: not-allowed; }
 .g2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; }
 .g3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 14px; align-items: start; }
 @media (max-width: 700px) { .g2, .g3 { grid-template-columns: minmax(0, 1fr); } }
+
+/* spacing on one scale (4, 8, 12, 16 px), for the one-off gap a layout rule doesn't give; !important so they win
+   like the inline styles they replace */
+.m-0 { margin: 0 !important; }
+.mt-0 { margin-top: 0 !important; } .mt-1 { margin-top: 4px !important; } .mt-2 { margin-top: 8px !important; } .mt-3 { margin-top: 12px !important; } .mt-4 { margin-top: 16px !important; }
+.mb-0 { margin-bottom: 0 !important; } .mb-1 { margin-bottom: 4px !important; } .mb-2 { margin-bottom: 8px !important; } .mb-3 { margin-bottom: 12px !important; } .mb-4 { margin-bottom: 16px !important; }
+.ml-1 { margin-left: 4px !important; } .ml-2 { margin-left: 8px !important; } .mr-1 { margin-right: 4px !important; } .mr-2 { margin-right: 8px !important; } .mr-3 { margin-right: 12px !important; }
 
 /* not on a phone (the sidebar's breakpoint) */
 @media (max-width: 860px) { .hide-m { display: none !important; } }

@@ -83,7 +83,7 @@ const swatch = (c) => CABLE_COLOURS.find((x) => x.name === c)?.hex || (/^#[0-9a-
       <label class="check small"><input v-model="unlabelled" type="checkbox"> Only cables without a label</label>
       <span v-if="q.data.value" class="small faint">Next free label: <span class="mono">{{ q.data.value.next_label }}</span></span>
     </div>
-    <p v-if="q.data.value && !all.length" class="emptyp">No cables yet. Add them on a host's Network tab or draw them on the topology.</p>
+    <p v-if="q.data.value && !all.length" class="empty">No cables yet. Add them on a host's Network tab or draw them on the topology.</p>
     <div v-else-if="all.length" class="card" style="padding: 0">
       <table>
         <thead><tr>

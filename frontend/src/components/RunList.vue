@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import JobBadge from './JobBadge.vue'
 import { useQuery } from '../query'
 import { ago } from '../store'
+import Loading from './Loading.vue'
 
 const props = defineProps({ host: { type: String, required: true } })
 const router = useRouter()
@@ -26,10 +27,10 @@ const runs = computed(() => q.data.value || [])
             <td class="small">{{ j.trigger }}<span v-if="j.trigger === 'manual'" class="faint"> · {{ j.created_by }}</span></td>
             <td class="small">{{ ago(j.created_at) }}</td>
           </tr>
-          <tr v-if="q.loading.value && !runs.length"><td colspan="6" class="empty">Loading…</td></tr>
-          <tr v-else-if="!runs.length"><td colspan="6" class="empty">Nothing has run for this host yet. Host actions and Ansible runs that include it show up here.</td></tr>
+          <tr v-if="!q.loading.value && !runs.length"><td colspan="6" class="empty">Nothing has run for this host yet. Host actions and Ansible runs that include it show up here.</td></tr>
         </tbody>
       </table>
+      <Loading v-if="q.loading.value && !runs.length" />
     </div>
   </div>
 </template>

@@ -18,10 +18,10 @@ const SWATCHES = ['#e879f9', '#a78bfa', '#60a5fa', '#22d3ee', '#4ade80', '#a3e63
 
 <style scoped>
 .cp { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-.sw { width: 22px; height: 22px; border-radius: 6px; border: 2px solid transparent; cursor: pointer; padding: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,.25); }
+.sw { width: 22px; height: 22px; border-radius: var(--r-ctl); border: 2px solid transparent; cursor: pointer; padding: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,.25); }
 .sw.none { background: repeating-linear-gradient(135deg, var(--raise) 0 4px, var(--line) 4px 8px); }
 .sw.on { border-color: var(--ink); }
-.picker { width: 22px; height: 22px; padding: 0; border: 0; border-radius: 6px; cursor: pointer; appearance: none; -webkit-appearance: none; overflow: hidden;
+.picker { width: 22px; height: 22px; padding: 0; border: 0; border-radius: var(--r-ctl); cursor: pointer; appearance: none; -webkit-appearance: none; overflow: hidden;
   background: conic-gradient(#f87171, #fbbf24, #4ade80, #22d3ee, #60a5fa, #a78bfa, #e879f9, #f87171); box-shadow: inset 0 0 0 1px rgba(0,0,0,.25); }
 .picker::-webkit-color-swatch-wrapper { padding: 0; }
 .picker::-webkit-color-swatch { border: 0; opacity: 0; } /* the rainbow says "any colour"; the swatches show the picked one */
