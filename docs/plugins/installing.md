@@ -22,16 +22,16 @@ Its key signs the index and every plugin in it. When you add one, labdex shows i
 name and key id: compare it with the one the publisher gives you. The key is pinned
 from then on; a re-signed index or a plugin signed with another key is refused.
 
-The **official Marketplace** ([labdex-plugins](https://github.com/reykimedev/labdex-plugins))
+The **official Marketplace** ([labdex-plugins](https://github.com/labdex-app/labdex-plugins),
+`https://labdex-app.github.io/labdex-plugins/index.json`)
 is trusted out of the box. Every official plugin lives in its own git repository; its signed
 releases are the versions you can install.
 
-Every plugin labdex ships (OPNsense, Technitium, Proxmox, Ansible, Backup, …) is an
-official plugin: it works from the first start without a download, and a fix for one
-arrives through the official repository without waiting for a labdex release. An
-installed update takes the shipped copy's place; removing the update ("Remove update")
-goes back to the shipped one, and integrations keep running either way. A broken update
-never replaces a working copy.
+Since 1.24.1 no plugin ships with labdex: the official ones (OPNsense, Technitium,
+Proxmox, Ansible, …) are installed from the Marketplace like any other, downloaded and
+signature-checked. A fix for one arrives through the official repository without waiting
+for a labdex release. Backups and the demo lab are part of labdex itself (*built in*).
+A broken update never replaces a working copy.
 
 ## Versions
 
