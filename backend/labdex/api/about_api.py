@@ -5,7 +5,7 @@ import platform
 import re
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 from flask import current_app, g, jsonify
@@ -96,7 +96,7 @@ def latest_release(url: str, force: bool = False) -> dict:
         except ValueError:
             out = {"error": "the answer wasn't a release"}
     now = time.time()
-    out = {**(out or {"error": "no answer"}), "checked": datetime.fromtimestamp(now, timezone.utc).isoformat(timespec="seconds")}
+    out = {**(out or {"error": "no answer"}), "checked": datetime.fromtimestamp(now, UTC).isoformat(timespec="seconds")}
     _release_cache[url] = (now, out)
     return out
 
