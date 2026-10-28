@@ -101,3 +101,15 @@ def test_permission_checks_need_only_the_host_basics(admin):
     for h in db.session.scalars(db.select(Host)):
         a, b = rbac.host_facts(store.host_access(h)), rbac.host_facts(store.host_to_dict(h))
         assert (a.name, a.names, a.zones, a.areas, a.networks, a.tags, a.seen_zones, a.seen_areas) == (b.name, b.names, b.zones, b.areas, b.networks, b.tags, b.seen_zones, b.seen_areas), h.name
+
+
+def test_no_insecure_request_warning():
+    """A device with TLS checking off (self-signed) doesn't flood the log."""
+    import warnings
+    import labdex
+    from urllib3.exceptions import InsecureRequestWarning
+    with warnings.catch_warnings(record=True) as seen:
+        warnings.simplefilter("default")
+        labdex.quiet_tls_warnings()
+        warnings.warn("Unverified HTTPS request", InsecureRequestWarning)
+    assert not seen

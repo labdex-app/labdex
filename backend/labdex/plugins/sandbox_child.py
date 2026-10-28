@@ -18,6 +18,14 @@ import os
 import sys
 from pathlib import Path, PurePath
 
+try:  # as labdex.quiet_tls_warnings, before a plugin's first request (labdex is imported later, lazily)
+    import warnings
+
+    from urllib3.exceptions import InsecureRequestWarning
+    warnings.filterwarnings("ignore", category=InsecureRequestWarning)
+except ImportError:
+    pass
+
 IN_FD, OUT_FD = 3, 4
 
 

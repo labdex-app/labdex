@@ -12,7 +12,22 @@ from sqlalchemy import event
 
 from .models import db
 
-__version__ = "1.24.1"
+
+
+def quiet_tls_warnings() -> None:
+    """No InsecureRequestWarning for every request to a device whose certificate you chose not
+    to check (a self-signed firewall, controller or hypervisor): that's a setting, not news."""
+    import warnings
+    try:
+        from urllib3.exceptions import InsecureRequestWarning
+    except ImportError:
+        return
+    warnings.filterwarnings("ignore", category=InsecureRequestWarning)
+
+
+quiet_tls_warnings()
+
+__version__ = "1.24.1-1"
 
 STATIC_DIR = Path(__file__).parent / "static"
 

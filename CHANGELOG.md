@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.24.1-1
+
+### Fixes
+- 
+
 ## 1.24.1
 
 ### labdex moved to labdex-app
