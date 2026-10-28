@@ -97,10 +97,10 @@ const link = (e) => ({ host: `/hosts/${e.object_name}`, network: `/networks/${e.
               </tr>
               <tr v-if="open.has(o.object_type + o.object_name)"><td /><td colspan="4"><Diff :rows="o.diff" /></td></tr>
             </template>
-            <tr v-if="!netData.objects.length && loading"><td colspan="5"><Loading /></td></tr>
-            <tr v-else-if="!netData.objects.length"><td colspan="5" class="empty">Nothing changed in that time.</td></tr>
+            <tr v-if="!netData.objects.length && !loading"><td colspan="5" class="empty">Nothing changed in that time.</td></tr>
           </tbody>
         </table>
+        <Loading v-if="!netData.objects.length && loading" />
       </div>
     </div>
 
@@ -127,10 +127,10 @@ const link = (e) => ({ host: `/hosts/${e.object_name}`, network: `/networks/${e.
                 <span v-else class="mono"> {{ e.object_name }}</span></td>
               <td class="small">{{ e.summary }}</td>
             </tr>
-            <tr v-if="!events.length && loading"><td colspan="5"><Loading /></td></tr>
-            <tr v-else-if="!events.length"><td colspan="5" class="empty">No changes match.</td></tr>
+            <tr v-if="!events.length && !loading"><td colspan="5" class="empty">No changes match.</td></tr>
           </tbody>
         </table>
+        <Loading v-if="!events.length && loading" />
       </div>
     </div>
     <div v-if="more && !net" style="text-align: center; margin-top: 14px"><button class="btn" :disabled="loading" @click="load(true)">Older</button></div>
