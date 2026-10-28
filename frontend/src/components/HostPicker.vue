@@ -5,11 +5,12 @@
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { useQuery } from '../query'
 
-const props = defineProps({ placeholder: { type: String, default: 'Host…' }, zone: String })
+const props = defineProps({ placeholder: { type: String, default: 'Host…' }, zone: String, all: Boolean, exclude: { type: Array, default: () => [] } })
 const emit = defineEmits(['pick'])
 // Only the fields it needs: a fraction of the full host list, shared by every picker on the page.
-const all = useQuery('/api/hosts?fields=name,fun,zone,kind,can_edit')
-const hosts = computed(() => (all.data.value || []).filter((h) => h.can_edit))
+const list = useQuery('/api/hosts?fields=name,fun,zone,kind,can_edit')
+// every host you can see (all), else the ones you may edit (to link them)
+const hosts = computed(() => (list.data.value || []).filter((h) => (props.all || h.can_edit) && !props.exclude.includes(h.name)))
 const q = ref('')
 const open = ref(false)
 const active = ref(0)

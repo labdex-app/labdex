@@ -29,6 +29,7 @@ export const router = createRouter({
     { path: '/lint', component: () => import('./views/Lint.vue'), meta: { title: 'Lint' } },
     { path: '/account', component: () => import('./views/Account.vue'), meta: { title: 'Account' } },
     { path: '/topology', component: () => import('./views/Topology.vue'), meta: { title: 'Topology' } },
+    { path: '/impact', component: () => import('./views/Impact.vue'), meta: { title: 'Impact' } },
     { path: '/zones', component: () => import('./views/Zones.vue'), meta: { title: 'Zones' } },
     { path: '/zones/:id', component: () => import('./views/ZoneView.vue'), props: true, meta: { title: 'Zone' } },
     { path: '/policy', component: () => import('./views/Policy.vue'), meta: { title: 'Zone policy' } },

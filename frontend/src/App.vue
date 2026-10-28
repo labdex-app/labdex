@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 import { api, setUnauthorizedHandler } from './api'
 import {
   AppWindow, Cable, ChevronRight, CircleCheck, GitFork, Github, Globe, History, Info, KeyRound, LayoutDashboard, Layers, LifeBuoy, ListTree, Menu, Network,
-  PanelLeftClose, PanelLeftOpen, Plug, Radar, Rows4, Search, Server, Settings, Shield, Tags, Waypoints,
+  PanelLeftClose, PanelLeftOpen, Plug, Radar, Rows4, Search, Server, Settings, Shield, Tags, Unplug, Waypoints,
 } from 'lucide-vue-next'
 import CommandPalette from './components/CommandPalette.vue'
 import { setTheme, theme } from './theme'
@@ -41,6 +41,7 @@ const groups = computed(() => {
     ]),
     G('network', 'Network', [
       { to: '/topology', label: 'Topology', icon: Waypoints },
+      { to: '/impact', label: 'Impact', icon: Unplug },
       { to: '/zones', label: 'Zones', icon: Layers },
       { to: '/policy', label: 'Policy', icon: Shield },
       { to: '/aliases', label: 'Aliases', icon: ListTree },
