@@ -4,6 +4,7 @@
 labdex import inventory.yaml       # replace the inventory (asks first; --yes to skip)
 labdex export -o inventory.yaml    # write the inventory
 labdex lint                        # exit 1 on errors; --warnings-as-errors for strict CI
+labdex import-from netbox|phpipam|csv --zone DC_TC   # add from another tool; preview first, --apply keeps it
 labdex openapi -o api.json        # the OpenAPI description of the REST API
 labdex diff --since 7d             # what changed since then (24h, 2w or a date; --fields for before/after)
 labdex user create NAME [--admin]  # labdex user password NAME

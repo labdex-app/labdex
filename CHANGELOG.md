@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Coming from another tool
+- **Add networks and hosts from NetBox, phpIPAM or CSV files**: Settings › *Add from other
+  tools*, or `labdex import-from netbox|phpipam|csv`. It only adds (what exists is skipped),
+  everything comes in under a zone you choose (or one per network), a preview keeps nothing, and
+  every new object is a History entry you can revert. IPv4 only for now. API:
+  `POST /api/admin/import/external`. See *Coming from another tool* in the guide.
+
 ### API
 - **OpenAPI description** at `GET /api/openapi.json` (sign in like for any call) and as
   `labdex openapi [-o file]`: every route with its methods, path parameters, who may call it

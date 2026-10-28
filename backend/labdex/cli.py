@@ -9,6 +9,7 @@
     labdex lint                        check conventions; exit 1 on errors
     labdex diff --since 7d             what changed in the inventory since then
     labdex openapi [-o file]           the OpenAPI description of the REST API
+    labdex import-from SOURCE          add networks and hosts from netbox, phpipam or csv (preview first)
     labdex plugins                     list plugins and integrations
     labdex action INTEGRATION ACTION   run an integration action (plans are applied with --apply)
     labdex worker                      run queued jobs and the scheduler (with LABDEX_WORKER=external)
@@ -76,6 +77,57 @@ def register(app: Flask) -> None:
                    + (f", {n_accepted} accepted" if n_accepted else ""))
         if s["error"] or (warnings_as_errors and s["warning"]):
             sys.exit(1)
+
+    @app.cli.command("import-from")
+    @click.argument("source", type=click.Choice(["csv", "netbox", "phpipam"]))
+    @click.option("--zone", required=True, help="The zone everything comes in under (a code like DC_TC)")
+    @click.option("--zone-map", "zone_map", multiple=True, metavar="NETWORK=ZONE", help="Another zone for one network (repeatable)")
+    @click.option("--hosts", "hosts_file", type=click.Path(exists=True, dir_okay=False), help="csv: hosts file (name, ip, mac, network, …)")
+    @click.option("--networks", "networks_file", type=click.Path(exists=True, dir_okay=False), help="csv: networks file (name, prefix, vlan, gateway, …)")
+    @click.option("--url", help="netbox / phpipam: the address of the server")
+    @click.option("--app-id", help="phpipam: the API application's id")
+    @click.option("--username", help="phpipam: user name; the password is read from LABDEX_IMPORT_PASSWORD or asked for")
+    @click.option("--no-verify-tls", is_flag=True, help="Don't check the server's certificate")
+    @click.option("--apply", "do_apply", is_flag=True, help="Add them. Without it nothing is kept: a preview")
+    def import_from_cmd(source, zone, zone_map, hosts_file, networks_file, url, app_id, username, no_verify_tls, do_apply):
+        """Add networks and hosts from NetBox, phpIPAM or CSV files; what already exists is skipped.
+
+        The NetBox token is read from LABDEX_IMPORT_TOKEN (never put on the command line)."""
+        import os
+
+        from . import importers
+        data = {"source": source, "verify_tls": not no_verify_tls, "url": url, "app_id": app_id, "username": username,
+                "token": os.environ.get("LABDEX_IMPORT_TOKEN", "")}
+        if source == "netbox" and not data["token"]:
+            data["token"] = click.prompt("NetBox API token", hide_input=True)
+        if source == "phpipam":
+            data["password"] = os.environ.get("LABDEX_IMPORT_PASSWORD") or click.prompt("phpIPAM password", hide_input=True)
+        for key, path in (("hosts_text", hosts_file), ("networks_text", networks_file)):
+            if path:
+                with open(path, encoding="utf-8-sig") as f:
+                    data[key] = f.read()
+        pairs = [m.partition("=") for m in zone_map]
+        if any(not k or not v for k, _, v in pairs):
+            raise click.UsageError("--zone-map wants NETWORK=ZONE")
+        try:
+            out = importers.run(importers.build_plan(data), zone, {k: v for k, _, v in pairs}, apply=do_apply)
+        except store.ValidationError as exc:
+            raise click.ClickException("; ".join(f"{e['field']}: {e['message']}" for e in exc.errors)) from None
+        for kind in ("networks", "hosts"):
+            for n in out["created"][kind]:
+                click.echo(f"{'added' if do_apply else 'would add':<10} {kind[:-1]:<8} {n}")
+        for sk in out["skipped"]:
+            click.echo(f"{'skipped':<10} {sk['kind']:<8} {sk['name']}: {sk['why']}")
+        for f in out["failed"]:
+            click.echo(f"{'FAILED':<10} {f['kind']:<8} {f['name']}: {'; '.join(f['errors'])}")
+        for w in out["warnings"]:
+            click.echo(f"note: {w}", err=True)
+        click.echo(f"\n{len(out['created']['networks'])} network(s), {len(out['created']['hosts'])} host(s) "
+                   f"{'added' if do_apply else 'to add (preview: run again with --apply)'}; {len(out['skipped'])} skipped, {len(out['failed'])} failed")
+        if do_apply and (out["created"]["networks"] or out["created"]["hosts"]):
+            audit.record("import", "inventory", source, None, {"networks": len(out["created"]["networks"]), "hosts": len(out["created"]["hosts"])},
+                         summary=f"added from {source}")
+            db.session.commit()
 
     @app.cli.command("openapi")
     @click.option("-o", "--output", type=click.Path(dir_okay=False), help="Write to a file instead of the terminal")

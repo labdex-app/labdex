@@ -22,7 +22,7 @@ RESET_HOUR = 3  # UTC
 LAB = Path(__file__).parent / "demo_lab.yaml"
 BLOCKED = (  # writes refused in the demo: (method or *, path prefix)
     ("*", "/api/auth/password"), ("*", "/api/auth/setup"),
-    ("*", "/api/admin/users"), ("*", "/api/admin/restore"), ("*", "/api/admin/backup"),
+    ("*", "/api/admin/users"), ("*", "/api/admin/restore"), ("*", "/api/admin/backup"), ("*", "/api/admin/import"),
     ("*", "/api/plugins/upload"), ("*", "/api/plugins/stage"), ("*", "/api/plugins/keys"), ("DELETE", "/api/plugins/"),
     ("*", "/api/plugin-repos"), ("*", "/api/marketplace/install"),
     ("*", "/api/notification-channels"), ("*", "/api/secrets"), ("*", "/api/vault"),  # one visitor's passphrase would lock out the rest
