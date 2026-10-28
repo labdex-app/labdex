@@ -1,0 +1,28 @@
+/* The docs in labdex's own look: its violet, graphite and Red Hat fonts (self-hosted, SIL OFL 1.1, see assets/fonts/OFL.txt). */
+@font-face { font-family: "Red Hat Text"; font-weight: 400; font-display: swap; src: url("../assets/fonts/red-hat-text-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Red Hat Text"; font-weight: 600; font-display: swap; src: url("../assets/fonts/red-hat-text-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Red Hat Display"; font-weight: 600; font-display: swap; src: url("../assets/fonts/red-hat-display-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Red Hat Mono"; font-weight: 400; font-display: swap; src: url("../assets/fonts/red-hat-mono-latin-400-normal.woff2") format("woff2"); }
+
+:root {
+  --md-text-font: "Red Hat Text";
+  --md-code-font: "Red Hat Mono";
+  --md-primary-fg-color: #7c3aed;
+  --md-primary-fg-color--light: #b8a4fb;
+  --md-primary-fg-color--dark: #6d28d9;
+  --md-primary-bg-color: #ffffff;
+}
+[data-md-color-scheme="default"] {
+  --md-accent-fg-color: #6427d4;
+  --md-typeset-a-color: #6427d4;
+}
+/* #7c3aed text on the dark background is only 3.2:1, so links use the soft violet the app uses */
+[data-md-color-scheme="slate"] {
+  --md-default-bg-color: #14161a;
+  --md-code-bg-color: #1c1f25;
+  --md-footer-bg-color: #181b20;
+  --md-footer-bg-color--dark: #14161a;
+  --md-accent-fg-color: #b8a4fb;
+  --md-typeset-a-color: #b8a4fb;
+}
+.md-typeset h1, .md-typeset h2, .md-header__topic:first-child { font-family: "Red Hat Display", var(--md-text-font-family); font-weight: 600; }

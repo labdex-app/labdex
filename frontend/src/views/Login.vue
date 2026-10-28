@@ -1,6 +1,7 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
 import { api, ApiError } from '../api'
+import mark from '../assets/mark.svg'
 import Field from '../components/Field.vue'
 import { state } from '../store'
 
@@ -41,7 +42,7 @@ async function submit() {
 <template>
   <main class="wrap">
     <form class="card box" @submit.prevent="submit">
-      <div class="brand">lab<span>dex</span></div>
+      <div class="brand"><img :src="mark" alt="" width="28" height="28"><span>lab<span>dex</span></span></div>
       <template v-if="setup">
         <h1>Welcome</h1>
         <p class="muted">Nobody has signed in yet. Create the first administrator; you can add more users afterwards.</p>
@@ -75,8 +76,8 @@ async function submit() {
 <style scoped>
 .wrap { min-height: 100vh; display: grid; place-items: center; padding: 16px; border-top: 3px solid var(--accent); }
 .box { width: min(400px, 100%); padding: 28px; }
-.brand { font-family: var(--disp); font-weight: 600; font-size: calc(20px * var(--text)); margin-bottom: 18px; }
-.brand span { color: var(--accent-soft); }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--disp); font-weight: 600; font-size: calc(20px * var(--text)); margin-bottom: 18px; }
+.brand span span { color: var(--accent-soft); }
 h1 { margin-bottom: 8px; }
 .stack { margin-top: 16px; }
 .go { width: 100%; justify-content: center; margin-top: 20px; padding: 10px; }

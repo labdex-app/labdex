@@ -6,6 +6,11 @@
   page titles) and Red Hat Mono, self-hosted like before, instead of IBM Plex. Text is a step
   larger by default (15 px instead of 14 px), and the menu under your name has **Text**: Compact
   (the old size), Comfortable or Large, kept in this browser.
+- **A logo**: nested zones on a violet tile, in the header, on the sign-in page and as the
+  favicon. The docs now use labdex's own violet, graphite and Red Hat fonts (self-hosted, so
+  the docs load nothing from Google either) with the logo, and the README shows it with CI,
+  docs, release, image and licence badges. The container image carries OCI labels (title,
+  description, source, docs, licence), so the GHCR package page links back to the repository.
 - **Change sets** (Automation › Change sets, `labdex changeset FILE`): write a batch of network,
   host and alias changes (and deletions) as YAML, **preview** it (what each change does, the lint
   findings it adds or resolves, the firewall aliases and DNS records that change; nothing is saved),

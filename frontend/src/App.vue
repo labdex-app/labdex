@@ -6,6 +6,7 @@ import {
   AppWindow, Cable, ChevronRight, CircleCheck, GitFork, Github, Globe, History, Info, KeyRound, LayoutDashboard, Layers, LifeBuoy, ListTree, Menu, Network,
   GitPullRequestDraft, PanelLeftClose, PanelLeftOpen, Plug, Radar, Rows4, Search, Server, Settings, Shield, Tags, Waypoints,
 } from 'lucide-vue-next'
+import mark from './assets/mark.svg'
 import CommandPalette from './components/CommandPalette.vue'
 import { setTextSize, setTheme, textSize, theme } from './theme'
 import ConfirmHost from './components/ConfirmHost.vue'
@@ -134,7 +135,7 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
     <a href="#main" class="skip">Skip to the page</a>
     <aside class="side">
       <div class="side-head">
-        <RouterLink to="/" class="brand" :title="state.nav?.instance_name">lab<span>dex</span></RouterLink>
+        <RouterLink to="/" class="brand" :title="state.nav?.instance_name"><img :src="mark" alt="" width="22" height="22"><span class="wm">lab<span>dex</span></span></RouterLink>
         <span v-if="state.nav?.instance_name && state.nav.instance_name !== 'labdex' && !small" class="inst">{{ state.nav.instance_name }}</span>
         <span class="grow"></span>
         <button class="icon-btn hide-m" :title="small ? 'Expand the sidebar' : 'Collapse the sidebar'" :aria-label="small ? 'Expand the sidebar' : 'Collapse the sidebar'" @click="small = !small">
@@ -183,7 +184,7 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
     <main id="main" class="main" tabindex="-1">
       <header class="tbar">
         <button class="icon-btn show-m" aria-label="Menu" @click="drawer = true"><Menu :size="18" /></button>
-        <RouterLink to="/" class="brand show-m">lab<span>dex</span></RouterLink>
+        <RouterLink to="/" class="brand show-m"><img :src="mark" alt="" width="22" height="22"><span class="wm">lab<span>dex</span></span></RouterLink>
         <span class="grow"></span>
         <button class="icon-btn show-m" aria-label="Search" @click="palette?.show()"><Search :size="18" /></button>
         <nav class="tlinks" aria-label="labdex">
@@ -259,8 +260,8 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 .side { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; background: var(--panel);
   border-right: 1px solid var(--line); z-index: 20; }
 .side-head { display: flex; align-items: center; gap: 8px; padding: 12px 12px 8px 16px; }
-.brand { font-family: var(--disp); font-weight: 600; font-size: calc(17px * var(--text)); color: var(--ink); letter-spacing: -.01em; }
-.brand span { color: var(--accent-soft); }
+.brand { display: inline-flex; align-items: center; gap: 8px; font-family: var(--disp); font-weight: 600; font-size: calc(17px * var(--text)); color: var(--ink); letter-spacing: -.01em; }
+.brand .wm span { color: var(--accent-soft); }
 .brand:hover { text-decoration: none; }
 .inst { font-size: calc(12px * var(--text)); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .side-scroll { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 0 8px; }
@@ -313,7 +314,7 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 .menu a:hover, .menu button:hover { background: var(--raise); text-decoration: none; }
 .icon-btn { font: inherit; background: none; border: 1px solid transparent; color: var(--faint); cursor: pointer; border-radius: var(--r-ctl); padding: 4px; display: inline-grid; place-items: center; }
 .icon-btn:hover { color: var(--ink); border-color: var(--line); }
-.small .lb, .small .count, .small .pill, .small .brand span { display: none; }
+.small .lb, .small .count, .small .pill, .small .brand .wm { display: none; }
 .small .grp { margin-top: 0; padding-top: 6px; border-top: 1px solid var(--line); }
 .small .grp:first-of-type { border-top: 0; }
 .small .side-head { padding: 12px 8px 8px; flex-direction: column; }
