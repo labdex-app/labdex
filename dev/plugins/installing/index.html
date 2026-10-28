@@ -1752,15 +1752,15 @@ signature <strong>before any plugin code runs</strong>, then shows what you're a
 Its key signs the index and every plugin in it. When you add one, labdex shows its
 name and key id: compare it with the one the publisher gives you. The key is pinned
 from then on; a re-signed index or a plugin signed with another key is refused.</p>
-<p>The <strong>official Marketplace</strong> (<a href="https://github.com/reykimedev/labdex-plugins">labdex-plugins</a>)
+<p>The <strong>official Marketplace</strong> (<a href="https://github.com/labdex-app/labdex-plugins">labdex-plugins</a>,
+<code>https://labdex-app.github.io/labdex-plugins/index.json</code>)
 is trusted out of the box. Every official plugin lives in its own git repository; its signed
 releases are the versions you can install.</p>
-<p>Every plugin labdex ships (OPNsense, Technitium, Proxmox, Ansible, Backup, …) is an
-official plugin: it works from the first start without a download, and a fix for one
-arrives through the official repository without waiting for a labdex release. An
-installed update takes the shipped copy's place; removing the update ("Remove update")
-goes back to the shipped one, and integrations keep running either way. A broken update
-never replaces a working copy.</p>
+<p>Since 1.24.1 no plugin ships with labdex: the official ones (OPNsense, Technitium,
+Proxmox, Ansible, …) are installed from the Marketplace like any other, downloaded and
+signature-checked. A fix for one arrives through the official repository without waiting
+for a labdex release. Backups and the demo lab are part of labdex itself (<em>built in</em>).
+A broken update never replaces a working copy.</p>
 <h2 id="versions">Versions<a class="headerlink" href="#versions" title="Permanent link">&para;</a></h2>
 <p>A plugin names the labdex versions it works with (<code>labdex: "&gt;=1.0,&lt;2"</code>). labdex
 refuses to install one outside its range, doesn't load an installed one that falls
