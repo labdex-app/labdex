@@ -71,9 +71,9 @@ function paste(e) {
       <button type="button" :aria-label="`Remove ${v}`" @click="remove(i)">✕</button></span>
     <input v-model="text" :class="{ mono }" :placeholder="modelValue.length ? '' : placeholder" :aria-label="label" autocomplete="off" spellcheck="false"
            @keydown="key" @paste="paste" @focus="focus = true" @blur="blur" @input="active = 0">
-    <ul v-if="focus && (matches.length || isNew)" class="dd" role="listbox">
-      <li v-if="isNew" :class="{ on: !matches.length }" @mousedown.prevent="add()">+ new <b :class="{ mono }">{{ normalize(text) }}</b></li>
-      <li v-for="(s, i) in matches" :key="s.value" :class="{ on: i === active && !isNew }" role="option" @mousedown.prevent="add(s.value)">
+    <ul v-if="focus && (matches.length || isNew)" class="dd pop" role="listbox">
+      <li v-if="isNew" class="pop-item" :class="{ on: !matches.length }" @mousedown.prevent="add()">+ new <b :class="{ mono }">{{ normalize(text) }}</b></li>
+      <li v-for="(s, i) in matches" :key="s.value" class="pop-item" :class="{ on: i === active && !isNew }" role="option" @mousedown.prevent="add(s.value)">
         <span :class="{ mono }">{{ s.value }}</span><span v-if="s.label" class="faint small"> {{ s.label }}</span><span v-if="s.group" class="grp">{{ s.group }}</span>
       </li>
     </ul>
@@ -90,9 +90,7 @@ function paste(e) {
 .ch.warnch { background: rgba(251, 191, 36, .14); color: var(--c-yellow); }
 .ch button { border: 0; background: none; color: var(--faint); cursor: pointer; font-size: 11px; padding: 0 3px; }
 .ch button:hover { color: var(--ink); }
-.dd { position: absolute; left: 0; right: 0; top: 100%; margin: 4px 0 0; padding: 4px; list-style: none; z-index: 20; max-height: 260px; overflow: auto;
-  background: var(--card); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px var(--shadow); }
-.dd li { padding: 5px 8px; border-radius: 6px; cursor: pointer; display: flex; gap: 6px; align-items: baseline; }
-.dd li.on, .dd li:hover { background: var(--raise); }
+.dd { position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; z-index: 20; max-height: 260px; overflow: auto; }
+.dd li { gap: 6px; align-items: baseline; }
 .grp { margin-left: auto; font-size: 11px; color: var(--faint); }
 </style>

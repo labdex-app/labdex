@@ -46,7 +46,7 @@ function adopt(c) {
     <div v-if="d && !d.prefixes.length" class="card"><p class="faint" style="margin: 0">This network has no IPv4 prefix to draw.</p></div>
     <template v-else-if="d">
       <div class="mapbar">
-        <label v-if="d.prefixes.length > 1" class="small">Prefix <select v-model="prefix" style="width: auto">
+        <label v-if="d.prefixes.length > 1" class="small">Prefix <select v-model="prefix" class="auto">
           <option v-for="p in d.prefixes" :key="p" :value="p">{{ p }}</option></select></label>
         <span v-else class="mono small">{{ d.prefix }}</span>
         <template v-if="d.blocks > 1">

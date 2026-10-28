@@ -1,6 +1,7 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { api } from '../api'
+import Pager from '../components/Pager.vue'
 import TrustBadge from '../components/TrustBadge.vue'
 import { invalidate, useQuery } from '../query'
 import { state, toast } from '../store'
@@ -48,7 +49,22 @@ function render(md) {
   flushPara(); flushList()
   return out.join('\n')
 }
-const changelog = computed(() => render((data.value?.changelog || '').replace(/^# Changelog\s*/, '')))
+// One release per "## " heading, a few to a page: the whole file is well over a thousand lines.
+// What comes before the first release stays on the first page.
+const releases = computed(() => {
+  const parts = (data.value?.changelog || '').replace(/^# Changelog\s*/, '').split(/^(?=## )/m)
+  const head = /^## /.test(parts[0] || '') ? '' : parts.shift()
+  return { head, list: parts }
+})
+const SIZE = 5
+const page = ref(0)
+const changelog = computed(() => render((page.value ? '' : releases.value.head) + releases.value.list.slice(page.value * SIZE, (page.value + 1) * SIZE).join('')))
+const card = ref(null)
+async function turn(p) {
+  page.value = p
+  await nextTick()
+  if (card.value?.getBoundingClientRect().top < 0) card.value.scrollIntoView({ block: 'start' })
+}
 </script>
 
 <template>
@@ -58,10 +74,13 @@ const changelog = computed(() => render((data.value?.changelog || '').replace(/^
       assistant (Claude), directed and reviewed by a human. It hasn't had an independent security audit and may contain security problems:
       run it on a trusted home network, not on the internet or for production.</div>
     <div v-if="data" class="split">
-      <div class="card changelog">
+      <div ref="card" class="card changelog">
         <h2>Changelog</h2>
-        <!-- eslint-disable-next-line vue/no-v-html -- render() escapes everything first and only adds its own tags -->
-        <div v-if="data.changelog" v-html="changelog"></div>
+        <template v-if="data.changelog">
+          <!-- eslint-disable-next-line vue/no-v-html -- render() escapes everything first and only adds its own tags -->
+          <div v-html="changelog"></div>
+          <Pager :model-value="page" :total="releases.list.length" :size="SIZE" unit="releases" @update:model-value="turn" />
+        </template>
         <p v-else class="faint">This build doesn't include the changelog.</p>
       </div>
       <aside>
@@ -126,4 +145,6 @@ const changelog = computed(() => render((data.value?.changelog || '').replace(/^
 .changelog :deep(ul) { margin: 4px 0 8px; padding-left: 20px; }
 .changelog :deep(li) { margin: 3px 0; line-height: 1.5; }
 .changelog :deep(p) { line-height: 1.55; }
+.changelog { scroll-margin-top: 64px; } /* clear of the top bar when a page turn scrolls up to it */
+.changelog .pager { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line); }
 </style>

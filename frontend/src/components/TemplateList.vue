@@ -113,7 +113,7 @@ function toggleDay(d) { const a = edit.value.days; const i = a.indexOf(d); i < 0
       <Field label="Description"><input v-model="edit.description" type="text"></Field>
       <Field label="Schedule" :error="errors.schedule || errors.every_minutes || errors.at || errors.days || errors.timezone">
         <div class="row" style="gap: 8px">
-          <select v-model="edit.schedule" style="width: auto"><option value="">only by hand</option><option value="every">every …</option><option value="weekly">at a time</option></select>
+          <select v-model="edit.schedule" class="auto"><option value="">only by hand</option><option value="every">every …</option><option value="weekly">at a time</option></select>
           <template v-if="edit.schedule === 'every'"><input v-model.number="edit.every_minutes" type="number" min="5" style="width: 90px"> <span class="small muted">minutes</span></template>
           <template v-if="edit.schedule === 'weekly'">
             <button v-for="d in DAYS" :key="d" type="button" class="chip" :class="{ on: edit.days.includes(d) }" @click="toggleDay(d)">{{ d }}</button>

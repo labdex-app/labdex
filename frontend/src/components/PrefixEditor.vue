@@ -54,10 +54,10 @@ const counts = computed(() => ({ 4: prefixes.value.filter((p) => p.family === 4)
     </div>
     <div v-for="(p, i) in prefixes" :key="i" class="pfx-row" :class="{ bad: anyErr(i) }">
       <div class="pfx-top">
-        <select :value="p.family" class="fam" aria-label="Family" @change="setFamily(p, $event.target.value)">
+        <select :value="p.family" class="fam small auto" aria-label="Family" @change="setFamily(p, $event.target.value)">
           <option :value="4">IPv4</option><option :value="6">IPv6</option>
         </select>
-        <select v-if="p.family === 6" v-model="p.source" class="src" aria-label="Source">
+        <select v-if="p.family === 6" v-model="p.source" class="src small auto" aria-label="Source">
           <option value="static">static</option>
           <option value="delegated">delegated</option>
         </select>
@@ -65,7 +65,7 @@ const counts = computed(() => ({ 4: prefixes.value.filter((p) => p.family === 4)
           <input :value="split(p).addr" class="mono addr" :placeholder="p.family === 4 ? '10.0.10.0' : 'fd00:0:0:10::'"
                  :class="{ invalid: err(i, 'prefix') }" aria-label="Prefix" spellcheck="false" @change="setAddr(p, $event.target.value)">
           <span class="dash">/</span>
-          <select :value="split(p).len" class="len" aria-label="Mask" @change="setLen(p, $event.target.value)">
+          <select :value="split(p).len" class="len small auto" aria-label="Mask" @change="setLen(p, $event.target.value)">
             <option v-for="m in MASKS[p.family]" :key="m" :value="m">{{ m }}{{ p.family === 4 ? ` (${m >= 31 ? Math.pow(2, 32 - m) : Math.pow(2, 32 - m) - 2})` : '' }}</option>
           </select>
         </template>
@@ -75,7 +75,7 @@ const counts = computed(() => ({ 4: prefixes.value.filter((p) => p.family === 4)
           <span class="small faint">prefix ID</span>
           <input v-model.trim="p.prefix_id" class="mono short" placeholder="0x10" aria-label="Prefix ID" :class="{ invalid: err(i, 'prefix_id') }">
           <span class="dash">/</span>
-          <select v-model.number="p.length" class="len" aria-label="Length"><option v-for="m in [48, 52, 56, 60, 62, 63, 64]" :key="m" :value="m">{{ m }}</option></select>
+          <select v-model.number="p.length" class="len small auto" aria-label="Length"><option v-for="m in [48, 52, 56, 60, 62, 63, 64]" :key="m" :value="m">{{ m }}</option></select>
           <span v-if="p.prefix" class="small faint mono" title="Last seen on the firewall">now {{ p.prefix }}</span>
         </template>
         <button type="button" class="btn small ghost rm" aria-label="Remove prefix" @click="remove(i)"><X :size="14" /></button>
@@ -102,7 +102,7 @@ const counts = computed(() => ({ 4: prefixes.value.filter((p) => p.family === 4)
 .pfx-top, .pfx-sub { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .pfx-sub { margin-top: 6px; font-size: 12.5px; color: var(--faint); }
 .pfx-sub label { display: flex; gap: 6px; align-items: center; }
-.pfx-row select, .pfx-row input { width: auto !important; padding: 4px 8px !important; font-size: 13px !important; }
+.pfx-row input { width: auto !important; padding: 3px 8px !important; font-size: 12.5px !important; }
 .fam { min-width: 70px; } .src { min-width: 96px; } .len { min-width: 64px; }
 .addr { flex: 1 1 160px; min-width: 120px; width: 160px !important; }
 .pfx-row input.short { width: 72px !important; }

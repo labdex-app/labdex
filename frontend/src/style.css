@@ -187,6 +187,15 @@ input:not([type]), input[type=text], input[type=search], input[type=password], i
 textarea { font-family: var(--mono); font-size: 12.5px; resize: vertical; }
 input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-faint); }
 input.invalid, select.invalid, textarea.invalid { border-color: var(--err); }
+/* every dropdown: one chevron, drawn in the theme's colours, the same in every browser.
+   .auto sizes it to its options instead of the column; .small is the compact one (like .btn.small) for toolbars and table rows */
+select:not([multiple]):not([size]) { appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 28px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
+select.auto { width: auto; max-width: 100%; }
+select.small { padding-top: 3px; padding-bottom: 3px; padding-left: 8px; font-size: 12.5px; }
+select.small:not([multiple]):not([size]) { padding-right: 24px; background-position: calc(100% - 13px) 52%, calc(100% - 8px) 52%; }
+select[multiple], select[size] { padding: 4px; }
 .err { color: var(--err); font-size: 12px; margin-top: 3px; }
 .hint { color: var(--faint); font-size: 12px; margin-top: 3px; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
@@ -219,7 +228,8 @@ tbody tr:last-child td { border-bottom: 0; }
 tr.click { cursor: pointer; }
 tr.click:hover td { background: var(--hover); }
 table.edit td { padding: 5px 6px; vertical-align: middle; }
-table.edit input, table.edit select { padding: 5px 8px; }
+table.edit input, table.edit select { padding-top: 5px; padding-bottom: 5px; padding-left: 8px; }
+table.edit input { padding-right: 8px; }
 
 /* chips and badges */
 .chip {
@@ -327,6 +337,15 @@ select:disabled, input:disabled { opacity: .55; cursor: not-allowed; }
 .li.nested { padding-left: 40px; }
 .li.nested2 { padding-left: 64px; }
 .list-empty { padding: 20px 16px; color: var(--faint); }
+
+/* menus and suggestion lists that drop down from a control: MenuButton, HostPicker, ChipInput, the account menu */
+.pop { background: var(--card); border: 1px solid var(--line-strong); border-radius: var(--r-box); padding: 4px; box-shadow: 0 12px 30px var(--shadow); }
+ul.pop { margin: 0; list-style: none; }
+.pop-item { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; font: inherit; font-size: 13px; color: var(--ink);
+  background: none; border: 0; border-radius: var(--r-ctl); padding: 7px 10px; cursor: pointer; }
+.pop-item:hover, .pop-item:focus-visible, .pop-item.on { background: var(--raise); outline: none; text-decoration: none; }
+.pop-item.danger { color: var(--err); }
+.pop-item:disabled { opacity: .45; cursor: not-allowed; }
 
 /* dialogs */
 .dlg-back { position: fixed; inset: 0; background: var(--scrim); display: grid; place-items: start center; padding: 8vh 16px 16px; z-index: 50; overflow-y: auto; }

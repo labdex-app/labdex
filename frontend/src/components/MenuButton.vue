@@ -38,8 +38,8 @@ onBeforeUnmount(close)
             :aria-expanded="open" aria-haspopup="menu" @click="toggle">
       <component :is="icon" v-if="icon" :size="14" /><template v-if="label">{{ label }} <ChevronDown :size="13" class="faint" /></template>
     </button>
-    <div v-if="open" ref="list" class="mb-list" :class="align" role="menu">
-      <button v-for="it in items" :key="it.label" type="button" role="menuitem" :class="{ danger: it.danger }" :disabled="it.disabled" @click="pick(it)">
+    <div v-if="open" ref="list" class="mb-list pop" :class="align" role="menu">
+      <button v-for="it in items" :key="it.label" type="button" role="menuitem" class="pop-item" :class="{ danger: it.danger }" :disabled="it.disabled" @click="pick(it)">
         <component :is="it.icon" v-if="it.icon" :size="14" />{{ it.label }}</button>
     </div>
   </div>
@@ -47,13 +47,8 @@ onBeforeUnmount(close)
 
 <style scoped>
 .mb { position: relative; display: inline-flex; }
-.mb-list { position: absolute; top: calc(100% + 4px); z-index: 20; min-width: 190px; background: var(--card); border: 1px solid var(--line-strong);
-  border-radius: var(--r-box); padding: 4px; box-shadow: 0 12px 30px var(--shadow); display: flex; flex-direction: column; }
+.mb-list { position: absolute; top: calc(100% + 4px); z-index: 20; min-width: 190px; display: flex; flex-direction: column; }
 .mb-list.right { right: 0; }
 .mb-list.left { left: 0; }
-.mb-list button { display: flex; align-items: center; gap: 8px; text-align: left; font: inherit; font-size: 13px; color: var(--ink); background: none;
-  border: 0; border-radius: var(--r-ctl); padding: 7px 10px; cursor: pointer; white-space: nowrap; }
-.mb-list button:hover, .mb-list button:focus-visible { background: var(--raise); outline: none; }
-.mb-list button.danger { color: var(--err); }
-.mb-list button:disabled { opacity: .45; cursor: not-allowed; }
+.mb-list .pop-item { white-space: nowrap; }
 </style>

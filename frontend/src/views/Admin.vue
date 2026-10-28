@@ -530,7 +530,6 @@ const me = computed(() => state.auth.user.username)
 .si.router-link-active { background: var(--accent-faint); color: var(--ink); }
 @media (max-width: 860px) { .adm { grid-template-columns: minmax(0, 1fr); } .subnav { position: static; flex-direction: row; flex-wrap: wrap; } .sg { display: none; } }
 .stack > * + * { margin-top: 12px; }
-select[multiple] { padding: 4px; }
 .perm { width: auto; }
 .lead { margin: 4px 0 0; max-width: 90ch; }
 .sections > * + * { margin-top: 28px; }

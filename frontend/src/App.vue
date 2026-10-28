@@ -195,7 +195,7 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
         <div class="who">
           <button class="avbtn" :aria-expanded="menu" :aria-label="`Account: ${state.auth.user.display_name}`" :title="state.auth.user.display_name" @click="menu = !menu">
             <span class="avatar">{{ state.auth.user.display_name.slice(0, 1).toUpperCase() }}</span></button>
-          <div v-if="menu" class="menu" @keydown.esc="menu = false">
+          <div v-if="menu" class="menu pop" @keydown.esc="menu = false">
             <div class="mhead"><b>{{ state.auth.user.display_name }}</b>
               <div class="small faint">{{ state.auth.user.username !== state.auth.user.display_name ? `${state.auth.user.username} · ` : '' }}{{ state.auth.user.is_admin ? 'administrator' : (state.auth.user.groups.join(', ') || 'user') }}</div></div>
             <div class="themes" role="radiogroup" aria-label="Theme">
@@ -300,10 +300,9 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 .show-m { display: none !important; }
 .avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; display: inline-grid; place-items: center;
   font-size: 11px; font-weight: 700; flex: none; margin-left: -2px; }
-.menu { position: absolute; right: 0; top: 38px; z-index: 30; min-width: 240px; background: var(--card); border: 1px solid var(--line);
-  border-radius: 10px; padding: 4px; box-shadow: 0 12px 30px var(--shadow); }
+.menu { position: absolute; right: 0; top: 38px; z-index: 30; min-width: 240px; }
 .menu a, .menu button { display: block; width: 100%; text-align: left; font: inherit; color: var(--ink); background: none; border: 0;
-  padding: 7px 12px; border-radius: 7px; cursor: pointer; }
+  padding: 7px 12px; border-radius: var(--r-ctl); cursor: pointer; }
 .menu a:hover, .menu button:hover { background: var(--raise); text-decoration: none; }
 .icon-btn { font: inherit; background: none; border: 1px solid transparent; color: var(--faint); cursor: pointer; border-radius: 6px; padding: 4px; display: inline-grid; place-items: center; }
 .icon-btn:hover { color: var(--ink); border-color: var(--line); }

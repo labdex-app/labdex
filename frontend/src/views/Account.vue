@@ -76,7 +76,7 @@ const PERM_LABEL = { host: 'Hosts', network: 'Networks', alias: 'Aliases', integ
           </div>
           <form class="row" style="margin-top: 14px" @submit.prevent="createToken">
             <input v-model.trim="tok.name" type="text" placeholder="Name, e.g. prometheus" style="flex: 1; min-width: 180px" required>
-            <select v-model.number="tok.expires_days" style="width: auto">
+            <select v-model.number="tok.expires_days" class="auto">
               <option :value="30">30 days</option><option :value="90">90 days</option><option :value="365">1 year</option><option :value="0">never expires</option>
             </select>
             <label class="check small"><input v-model="tok.read_only" type="checkbox"> read-only</label>

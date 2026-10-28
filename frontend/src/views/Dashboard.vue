@@ -251,7 +251,7 @@ watch(() => route.query.d, () => { editing.value = false })
           <button class="btn icon" aria-label="Remove link" @click="cfgDlg.cfg.links.splice(n, 1)"><Trash2 :size="15" /></button>
         </div>
         <div class="row" style="gap: 10px"><button class="btn small" @click="cfgDlg.cfg.links.push({ name: '', url: '', description: '' })"><Plus :size="14" /> Link</button>
-          <label class="small">Columns <select v-model.number="cfgDlg.cfg.columns" style="width: auto"><option v-for="n in [1, 2, 3, 4, 6]" :key="n" :value="n">{{ n }}</option></select></label></div>
+          <label class="small">Columns <select v-model.number="cfgDlg.cfg.columns" class="auto"><option v-for="n in [1, 2, 3, 4, 6]" :key="n" :value="n">{{ n }}</option></select></label></div>
         <p v-if="badLink" class="err" role="alert">“{{ badLink.name || badLink.url }}”: an address starts with http:// or https://, or is a page of labdex (/hosts).</p>
         <p v-else class="hint">Addresses start with http:// or https://, or are a page of labdex (/hosts).</p>
       </template>

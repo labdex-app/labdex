@@ -50,9 +50,9 @@ onBeforeUnmount(() => { window.removeEventListener('scroll', onScroll, true); wi
     <input ref="input" v-model="q" type="search" :placeholder="placeholder" class="small-in" autocomplete="off"
            role="combobox" :aria-expanded="open" @focus="show" @input="show" @blur="close" @keydown="key">
     <Teleport to="body">
-      <ul v-if="open && hits.length" class="hp-drop" role="listbox"
+      <ul v-if="open && hits.length" class="hp-drop pop" role="listbox"
           :style="{ left: pos.left + 'px', width: pos.width + 'px', ...(pos.up ? { bottom: pos.bottom + 'px' } : { top: pos.top + 'px' }) }">
-        <li v-for="(h, n) in hits" :key="h.name" role="option" :aria-selected="n === active" :class="{ on: n === active }"
+        <li v-for="(h, n) in hits" :key="h.name" role="option" :aria-selected="n === active" class="pop-item" :class="{ on: n === active }"
             :title="h.name" @mousedown.prevent="pick(h)" @mouseenter="active = n">
           <span class="nm mono">{{ h.name }}</span>
           <span v-if="h.fun" class="fun-n">{{ h.fun }}</span>
@@ -71,10 +71,8 @@ onBeforeUnmount(() => { window.removeEventListener('scroll', onScroll, true); wi
 
 <style>
 /* not scoped: the list lives on <body> */
-.hp-drop { position: fixed; z-index: 1000; margin: 0; padding: 4px; list-style: none; max-height: 300px; overflow-y: auto;
-  background: var(--card); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 12px 28px var(--shadow); }
-.hp-drop li { display: flex; align-items: baseline; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: 12.5px; }
-.hp-drop li.on { background: var(--raise); }
+.hp-drop { position: fixed; z-index: 1000; max-height: 300px; overflow-y: auto; }
+.hp-drop li { align-items: baseline; font-size: 12.5px; }
 .hp-drop .nm { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 .hp-drop .fun-n { color: var(--faint); white-space: nowrap; }
 .hp-drop .zn { color: var(--faint); font-size: 11px; white-space: nowrap; }

@@ -71,8 +71,8 @@ const link = (i) => (i.kind === 'host' ? `/hosts/${i.ref}` : i.kind === 'network
               <td class="mono small muted">{{ i.code }}</td>
               <td>{{ i.message }}<div v-if="i.accepted !== undefined" class="small muted">Accepted: {{ i.accepted }}</div></td>
               <td v-if="state.meta?.is_admin" class="nowrap">
-                <button v-if="i.accepted === undefined" class="btn sm" @click="dlg = { ...i, reason: '' }">Accept…</button>
-                <button v-else class="btn sm" @click="unaccept(i)">Count again</button>
+                <button v-if="i.accepted === undefined" class="btn small" @click="dlg = { ...i, reason: '' }">Accept…</button>
+                <button v-else class="btn small" @click="unaccept(i)">Count again</button>
               </td>
             </tr>
           </tbody>

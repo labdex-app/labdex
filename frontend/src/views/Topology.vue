@@ -561,7 +561,7 @@ onBeforeUnmount(() => cy.value?.destroy())
       <span class="grow"></span>
       <button v-if="view === 'physical' && canArrange" class="btn small" :class="{ primary: wiring }" title="Draw a cable: click both ends" @click="wiring ? stopWiring() : startWiring()">
         <Cable :size="14" /> {{ wiring ? 'Cancel cable' : 'Cable' }}</button>
-      <select class="viewpick" :value="current?.uid || ''" aria-label="Saved view" @change="pickView($event.target.value)">
+      <select class="viewpick small auto" :value="current?.uid || ''" aria-label="Saved view" @change="pickView($event.target.value)">
         <option value="">{{ views.length ? 'Saved views…' : 'No saved views' }}</option>
         <option v-for="v in views" :key="v.uid" :value="v.uid">{{ v.name }}</option></select>
       <button v-if="canArrange" class="btn small" title="Save what you see as a view: picture, zone, networks, options and zoom" @click="viewDlg = { name: current?.name || '', error: '' }"><Save :size="14" /> View</button>
@@ -728,7 +728,7 @@ onBeforeUnmount(() => cy.value?.destroy())
 .hovercard.up { transform: translate(-50%, -100%); }
 .ends { display: grid; gap: 2px; margin-top: 8px; }
 .ends .mono { margin-left: 4px; }
-.viewpick { max-width: 150px; padding-top: 4px; padding-bottom: 4px; font-size: 13px; }
+.viewpick { max-width: 150px; }
 .netchips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
 .chip { font: inherit; font-size: 12px; font-family: var(--mono, 'IBM Plex Mono', monospace); border: 1px solid var(--line-strong); background: var(--card);
   color: var(--ink); border-radius: 999px; padding: 2px 10px; cursor: pointer; }

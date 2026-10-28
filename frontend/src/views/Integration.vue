@@ -220,7 +220,7 @@ const minutes = (m) => (!m ? 'off' : m % 1440 === 0 ? `every ${m / 1440} d` : m 
                 <h3 style="margin-top: 8px">Schedule</h3>
                 <div v-for="f in schedules" :key="f.key" class="row" style="margin-bottom: 6px">
                   <span style="flex: 1" class="small">{{ f.label }}</span>
-                  <select v-model.number="values[f.key]" style="width: auto">
+                  <select v-model.number="values[f.key]" class="auto">
                     <option v-for="m in [0, 15, 60, 360, 1440, 10080]" :key="m" :value="m">{{ minutes(m) }}</option>
                     <option v-if="![0, 15, 60, 360, 1440, 10080, null, undefined].includes(values[f.key])" :value="values[f.key]">{{ minutes(values[f.key]) }}</option>
                   </select>

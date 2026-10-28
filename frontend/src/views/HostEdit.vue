@@ -601,7 +601,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
                   <span class="small faint">{{ sugg.matched ? 'from' : 'no pool for this category or zone; from' }} {{ sugg.pools.join(', ') || 'no pools' }}:</span>
                   <button v-for="n in sugg.names" :key="n.name" type="button" class="chip" :title="`from ${n.pool}`" @click="takeFun(n.name)">{{ n.name }}</button>
                   <span v-if="!sugg.names.length" class="small faint">nothing unused left</span>
-                  <select v-model="suggPool" class="small-sel" aria-label="Pool" @change="suggest">
+                  <select v-model="suggPool" class="small auto" aria-label="Pool" @change="suggest">
                     <option value="">matching pools</option>
                     <option v-for="p in poolList" :key="p.name" :value="p.name">{{ p.name }}</option>
                   </select>
@@ -1005,7 +1005,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
               <div class="row" style="gap: 6px">
                 <span v-for="(f, n) in form.features" :key="f" class="chip on mono">{{ f }}
                   <button type="button" class="chipx" aria-label="Remove feature" @click.prevent="form.features.splice(n, 1)">✕</button></span>
-                <select v-model="addFeature" style="width: auto" aria-label="Add feature"
+                <select v-model="addFeature" class="small auto" aria-label="Add feature"
                         @change="addFeature && !form.features.includes(addFeature) && form.features.push(addFeature); addFeature = ''">
                   <option value="">+ feature…</option>
                   <option v-for="f in featureList.filter((x) => !form.features.includes(x))" :key="f" :value="f">{{ f }}</option>
@@ -1264,7 +1264,6 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
 .v6more label { display: flex; gap: 6px; align-items: center; color: var(--faint); }
 .v6more input { width: 220px !important; padding: 3px 6px !important; font-size: 12.5px !important; }
 .sugg { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; padding: 8px; border: 1px dashed var(--line); border-radius: 8px; }
-.small-sel { width: auto !important; padding: 2px 6px !important; font-size: 12px !important; }
 .fundns { display: flex; flex-wrap: wrap; column-gap: 8px; min-width: 0; overflow-wrap: anywhere; }
 .zsel { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; margin-top: 6px; max-width: 460px; }
 </style>
