@@ -530,6 +530,8 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
         <span class="grow"></span>
         <RouterLink v-if="!isNew && derived?.name" :to="{ path: '/impact', query: { host: derived.name } }" class="btn ghost small"
           title="What breaks if this host goes down">Impact</RouterLink>
+        <RouterLink v-if="!isNew && derived?.name" :to="{ path: '/labels', query: { what: 'hosts', host: derived.name } }" class="btn ghost small"
+          title="Print a label with a QR code for this host">Label</RouterLink>
         <span v-if="readOnly" class="lock" title="Your roles don't allow changing this host">🔒 read-only for you</span>
         <template v-else>
           <button v-if="!isNew" class="btn danger" @click="remove">Delete</button>

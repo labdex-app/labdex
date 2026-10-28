@@ -87,3 +87,8 @@ def test_who_sees_what(admin, make_user):
     assert v.get("/api/impact?host=srv-pm-pve-01").status_code == 404  # DC_HT: not visible to them
     r = v.get("/api/impact?host=srv-vm-k3s-01").get_json()
     assert {x["host"] for x in r["down"]} == {"srv-vm-k3s-01"}
+
+
+def test_meta_exposes_public_url_for_qr_codes(admin):
+    assert admin.put("/api/admin/settings", json={"public_url": "https://labdex.example.org/"}).status_code == 200
+    assert admin.get("/api/meta").get_json()["public_url"] == "https://labdex.example.org"

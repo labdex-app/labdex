@@ -1,10 +1,10 @@
 <script setup>
 // Every cable in one list: what's printed on it, both ends, medium, speed, length, colour.
-// Pick some (or all shown) and print their labels: one wrap-around label per cable, both ends
+// Pick some (or all shown) and print their labels (the Labels page): two per cable, one for each end
 // written on it, so whichever end you hold tells you where the other goes.
 import { Pencil, Printer, Route } from 'lucide-vue-next'
 import CableTrace from '../components/CableTrace.vue'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import CableSuggestions from '../components/CableSuggestions.vue'
@@ -37,7 +37,12 @@ function togglePick(id) { const p = new Set(picked.value); if (p.has(id)) p.dele
 function toggleAll() { picked.value = allPicked.value ? new Set() : new Set(shown.value.map((c) => c.id)) }
 // the ticked ones, or every cable shown (also when printing with the browser's own menu)
 const toPrint = computed(() => (picked.value.size ? all.value.filter((c) => picked.value.has(c.id)) : shown.value))
-function print() { window.print() }
+// on the Labels page: QR codes, label printer and sheet sizes
+function print() { router.push({ path: '/labels', query: { what: 'cables', cable: toPrint.value.map((c) => String(c.id)) } }) }
+// a scanned cable label: /cables?cable=<id> opens its trace
+watch([() => route.query.cable, all], ([id]) => {
+  if (id && !tracing.value) tracing.value = all.value.find((c) => String(c.id) === String(id)) || null
+}, { immediate: true })
 
 const dlg = ref(null)
 function edit(c) { dlg.value = { c, f: { label: c.label, length: c.length, colour: c.colour, medium: c.medium, speed: c.speed, notes: c.notes }, errors: {} } }
@@ -57,7 +62,7 @@ const swatch = (c) => CABLE_COLOURS.find((x) => x.name === c)?.hex || (/^#[0-9a-
 </script>
 
 <template>
-  <div class="page wide screen">
+  <div class="page wide">
     <div class="page-head">
       <h1>Cables</h1>
       <span class="sub">{{ all.length }} cable{{ all.length === 1 ? '' : 's' }}{{ all.filter((c) => !c.label).length ? `, ${all.filter((c) => !c.label).length} without a label` : '' }}</span>
@@ -101,7 +106,7 @@ const swatch = (c) => CABLE_COLOURS.find((x) => x.name === c)?.hex || (/^#[0-9a-
       </table>
     </div>
     </template>
-    <p v-if="tab === 'list'" class="hint">Each label wraps around the cable near one end and names both ends, so you print two per cable. Fits a 4-column A4 sheet or a label printer roll.</p>
+    <p v-if="tab === 'list'" class="hint">Each label goes near one end and names both ends, so you print two per cable: on a label printer roll, tape or an A4 sheet, with a QR code that opens the cable's trace.</p>
 
     <Modal v-if="tracing" :title="`Trace ${tracing.label || `${tracing.a_host} ${tracing.a_port}`}`" @close="tracing = null">
       <CableTrace :host="tracing.a_uid || tracing.a_host" :port="tracing.a_port" />
@@ -127,31 +132,10 @@ const swatch = (c) => CABLE_COLOURS.find((x) => x.name === c)?.hex || (/^#[0-9a-
       </template>
     </Modal>
   </div>
-
-  <!-- only on paper: two labels per cable, one for each end -->
-  <div class="sheet" aria-hidden="true">
-    <template v-for="c in toPrint" :key="c.id">
-      <div v-for="end in ['a', 'b']" :key="end" class="lbl">
-        <b class="mono">{{ c.label || '' }}</b>
-        <div class="mono"><span>this end</span> {{ end === 'a' ? c.a_host : c.b_host }} {{ end === 'a' ? c.a_port : c.b_port }}</div>
-        <div class="mono"><span>other end</span> {{ end === 'a' ? c.b_host : c.a_host }} {{ end === 'a' ? c.b_port : c.a_port }}</div>
-        <div class="meta">{{ [c.medium, c.speed, c.length ? `${c.length} m` : ''].filter(Boolean).join(' · ') }}</div>
-      </div>
-    </template>
-  </div>
 </template>
 
 <style scoped>
 .cc { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; border: 1px solid var(--line-strong); vertical-align: -1px; }
 .spd { display: inline-block; width: 12px; height: 4px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
 .inline { display: flex; gap: 6px; }
-.sheet { display: none; }
-@media print {
-  .screen { display: none; }
-  .sheet { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; color: #000; }
-  .lbl { border: 0.3mm dashed #999; padding: 2mm 3mm; font-size: 8pt; line-height: 1.3; break-inside: avoid; min-height: 18mm; }
-  .lbl b { font-size: 11pt; display: block; }
-  .lbl span { color: #555; font-size: 6.5pt; text-transform: none; }
-  .lbl .meta { color: #555; font-size: 6.5pt; }
-}
 </style>

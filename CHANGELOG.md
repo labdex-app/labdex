@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.25.0
+
+### Impact: what breaks if this goes down?
+- New page **Impact** (Network). Pick hosts and labdex lists what goes down with them, what's
+  cut off from its gateway (through switches and patch panels), networks left without
+  routing, VIPs, unavailable services and whether DNS stops, each with the reason.
+  Also from a host's **Impact** button and the search box. API: `GET /api/impact`.
+
+### Labels with QR codes
+- New page **Labels** (Inventory): labels for hosts, cables, switch and patch panel ports
+  and racks, each with a QR code that opens it in labdex. Sizes for Brother and Dymo label
+  printers, a cable flag for 12 mm tape and Avery A4 sheets (with "start at label" for a
+  part-used sheet). Cables → Print labels and a host's new **Label** button lead here.
+- Settings › General › *Public address* is what the QR codes point to.
+
 ## 1.24.1-1
 
 ### Fixes

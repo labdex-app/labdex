@@ -32,6 +32,7 @@ def meta():
     m["version"] = current_app.config["LABDEX_VERSION"]
     from .about_api import project_url
     m["project_url"] = project_url()  # the top bar's link to the project, and Help
+    m["public_url"] = naming.get_setting("public_url").strip().rstrip("/")  # where QR codes on labels point
     m["permissions"] = p.summary()
     m["is_admin"] = p.is_admin
     from .. import demo
