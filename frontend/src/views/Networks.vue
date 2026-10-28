@@ -68,12 +68,12 @@ const dhcp = (n) => (n.dhcp_start ? `${n.dhcp_start.split('.').pop()}–${n.dhcp
               <td>{{ n.hosts || '' }}</td>
               <td class="muted">{{ n.notes }}</td>
             </tr>
-            <tr v-if="loading"><td colspan="9"><Loading /></td></tr>
-            <tr v-else-if="!visible.length"><td colspan="9" class="empty">
+            <tr v-if="!loading && !visible.length"><td colspan="9" class="empty">
               <template v-if="(query.data.value || []).length">Nothing matches.</template>
               <template v-else>No networks yet. <RouterLink v-if="can('network', 'edit')" to="/networks/new">Add the first one</RouterLink>: a name, a VLAN and a prefix are enough.</template></td></tr>
           </tbody>
         </table>
+        <Loading v-if="loading" />
       </div>
     </div>
   </div>

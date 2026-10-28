@@ -353,8 +353,7 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
               </td>
             </tr>
             </template>
-            <tr v-if="loading && !visible.length"><td :colspan="(editable ? 7 : 6) + sources.length"><Loading /></td></tr>
-            <tr v-else-if="!visible.length">
+            <tr v-if="!loading && !visible.length">
               <td :colspan="(editable ? 7 : 6) + sources.length" class="empty">
                 <template v-if="hosts.length">Nothing here matches<template v-if="elsewhere.length">, but
                   <template v-for="(t, n) in elsewhere" :key="t">{{ n ? ' and ' : '' }}<a href="#" @click.prevent="setTab(t)">{{ counts[t] }} in {{ TAB_LABEL[t] }}</a></template> do</template>.</template>
@@ -363,6 +362,7 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
             </tr>
           </tbody>
         </table>
+        <Loading v-if="loading && !visible.length" />
       </div>
       <div v-if="visible.length > shown" class="more">
         <button class="btn" @click="shown += PAGE">Show {{ Math.min(PAGE, visible.length - shown) }} more</button>
