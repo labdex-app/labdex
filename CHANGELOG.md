@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **New fonts and larger text**: the UI is set in Red Hat Text, Red Hat Display (the wordmark and
+  page titles) and Red Hat Mono, self-hosted like before, instead of IBM Plex. Text is a step
+  larger by default (15 px instead of 14 px), and the menu under your name has **Text**: Compact
+  (the old size), Comfortable or Large, kept in this browser.
 - **Change sets** (Automation › Change sets, `labdex changeset FILE`): write a batch of network,
   host and alias changes (and deletions) as YAML, **preview** it (what each change does, the lint
   findings it adds or resolves, the firewall aliases and DNS records that change; nothing is saved),

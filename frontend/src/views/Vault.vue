@@ -131,7 +131,7 @@ async function savePassphrase() {
 
 <style scoped>
 .setup { margin-bottom: 16px; }
-.setup h2 { margin: 0 0 8px; font-size: 16px; display: flex; align-items: center; gap: 6px; }
+.setup h2 { margin: 0 0 8px; font-size: calc(16px * var(--text)); display: flex; align-items: center; gap: 6px; }
 .setup p { max-width: 70ch; }
 .sub.warn { color: var(--warn); }
 </style>

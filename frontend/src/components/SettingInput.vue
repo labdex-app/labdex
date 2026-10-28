@@ -105,7 +105,7 @@ function setCell(i, key, v) { set(rows.value.map((r, n) => (n === i ? { ...r, [k
 </template>
 
 <style scoped>
-.flabel { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+.flabel { display: block; font-size: calc(12px * var(--text)); font-weight: 600; color: var(--muted); margin-bottom: 4px; }
 .req { color: var(--accent-soft); margin-left: 3px; }
 .nets { display: flex; flex-wrap: wrap; gap: 6px; }
 </style>

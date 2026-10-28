@@ -100,9 +100,9 @@ const counts = computed(() => ({ 4: prefixes.value.filter((p) => p.family === 4)
 .pfx-row { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; }
 .pfx-row.bad { border-color: var(--err); }
 .pfx-top, .pfx-sub { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.pfx-sub { margin-top: 6px; font-size: 12.5px; color: var(--faint); }
+.pfx-sub { margin-top: 6px; font-size: calc(12.5px * var(--text)); color: var(--faint); }
 .pfx-sub label { display: flex; gap: 6px; align-items: center; }
-.pfx-row select, .pfx-row input { width: auto !important; padding: 4px 8px !important; font-size: 13px !important; }
+.pfx-row select, .pfx-row input { width: auto !important; padding: 4px 8px !important; font-size: calc(13px * var(--text)) !important; }
 .fam { min-width: 70px; } .src { min-width: 96px; } .len { min-width: 64px; }
 .addr { flex: 1 1 160px; min-width: 120px; width: 160px !important; }
 .pfx-row input.short { width: 72px !important; }

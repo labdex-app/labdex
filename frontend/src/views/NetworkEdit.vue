@@ -183,7 +183,7 @@ const tabs = computed(() => [
                    :hint="`Where its address records go. Empty: <host>.${form.name || 'network'}.${state.meta.settings.domain}; @: <host>.${state.meta.settings.domain}; or a zone of its own, e.g. home.lab → <host>.home.lab. Short names and fun names stay in the host's zone.`">
               <input v-model.trim="form.dns_zone" type="text" class="mono" :placeholder="`${form.name || 'network'}.${state.meta.settings.domain}`" spellcheck="false">
             </Field>
-            <Field label="Notes"><textarea v-model="form.notes" rows="2" style="font-family: inherit; font-size: 14px"></textarea></Field>
+            <Field label="Notes"><textarea v-model="form.notes" rows="2" style="font-family: inherit; font-size: calc(14px * var(--text))"></textarea></Field>
           </div>
           <button type="submit" hidden></button>
           <div v-if="suggestion" class="row" style="margin-top: 12px">

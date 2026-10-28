@@ -206,7 +206,7 @@ const stamp = (s) => (s ? new Date(s).toLocaleString() : '')
 </template>
 
 <style scoped>
-.flabel { font-size: 12px; font-weight: 600; color: var(--muted); margin-top: 4px; }
+.flabel { font-size: calc(12px * var(--text)); font-weight: 600; color: var(--muted); margin-top: 4px; }
 .frow { display: grid; grid-template-columns: 160px minmax(0, 1fr) auto auto auto; gap: 6px; align-items: center; }
 .fields { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-box); }
 .fld { display: grid; grid-template-columns: 160px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 8px 12px; border-top: 1px solid var(--line); }

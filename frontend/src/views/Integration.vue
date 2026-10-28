@@ -279,7 +279,7 @@ const minutes = (m) => (!m ? 'off' : m % 1440 === 0 ? `every ${m / 1440} d` : m 
 .actions { display: grid; gap: 10px; }
 .pagecard { position: relative; }
 .pagecard .refresh { position: absolute; top: 16px; right: 18px; }
-.flabel { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+.flabel { display: block; font-size: calc(12px * var(--text)); font-weight: 600; color: var(--muted); margin-bottom: 4px; }
 a.btn.disabled { opacity: .5; pointer-events: none; }
 .stack > * + * { margin-top: 12px; }
 

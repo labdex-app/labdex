@@ -171,7 +171,7 @@ const areaHex = computed(() => Object.fromEntries((z.value?.areas || []).map((a)
 .ahead { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
 .adesc { margin-left: 4px; }
 .swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; }
-.ah { font-size: 15px; font-weight: 600; }
+.ah { font-size: calc(15px * var(--text)); font-weight: 600; }
 .ah .mono { margin-right: 6px; }
 .ph { visibility: hidden; }
 .meta { display: grid; grid-template-columns: 56px 150px; gap: 16px; color: var(--muted); white-space: nowrap; text-align: right; }

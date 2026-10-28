@@ -121,8 +121,8 @@ const changelog = computed(() => render((data.value?.changelog || '').replace(/^
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; }
 .kv dt { color: var(--faint); }
 .kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
-.changelog :deep(h3) { margin: 26px 0 8px; font-size: 18px; text-transform: none; letter-spacing: 0; color: var(--ink); font-family: var(--mono); }
-.changelog :deep(h4) { margin: 14px 0 4px; font-size: 14px; text-transform: none; letter-spacing: 0; color: var(--muted); }
+.changelog :deep(h3) { margin: 26px 0 8px; font-size: calc(18px * var(--text)); text-transform: none; letter-spacing: 0; color: var(--ink); font-family: var(--mono); }
+.changelog :deep(h4) { margin: 14px 0 4px; font-size: calc(14px * var(--text)); text-transform: none; letter-spacing: 0; color: var(--muted); }
 .changelog :deep(ul) { margin: 4px 0 8px; padding-left: 20px; }
 .changelog :deep(li) { margin: 3px 0; line-height: 1.5; }
 .changelog :deep(p) { line-height: 1.55; }

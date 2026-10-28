@@ -42,11 +42,11 @@ const tone = (t) => ({ ok: 'ok', warn: 'warn', err: 'err' }[t] || '')
 </template>
 
 <style scoped>
-.sumchip { font-size: 12px; padding: 2px 10px; border-radius: 999px; background: var(--raise); color: var(--muted); }
+.sumchip { font-size: calc(12px * var(--text)); padding: 2px 10px; border-radius: 999px; background: var(--raise); color: var(--muted); }
 .sumchip b { color: var(--ink); }
 .sumchip.ok b { color: var(--ok); } .sumchip.warn b { color: var(--warn); } .sumchip.err b { color: var(--err); }
 .sec + .sec { margin-top: 16px; }
-table.mv td { font-size: 12.5px; padding: 6px 10px; }
+table.mv td { font-size: calc(12.5px * var(--text)); padding: 6px 10px; }
 tr.t-ok td:last-child, tr.t-ok td:nth-last-child(2) { color: var(--ok); }
 tr.t-warn td { background: rgba(251, 191, 36, .05); }
 tr.t-err td { background: rgba(248, 113, 113, .07); }

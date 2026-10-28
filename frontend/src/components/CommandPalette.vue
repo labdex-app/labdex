@@ -9,7 +9,7 @@ import {
 import { api } from '../api'
 import { confirm } from '../confirm'
 import { can, toast } from '../store'
-import { setTheme } from '../theme'
+import { setTextSize, setTheme } from '../theme'
 
 const props = defineProps({ pages: { type: Array, default: () => [] } })
 const router = useRouter()
@@ -24,7 +24,7 @@ let timer = null
 let seq = 0
 
 const ICON = { filter: Tags, theme: Palette, host: Server, network: Network, service: AppWindow, alias: ListTree, integration: Plug, action: Play, page: ArrowRight, new: FilePlus2 }
-const KIND = { filter: 'Filter', theme: 'Theme', host: 'Hosts', network: 'Networks', service: 'Services', alias: 'Aliases', integration: 'Integrations', action: 'Run', page: 'Go to', new: 'Create' }
+const KIND = { filter: 'Filter', theme: 'Appearance', host: 'Hosts', network: 'Networks', service: 'Services', alias: 'Aliases', integration: 'Integrations', action: 'Run', page: 'Go to', new: 'Create' }
 
 const creates = computed(() => [
   can('host', 'edit') && { kind: 'new', title: 'New host', link: '/hosts/new', words: 'add create host server vm' },
@@ -33,6 +33,9 @@ const creates = computed(() => [
   { kind: 'theme', title: 'Light theme', set: 'light', words: 'theme light bright day appearance' },
   { kind: 'theme', title: 'Dark theme', set: 'dark', words: 'theme dark night appearance' },
   { kind: 'theme', title: 'Theme like the system', set: 'system', words: 'theme auto system appearance' },
+  { kind: 'theme', title: 'Compact text', size: 'compact', words: 'text size font small compact appearance' },
+  { kind: 'theme', title: 'Comfortable text', size: 'comfortable', words: 'text size font normal medium comfortable appearance' },
+  { kind: 'theme', title: 'Large text', size: 'large', words: 'text size font big large bigger appearance' },
 ].filter(Boolean))
 
 const local = computed(() => {
@@ -89,7 +92,7 @@ function hide() { open.value = false }
 
 async function pick(r) {
   if (!r) return
-  if (r.kind === 'theme') { setTheme(r.set); hide(); return }
+  if (r.kind === 'theme') { if (r.size) setTextSize(r.size); else setTheme(r.set); hide(); return }
   if (r.kind === 'action') {
     if (r.danger && !(await confirm({ title: `${r.title}?`, body: `On ${r.integration}. This changes things right away, without a plan.`, action: r.title, danger: true }))) return
     busy.value = true
@@ -164,15 +167,15 @@ const mac = navigator.platform?.toLowerCase().includes('mac')
 .pal { width: min(640px, 100%); background: var(--card); border: 1px solid var(--line-strong); border-radius: var(--r-box);
   box-shadow: 0 24px 60px var(--shadow); overflow: hidden; display: flex; flex-direction: column; max-height: 70vh; }
 .pal-in { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
-.pal-in input { border: 0 !important; background: none !important; padding: 0 !important; font-size: 15px; box-shadow: none !important; flex: 1; }
+.pal-in input { border: 0 !important; background: none !important; padding: 0 !important; font-size: calc(15px * var(--text)); box-shadow: none !important; flex: 1; }
 .pal-list { overflow-y: auto; padding: 6px; }
-.pal-g { font-size: 12px; color: var(--faint); padding: 8px 10px 4px; }
+.pal-g { font-size: calc(12px * var(--text)); color: var(--faint); padding: 8px 10px 4px; }
 .pal-r { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: var(--r-ctl); cursor: pointer; min-width: 0; }
 .pal-r.on { background: var(--raise); }
 .pal-ic { color: var(--muted); flex: none; }
 .pal-t { font-weight: 500; white-space: nowrap; }
-.pal-s { color: var(--muted); font-size: 12.5px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pal-s { color: var(--muted); font-size: calc(12.5px * var(--text)); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pal-none { padding: 18px 12px; color: var(--faint); }
 .pal-foot { display: flex; gap: 16px; padding: 8px 14px; border-top: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
-kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; margin-right: 3px; color: var(--muted); }
+kbd { font-family: var(--mono); font-size: calc(11px * var(--text)); border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; margin-right: 3px; color: var(--muted); }
 </style>

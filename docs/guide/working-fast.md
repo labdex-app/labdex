@@ -118,10 +118,12 @@ bottom, or <kbd>Ctrl</kbd> <kbd>B</kbd>, shrinks the sidebar to icons and back. 
 that plugins add live as tabs on their integration (Automation → Plugins → the
 integration), not in the sidebar.
 
-## Light or dark
+## Light or dark, and the text size
 
-The menu under your name has **Theme**: Auto (follows your system), Light or Dark. It's
-kept in this browser. The search box knows it too: type `light` or `dark`.
+The menu under your name has **Theme**: Auto (follows your system), Light or Dark, and
+**Text**: Compact (14 px, the old size), Comfortable (15 px, the default) or Large
+(16 px). Both are kept in this browser. The search box knows them too: type `light`, `dark`
+or `large text`.
 
 ## Keyboard and phone
 

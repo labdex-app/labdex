@@ -84,7 +84,7 @@ function adopt(c) {
 <style scoped>
 .mapbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
 .grid { display: grid; gap: 3px; }
-.cell { font: inherit; font-family: var(--mono); font-size: 11px; height: 28px; border-radius: 4px; border: 1px solid transparent; cursor: pointer;
+.cell { font: inherit; font-family: var(--mono); font-size: calc(11px * var(--text)); height: 28px; border-radius: 4px; border: 1px solid transparent; cursor: pointer;
   background: var(--panel); color: var(--faint); padding: 0; position: relative; }
 .cell:hover, .cell.on { border-color: var(--ink); }
 .cell:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }

@@ -161,7 +161,7 @@ const dot = (i) => (!i.enabled ? 'off' : i.last_status === 'failed' ? 'bad' : 'o
 .missing ul { margin: 0 0 10px; }
 .pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
 .pcard { display: flex; flex-direction: column; gap: 6px; margin: 0; }
-.pname { font-weight: 650; font-size: 15px; color: var(--ink); }
+.pname { font-weight: 650; font-size: calc(15px * var(--text)); color: var(--ink); }
 .desc { margin: 0; }
 .caps { display: flex; flex-wrap: wrap; gap: 4px; }
 .insts { margin: 4px 0 0; padding-top: 6px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 3px; }

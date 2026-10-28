@@ -285,16 +285,16 @@ async function changed() {
   .mtools .seg button { flex: 1; padding: 5px 6px; white-space: nowrap; }
   .mtools input[type=search] { max-width: none !important; flex: 1; }
 }
-.seg .n { margin-left: 6px; font-size: 11.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.seg .n { margin-left: 6px; font-size: calc(11.5px * var(--text)); color: var(--faint); font-variant-numeric: tabular-nums; }
 .mgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
 .mcard { margin: 0; display: flex; flex-direction: column; gap: 8px; }
 .mcard.inst { background: transparent; }
 .mcard header { display: flex; flex-direction: column; gap: 1px; }
-.mname { all: unset; cursor: pointer; font-weight: 650; font-size: 15px; color: var(--ink); }
+.mname { all: unset; cursor: pointer; font-weight: 650; font-size: calc(15px * var(--text)); color: var(--ink); }
 .mname:hover { text-decoration: underline; }
 .mname:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
 .mfrom { color: var(--faint); }
-.off { margin-left: 6px; font-size: 11px; font-weight: 700; color: var(--accent-soft); }
+.off { margin-left: 6px; font-size: calc(11px * var(--text)); font-weight: 700; color: var(--accent-soft); }
 .desc { margin: 0; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .caps { display: flex; flex-wrap: wrap; gap: 4px; }
 .mcard footer { display: flex; align-items: center; gap: 6px; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--line); }
@@ -306,9 +306,9 @@ async function changed() {
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
 .flags { display: flex; gap: 6px; flex-wrap: wrap; }
-.flag { font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--muted); }
+.flag { font-size: calc(11.5px * var(--text)); font-weight: 600; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--muted); }
 .flag.bad { color: var(--err); border-color: currentColor; }
-.sub3 { font-size: 13px; margin: 18px 0 6px; }
+.sub3 { font-size: calc(13px * var(--text)); margin: 18px 0 6px; }
 .changes { background: var(--raise); border-radius: var(--r-ctl); padding: 8px 10px; max-height: 220px; overflow: auto; }
 .vers { margin-top: 16px; }
 .pre { white-space: pre-line; }

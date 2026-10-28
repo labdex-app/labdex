@@ -51,7 +51,7 @@ onBeforeUnmount(close)
   border-radius: var(--r-box); padding: 4px; box-shadow: 0 12px 30px var(--shadow); display: flex; flex-direction: column; }
 .mb-list.right { right: 0; }
 .mb-list.left { left: 0; }
-.mb-list button { display: flex; align-items: center; gap: 8px; text-align: left; font: inherit; font-size: 13px; color: var(--ink); background: none;
+.mb-list button { display: flex; align-items: center; gap: 8px; text-align: left; font: inherit; font-size: calc(13px * var(--text)); color: var(--ink); background: none;
   border: 0; border-radius: var(--r-ctl); padding: 7px 10px; cursor: pointer; white-space: nowrap; }
 .mb-list button:hover, .mb-list button:focus-visible { background: var(--raise); outline: none; }
 .mb-list button.danger { color: var(--err); }

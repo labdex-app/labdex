@@ -75,7 +75,7 @@ async function submit() {
 <style scoped>
 .wrap { min-height: 100vh; display: grid; place-items: center; padding: 16px; border-top: 3px solid var(--accent); }
 .box { width: min(400px, 100%); padding: 28px; }
-.brand { font-weight: 800; font-size: 20px; margin-bottom: 18px; }
+.brand { font-family: var(--disp); font-weight: 600; font-size: calc(20px * var(--text)); margin-bottom: 18px; }
 .brand span { color: var(--accent-soft); }
 h1 { margin-bottom: 8px; }
 .stack { margin-top: 16px; }

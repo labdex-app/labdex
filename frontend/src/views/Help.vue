@@ -71,12 +71,12 @@ async function copyReport() {
 .hcard { display: flex; gap: 12px; margin: 0; color: var(--ink); align-items: flex-start; }
 .hcard:hover { text-decoration: none; border-color: var(--accent); }
 .hcard > svg { color: var(--accent-soft); flex: none; margin-top: 2px; }
-.hcard p { margin: 4px 0 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.hcard p { margin: 4px 0 0; color: var(--muted); font-size: calc(13px * var(--text)); overflow-wrap: anywhere; }
 .split2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-bottom: 14px; }
 .split2 .card { margin: 0; }
 .split2 h2 { display: flex; align-items: center; gap: 8px; }
 .keys { display: grid; grid-template-columns: max-content 1fr; gap: 8px 14px; margin: 0; }
 .keys dd { margin: 0; color: var(--muted); }
-kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; background: var(--raise); }
-.rep { background: var(--raise); border-radius: var(--r-ctl); padding: 10px 12px; font-size: 12px; white-space: pre-wrap; word-break: break-all; margin: 0 0 10px; }
+kbd { font-family: var(--mono); font-size: calc(12px * var(--text)); border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; background: var(--raise); }
+.rep { background: var(--raise); border-radius: var(--r-ctl); padding: 10px 12px; font-size: calc(12px * var(--text)); white-space: pre-wrap; word-break: break-all; margin: 0 0 10px; }
 </style>

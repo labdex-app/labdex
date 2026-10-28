@@ -179,6 +179,6 @@ const target = (c) => c.settings.topic || c.settings.room || c.settings.url || (
 .ell { max-width: 360px; }
 .evs { display: flex; flex-direction: column; gap: 4px; }
 .seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--r-ctl); overflow: hidden; align-self: flex-start; }
-.seg button { font: inherit; font-size: 12.5px; padding: 5px 12px; background: none; border: 0; color: var(--muted); cursor: pointer; }
+.seg button { font: inherit; font-size: calc(12.5px * var(--text)); padding: 5px 12px; background: none; border: 0; color: var(--muted); cursor: pointer; }
 .seg button.on { background: var(--raise); color: var(--ink); }
 </style>

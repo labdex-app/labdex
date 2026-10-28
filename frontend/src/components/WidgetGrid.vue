@@ -96,16 +96,16 @@ const key = (w) => `${w.integration}/${w.id}`
 .wgrid-wrap.bare { margin: 0; }
 .flat .widget { border: 0; padding: 0; background: none; }
 .flat .wgrid { grid-template-columns: minmax(0, 1fr); }
-.wtitle { font-size: 14px; margin: 0 0 10px; }
+.wtitle { font-size: calc(14px * var(--text)); margin: 0 0 10px; }
 .wgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
 .widget { margin: 0; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .widget.wide { grid-column: span 2; }
 @media (max-width: 640px) { .widget.wide { grid-column: auto; } }
 .whead { display: flex; align-items: baseline; gap: 8px; }
-.wlabel { font-size: 13px; font-weight: 500; color: var(--muted); flex: 1; min-width: 0; }
-.wsrc { font-size: 11px; color: var(--faint); font-family: var(--mono); }
-.wnum { font-size: 26px; font-weight: 650; line-height: 1.15; font-variant-numeric: tabular-nums; }
-.wunit { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 4px; }
+.wlabel { font-size: calc(13px * var(--text)); font-weight: 500; color: var(--muted); flex: 1; min-width: 0; }
+.wsrc { font-size: calc(11px * var(--text)); color: var(--faint); font-family: var(--mono); }
+.wnum { font-size: calc(26px * var(--text)); font-weight: 650; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.wunit { font-size: calc(13px * var(--text)); font-weight: 500; color: var(--muted); margin-left: 4px; }
 .wlist { display: flex; flex-direction: column; gap: 3px; max-height: 220px; overflow: auto; }
 .wlist li { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .wtable th, .wtable td { padding: 4px 8px; }

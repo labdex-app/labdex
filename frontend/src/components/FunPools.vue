@@ -132,6 +132,6 @@ async function remove(p) {
 .li.off .li-title { opacity: .6; }
 .hitrow { margin-top: 6px; }
 .names { margin-top: 8px; line-height: 2; }
-.nchip { display: inline-block; font-family: var(--mono); font-size: 12px; padding: 0 7px; margin: 0 4px 4px 0; border-radius: 999px; background: var(--raise); color: var(--muted); }
+.nchip { display: inline-block; font-family: var(--mono); font-size: calc(12px * var(--text)); padding: 0 7px; margin: 0 4px 4px 0; border-radius: 999px; background: var(--raise); color: var(--muted); }
 .nchip.used { opacity: .45; text-decoration: line-through; }
 </style>
