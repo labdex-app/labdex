@@ -1834,12 +1834,55 @@ from their own repositories; a plugin fix never waits for labdex.</p>
 </tr>
 </tbody>
 </table>
-<p>Every change reaches <code>main</code> and <code>release/*</code> through a pull request. Pushes run the quick
-lint; pull requests run CI for what they touch: the backend tests on SQLite (only the tests
-the change affects), browser tests, the performance budget, the image and the docs. The
-tests also run on PostgreSQL when a change touches database code (models, migrations,
-queries, the driver), for every pull request into a <code>release/*</code> branch, when CI is run by
-hand, and every Monday on <code>main</code>.</p>
+<p>Every change reaches <code>main</code> and <code>release/*</code> through a pull request. Every push runs Lint
+(ruff, eslint, YAML). Pull requests run only what their change can affect
+(<code>.github/ci-changes.py</code> decides, the "What changed" job shows why):</p>
+<table>
+<thead>
+<tr>
+<th>Change</th>
+<th>Runs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a version bump alone (<code>bump.py</code>)</td>
+<td>nothing but the docs build (CHANGELOG)</td>
+</tr>
+<tr>
+<td>backend code</td>
+<td>the tests that code affects (pytest-testmon) on SQLite, the performance budget</td>
+</tr>
+<tr>
+<td>…with database code (queries, models), or into <code>release/*</code></td>
+<td>the same on PostgreSQL too</td>
+</tr>
+<tr>
+<td>backend tests only</td>
+<td>the tests that changed</td>
+</tr>
+<tr>
+<td>frontend, or the API it calls</td>
+<td>the UI build and the browser tests</td>
+</tr>
+<tr>
+<td><code>Dockerfile</code></td>
+<td>the image build</td>
+</tr>
+<tr>
+<td>docs, <code>mkdocs.yml</code>, CHANGELOG, README</td>
+<td>the docs build</td>
+</tr>
+<tr>
+<td>Python or JavaScript dependencies, migrations, the plugins, CI itself</td>
+<td>everything</td>
+</tr>
+</tbody>
+</table>
+<p>Running CI by hand (Actions › CI › Run workflow) runs everything, and so does the Monday run
+on <code>main</code>, which also keeps testmon's record current for new pull requests. Branch
+protection requires two checks: <strong>Lint</strong> and <strong>CI passed</strong> (the last job, which waits for
+the others).</p>
 <h2 id="making-a-release">Making a release<a class="headerlink" href="#making-a-release" title="Permanent link">&para;</a></h2>
 <ol>
 <li><strong>Cut the branch</strong> when <code>main</code> has what the release should have:
