@@ -10,6 +10,7 @@
 [![Release](https://img.shields.io/github/v/release/labdex-app/labdex?color=7c3aed&labelColor=181b20)](https://github.com/labdex-app/labdex/releases/latest)
 [![Image](https://img.shields.io/badge/ghcr.io-labdex-7c3aed?labelColor=181b20)](https://github.com/labdex-app/labdex/pkgs/container/labdex)
 [![License](https://img.shields.io/github/license/labdex-app/labdex?color=7c3aed&labelColor=181b20)](LICENSE)
+[![Buy Me a Coffee](https://img.shields.io/badge/buy%20me%20a%20coffee-bitsandbricks-7c3aed?logo=buymeacoffee&logoColor=white&labelColor=181b20)](https://buymeacoffee.com/bitsandbricks)
 
 A small inventory for homelabs that treats **zones and names as first-class**.
 You describe networks, hosts, interfaces and services once; labdex checks them
