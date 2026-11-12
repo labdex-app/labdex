@@ -16,7 +16,7 @@ A small inventory for homelabs that treats zones and names as first-class, and g
    - `pytest -q`
    - `ruff check labdex tools tests`
    - `cd frontend && npm ci && npm run lint && npm run build`
-   - `mkdocs build --strict when you touched docs/`
+   - `mkdocs build --strict` when you touched `docs/`
 3. **Pull request:** open it as a **draft** and fill in the template
    (`.github/pull_request_template.md`). Link the issue.
 4. **CI:** wait for the checks in `.github/workflows/`. Fix failures
