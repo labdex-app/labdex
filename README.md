@@ -522,6 +522,10 @@ pins the API details that matter.
 compatible within 1.x. 1.1 added discovery from Traefik and Docker. See `CHANGELOG.md` for what
 each release brought.
 
+## Support
+
+If labdex is useful to you, you can [buy me a coffee](https://buymeacoffee.com/bitsandbricks).
+
 ## License
 
 labdex is **free and open source software** under the [GNU Affero General Public License
