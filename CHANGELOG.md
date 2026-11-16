@@ -6,8 +6,11 @@
   page titles) and Red Hat Mono, self-hosted like before, instead of IBM Plex. Text is a step
   larger by default (15 px instead of 14 px), and the menu under your name has **Text**: Compact
   (the old size), Comfortable or Large, kept in this browser.
-- **A logo**: nested zones on a violet tile, in the header, on the sign-in page and as the
-  favicon. The docs now use labdex's own violet, graphite and Red Hat fonts (self-hosted, so
+- **A logo**: a lit lantern on a violet tile (a frame around what it lights, like nested zones),
+  in the header, on the sign-in page and as the favicon. The theme is built around it: the dark
+  and light surfaces lean a little violet ("dusk"), and lantern amber marks brand moments only
+  (the flame, the sign-in glow, the docs header), never a status. The docs now use labdex's own
+  violet, dusk neutrals and Red Hat fonts (self-hosted, so
   the docs load nothing from Google either) with the logo, and the README shows it with CI,
   docs, release, image and licence badges. The container image carries OCI labels (title,
   description, source, docs, licence), so the GHCR package page links back to the repository.
