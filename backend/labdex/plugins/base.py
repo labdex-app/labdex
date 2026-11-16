@@ -53,25 +53,36 @@ class ExportFile:
 
 
 class InventoryView:
-    """Read-only access to the whole inventory (plugins run with system rights)."""
+    """Read-only access to the inventory (plugins run with system rights). An integration sees
+    the site it belongs to; one for every site (site '') sees everything."""
     # each method imports what it needs: this module must stay light (see sandbox.py)
 
+    def __init__(self, site: str | None = None):
+        self.site = site or None
+
+    def _scope(self):
+        from .. import sites
+        return sites.scoped(self.site)
+
     def hosts(self, include_offline=False) -> list[dict]:
-        from .. import naming, store
+        from .. import naming, sites, store
         from ..models import Host, db
-        q = db.select(Host).order_by(Host.name)
-        if not include_offline:
-            q = q.where(Host.status != "offline")
-        return [store.host_to_dict(h) | {"zone_long": naming.zone_long(h.zone)} for h in db.session.scalars(q)]
+        with self._scope():
+            q = sites.hosts(db.select(Host).order_by(Host.name))
+            if not include_offline:
+                q = q.where(Host.status != "offline")
+            return [store.host_to_dict(h) | {"zone_long": naming.zone_long(h.zone)} for h in db.session.scalars(q)]
 
     def networks(self) -> list[dict]:
-        from .. import store
+        from .. import sites, store
         from ..models import Network, db
-        return [store.network_to_dict(n) for n in db.session.scalars(db.select(Network).order_by(Network.name))]
+        with self._scope():
+            return [store.network_to_dict(n) for n in db.session.scalars(sites.networks(db.select(Network).order_by(Network.name)))]
 
     def aliases(self) -> list[dict]:
         from ..generators import aliases as galiases
-        return [a.as_dict() for a in galiases.all_aliases()]
+        with self._scope():
+            return [a.as_dict() for a in galiases.all_aliases()]
 
     def custom_aliases(self) -> list[dict]:
         from .. import store
@@ -82,8 +93,9 @@ class InventoryView:
         from .. import naming
         from ..generators import dns
         domain = naming.get_setting("domain")
-        return [{"name": r.name, "fqdn": r.fqdn(domain), "type": r.type, "value": r.value, "host": r.host, "zone": r.zone or domain,
-                 "public": r.public} for r in dns.records()]
+        with self._scope():
+            return [{"name": r.name, "fqdn": r.fqdn(domain), "type": r.type, "value": r.value, "host": r.host, "zone": r.zone or domain,
+                     "public": r.public} for r in dns.records()]
 
     def apply_delegated_prefixes(self, observed: dict[str, str], source: str) -> dict:
         """The one write a plugin may make to networks: what the firewall received on its WAN
@@ -94,24 +106,28 @@ class InventoryView:
     def dns_zones(self) -> list[str]:
         """Every zone labdex writes records into, the inventory domain first."""
         from ..generators import dns
-        return dns.zones()
+        with self._scope():
+            return dns.zones()
 
     def dhcp_reservations(self) -> list[dict]:
         """[{network, vlan, mac, ip, hostname, description}] for interfaces with MAC + IPv4."""
         from ..generators import hostfiles
-        return hostfiles.dhcp_reservations()
+        with self._scope():
+            return hostfiles.dhcp_reservations()
 
     def dns_zone(self) -> str:
         from ..generators import dns
-        return dns.bind()
+        with self._scope():
+            return dns.bind()
 
     def ansible_inventory(self) -> dict:
         from ..generators import hostfiles
-        return hostfiles.ansible_inventory()
+        with self._scope():
+            return hostfiles.ansible_inventory()
 
     def yaml(self) -> str:
         from .. import inventory
-        return inventory.export_yaml()
+        return inventory.export_yaml(site=self.site)
 
     def settings(self) -> dict:
         from .. import naming
@@ -120,6 +136,11 @@ class InventoryView:
     def features(self) -> dict:
         from .. import features
         return {p: features.to_dict(f) for p, f in features.all_features().items()}
+
+    def sites(self) -> list[dict]:
+        """Every site ({code, name, description, colour}); the one this integration works in is `site`."""
+        from .. import sites
+        return [sites.to_dict(s) for s in sites.all_sites()]
 
 
 class HttpClient:
@@ -185,12 +206,17 @@ class Context:
         self.plugin_dir: Path = spec.path
         self.job_id = job_id
         self._log = log
-        self.inventory = InventoryView()
+        self.inventory = InventoryView(getattr(integration, "site", None) or None)
         from .. import discovery
         self.discovery = discovery
 
     def log(self, message: str) -> None:
         self._log(str(message))
+
+    @property
+    def site(self) -> str:
+        """The site this integration works in ('' = every site)."""
+        return getattr(self.integration, "site", "") or ""
 
     @property
     def data_dir(self) -> Path:

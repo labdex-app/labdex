@@ -1,11 +1,11 @@
 <script setup>
 import { Plus } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '../query'
 import Copy from '../components/Copy.vue'
 import ZoneChip from '../components/ZoneChip.vue'
-import { can, toast } from '../store'
+import { can, state, toast } from '../store'
 import Loading from '../components/Loading.vue'
 
 const router = useRouter()
@@ -13,12 +13,14 @@ const query = useQuery('/api/networks', { onError: (e) => toast(e.message, 'erro
 const nets = computed(() => query.data.value || [])
 const loading = computed(() => query.loading.value && !query.data.value)
 const q = ref('')
-
-
+const route = useRoute()
+const site = ref(route.query.site || '')
+const sites = computed(() => state.meta.sites || [])
 
 const visible = computed(() => {
   const n = q.value.trim().toLowerCase()
-  return n ? nets.value.filter((x) => JSON.stringify(x).toLowerCase().includes(n)) : nets.value
+  const inSite = site.value ? nets.value.filter((x) => x.site === site.value) : nets.value
+  return n ? inSite.filter((x) => JSON.stringify(x).toLowerCase().includes(n)) : inSite
 })
 const dhcp = (n) => (n.dhcp_start ? `${n.dhcp_start.split('.').pop()}–${n.dhcp_end.split('.').pop()}` : '—')
 </script>
@@ -29,6 +31,10 @@ const dhcp = (n) => (n.dhcp_start ? `${n.dhcp_start.split('.').pop()}–${n.dhcp
       <h1>Networks</h1>
       <span class="sub">{{ nets.length }}</span>
       <span class="grow"></span>
+      <select v-if="sites.length > 1" v-model="site" aria-label="Site" style="max-width: 180px">
+        <option value="">Every site</option>
+        <option v-for="s in sites" :key="s.code" :value="s.code">{{ s.name }}</option>
+      </select>
       <input v-model="q" type="search" placeholder="Search" style="max-width: 260px" aria-label="Search networks">
       <RouterLink v-if="can('network', 'edit')" to="/networks/new" class="btn primary"><Plus :size="15" /> Network</RouterLink>
     </div>
@@ -55,7 +61,7 @@ const dhcp = (n) => (n.dhcp_start ? `${n.dhcp_start.split('.').pop()}–${n.dhcp
                 </div>
                 <span v-if="!n.prefixes?.length" class="faint">—</span>
               </td>
-              <td><ZoneChip :zone="n.zone" /></td>
+              <td><ZoneChip :zone="n.zone" /><span v-if="sites.length > 1" class="small faint ml-1">{{ n.site }}</span></td>
               <td class="mono">{{ n.gateway4 || '—' }}</td>
               <td class="mono nowrap">{{ dhcp(n) }}</td>
               <td style="min-width: 130px">

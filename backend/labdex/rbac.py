@@ -41,7 +41,7 @@ BUILTIN_ROLES = [
     ("secret-keeper", "See, reveal and change vault secrets in scope", ["secret:edit", "secret:apply"]),
 ]
 
-SCOPE_RE = re.compile(r"^(\*|(zone|area|network|tag|name):[A-Za-z0-9_*?.\-\[\]/]+)$")  # "/": vault paths
+SCOPE_RE = re.compile(r"^(\*|(site|zone|area|network|tag|name):[A-Za-z0-9_*?.\-\[\]/]+)$")  # "/": vault paths
 
 
 @dataclass
@@ -54,15 +54,17 @@ class Facts:
     areas: set = field(default_factory=set)
     networks: set = field(default_factory=set)
     tags: set = field(default_factory=set)
+    sites: set = field(default_factory=set)
     # zones of a host's addresses besides its home zone: zone/area scopes match them for "view" only
     seen_zones: set = field(default_factory=set)
     seen_areas: set = field(default_factory=set)
 
     @classmethod
-    def make(cls, name="", zones=(), networks=(), tags=(), aliases=()):
+    def make(cls, name="", zones=(), networks=(), tags=(), aliases=(), site=""):
         zones = {z for z in zones if z}
         return cls(
             name=name,
+            sites={site} if site else set(),
             names={n for n in (name, *aliases) if n},
             zones=zones,
             areas={z.split("_")[0] for z in zones},
@@ -75,14 +77,14 @@ class Facts:
 def host_facts(d: dict) -> Facts:
     f = Facts.make(d.get("name", ""), [d.get("zone", "")],
                    [i.get("network") for i in d.get("interfaces") or []],
-                   d.get("tags") or [], d.get("fun_names") or [d.get("fun") or ""])
+                   d.get("tags") or [], d.get("fun_names") or [d.get("fun") or ""], d.get("site") or "")
     f.seen_zones = {i["zone"] for i in d.get("interfaces") or [] if i.get("zone")} - f.zones
     f.seen_areas = {z.split("_")[0] for z in f.seen_zones} - f.areas
     return f
 
 
 def network_facts(d: dict) -> Facts:
-    return Facts.make(d.get("name", ""), [d.get("zone", "")], [d.get("name", "")])
+    return Facts.make(d.get("name", ""), [d.get("zone", "")], [d.get("name", "")], site=d.get("site") or "")
 
 
 ALIAS_ZONE = re.compile(r"^[A-Z]+[46]?_ZONE_([A-Z0-9_]+)$")
@@ -130,7 +132,7 @@ def scope_matches(scope: str, f: Facts, action: str = "") -> bool:
         return True
     kind, _, pattern = scope.partition(":")
     pool = {
-        "zone": f.zones, "area": f.areas, "network": f.networks, "tag": f.tags, "name": f.names,
+        "site": f.sites, "zone": f.zones, "area": f.areas, "network": f.networks, "tag": f.tags, "name": f.names,
     }.get(kind, set())
     if action == "view" and kind in ("zone", "area"):
         # a host with an address in a zone is visible to whoever may see that zone

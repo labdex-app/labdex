@@ -35,7 +35,7 @@ const route = useRoute()
 const isNew = computed(() => props.name === 'new')
 
 const blank = () => ({
-  name: '', fun: '', zone: '', zone_pinned: false, kind: 'device', vip_protocol: '', vip_members: [],
+  name: '', site: route.query.site || state.meta.sites?.[0]?.code || 'home', fun: '', zone: '', zone_pinned: false, kind: 'device', vip_protocol: '', vip_members: [],
   status: 'active', function: '', hardware: '', vendor: '', model: '', icon: '', colour: '', cables: [], rules: [], runs_on: '', notes: '', tags: [],
   rack: '', rack_unit: null, rack_height: 1, rack_face: 'front',
   features: [], vars: '', interfaces: [], services: [], fun_names: [], fun_no_dns: [], records: [], dns_zone: '',
@@ -286,8 +286,10 @@ function followZone() { form.zone_pinned = false; if (derivedZone.value) form.zo
 const zoneOf = (i) => netByName(i.network)?.zone || ''
 // Zone first, then segment: offer networks of the host's zone (plus whatever is already chosen).
 // Without a zone yet, every network: the first one picked gives the zone.
-const netsFor = (iface) => networks.value.filter((n) => allNets.value || !form.zone || n.zone === form.zone || n.name === iface.network)
-const otherZoneNets = computed(() => form.zone ? networks.value.filter((n) => n.zone !== form.zone).length : 0)
+// only networks of the host's site; within it, those of its zone unless "all" is ticked
+const siteNets = computed(() => networks.value.filter((n) => !n.site || !form.site || n.site === form.site))
+const netsFor = (iface) => siteNets.value.filter((n) => allNets.value || !form.zone || n.zone === form.zone || n.name === iface.network)
+const otherZoneNets = computed(() => form.zone ? siteNets.value.filter((n) => n.zone !== form.zone).length : 0)
 // VIPs
 const isVip = computed(() => form.kind === 'vip')
 watch(() => form.kind, (k) => {
@@ -657,6 +659,11 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
                 <div v-if="err('vip_members')" class="err">{{ err('vip_members') }}</div>
                 <div v-else class="hint">The hosts that hold this address. They list it on their Network tab and get it as <code>labdex_vips</code> in Ansible; the VIP itself is never an Ansible target.</div>
               </div>
+              <Field v-if="(state.meta.sites || []).length > 1" label="Site" :error="err('site')" hint="Its networks and hypervisor are in the same site">
+                <select v-model="form.site">
+                  <option v-for="s in state.meta.sites" :key="s.code" :value="s.code">{{ s.name }}</option>
+                </select>
+              </Field>
               <Field label="Status" :error="err('status')">
                 <select v-model="form.status">
                   <option v-for="s in state.meta.statuses" :key="s" :value="s">{{ s }}</option>

@@ -7,7 +7,7 @@ from sqlalchemy import or_
 from ..models import SavedSearch, db, utcnow
 from . import body, bp, err
 
-KEYS = ("q", "zone", "cat", "status", "tag", "kind", "group")
+KEYS = ("q", "site", "zone", "cat", "status", "tag", "kind", "group")
 
 
 def _clean(raw) -> dict:

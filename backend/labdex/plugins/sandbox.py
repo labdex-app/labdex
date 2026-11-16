@@ -216,7 +216,7 @@ def call(spec, ctx, method: str, args=(), kw=None, timeout: int | None = None):
     info = {"name": ctx.name, "settings": encode(ctx.settings), "job_id": ctx.job_id, "plugin_dir": str(Path(spec.path).resolve()),
             "python": spec.manifest.get("python", "plugin.py"), "data_dir": str(data),
             "spec": {"id": spec.id, "settings": spec.settings, "host_settings": spec.host_settings},
-            "integration": {"id": integ.id, "name": integ.name} if integ is not None else None,
+            "integration": {"id": integ.id, "name": integ.name, "site": integ.site or ""} if integ is not None else None,
             "demo": bool(current_app.config.get("LABDEX_DEMO")), "sandbox": fs,
             "version": current_app.config.get("LABDEX_VERSION", "")}
     to_child_r, to_child_w = os.pipe()

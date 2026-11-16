@@ -21,8 +21,20 @@ def _authenticate():
         return err(401, "login required")
     if not auth.csrf_ok():
         return err(403, "missing X-Requested-With header")
+    if request.method == "GET" and request.args.get("site"):
+        # ?site=public on a read: DNS records, aliases, the Ansible inventory … of that site only
+        from .. import sites
+        auth.g._site_token = sites._scope.set(request.args["site"].strip().lower())
     from .. import demo
     return demo.guard()
+
+
+@bp.teardown_request
+def _unscope(_exc=None):
+    token = auth.g.pop("_site_token", None)
+    if token is not None:
+        from .. import sites
+        sites._scope.reset(token)
 
 
 def err(status: int, message: str, errors=None):
@@ -67,5 +79,5 @@ def text_response(text: str, mimetype: str, filename: str):
 from . import (  # noqa: E402, F401
     about_api, admin, auth_routes, changesets_api, dashboard_api, dashboards_api, discovery_api, dns_api, events_api, features_api, history,
     hostmodules_api, inventory_api, labels_api, nav_api, naming_api, operate_api, plugins_api, pluginstore_api, racks_api, search_api, searches_api, secrets_api,
-    tags_api, topology_api, vault_api, zones_api,
+    sites_api, tags_api, topology_api, vault_api, zones_api,
 )

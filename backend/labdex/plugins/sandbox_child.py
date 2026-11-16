@@ -128,7 +128,7 @@ class _Remote:
 
 
 INVENTORY = ("hosts", "networks", "aliases", "custom_aliases", "dns_records", "apply_delegated_prefixes", "dns_zones",
-             "dhcp_reservations", "dns_zone", "ansible_inventory", "yaml", "settings", "features")
+             "dhcp_reservations", "dns_zone", "ansible_inventory", "yaml", "settings", "features", "sites")
 DISCOVERY = ("record_scan", "record_neighbours", "record_links", "record_macs")
 
 
@@ -152,6 +152,10 @@ class ChildContext:
 
     def log(self, message) -> None:
         self._wire.send({"t": "log", "msg": str(message)})
+
+    @property
+    def site(self) -> str:
+        return getattr(self.integration, "site", "") or ""
 
     @property
     def data_dir(self) -> Path:

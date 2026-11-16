@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Sites**: one labdex for more than one part of your infrastructure, such as `home` behind your
+  firewall and `public` at a cloud provider (Settings › Sites). Each site has its own hosts,
+  networks and integrations; zones, naming, features and people are shared. An integration works
+  in one site and only sees its hosts, DNS records and aliases, so the home firewall never gets
+  public nodes; backups cover every site. A custom alias can name a host or network of another
+  site and gets its addresses. Hosts and networks have a Site field and the Hosts page a Site
+  filter (`site:public`), roles and selectors take `site:` scopes, and read endpoints take
+  `?site=`. `labdex export --site public` writes one site's file and `labdex import` of that file
+  replaces only that site. Everything you had moves into `home`; with one site the UI looks as
+  before. See *Sites* in the guide.
 - **New fonts and larger text**: the UI is set in Red Hat Text, Red Hat Display (the wordmark and
   page titles) and Red Hat Mono, self-hosted like before, instead of IBM Plex. Text is a step
   larger by default (15 px instead of 14 px), and the menu under your name has **Text**: Compact

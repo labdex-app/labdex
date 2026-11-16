@@ -122,9 +122,10 @@ def _records() -> list[Record]:
     from .. import naming as nm
     domain = nm.get_setting("domain")
     out: list[Record] = []
-    hosts = db.session.scalars(db.select(Host).where(Host.status != "offline").order_by(Host.name)).all()
+    from .. import sites
+    hosts = db.session.scalars(sites.hosts(db.select(Host).where(Host.status != "offline").order_by(Host.name))).all()
     from ..models import Network
-    own_zones = {domain} | {nm.network_dns_zone(n) for n in db.session.scalars(db.select(Network))} | {nm.host_dns_zone(h) for h in hosts}
+    own_zones = {domain} | {nm.network_dns_zone(n) for n in db.session.scalars(sites.networks(db.select(Network)))} | {nm.host_dns_zone(h) for h in hosts}
     for host in hosts:
         per_net: dict[str, int] = {}
         for iface in host.interfaces:

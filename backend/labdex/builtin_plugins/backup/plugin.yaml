@@ -1,6 +1,7 @@
 id: backup
 name: Backup
 kind: module
+site: all  # covers every site
 tags: [backup, core]
 pages:
   - {id: backups, label: Backups}

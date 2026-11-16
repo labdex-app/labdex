@@ -9,7 +9,7 @@ import ActionButton from '../components/ActionButton.vue'
 import ModuleView from '../components/ModuleView.vue'
 import SettingsForm from '../components/SettingsForm.vue'
 import TemplateList from '../components/TemplateList.vue'
-import { ago, toast } from '../store'
+import { ago, state, toast } from '../store'
 
 const props = defineProps({ name: String })
 const route = useRoute()
@@ -23,12 +23,14 @@ const notFound = ref(false)
 const preview = ref(null) // { title, body }
 const secrets = ref(null)
 const selectors = ref('')
+const site = ref('')
 
 async function load() {
   try {
     d.value = await api.get(`/api/integrations/${enc(props.name)}`)
     values.value = JSON.parse(JSON.stringify(d.value.settings))
     selectors.value = (d.value.selectors || []).join(' ')
+    site.value = d.value.site || ''
   } catch (e) {
     if (e.status === 404) notFound.value = true
     else toast(e.message, 'error')
@@ -46,7 +48,7 @@ const schedules = computed(() => (spec.value?.settings || []).filter((f) => f.ke
 const runActions = computed(() => (spec.value?.actions || []).filter((a) => a.mode !== 'export' && a.scope !== 'host'))
 const hostActions = computed(() => (spec.value?.actions || []).filter((a) => a.scope === 'host'))
 const exportActions = computed(() => (spec.value?.actions || []).filter((a) => a.mode === 'export'))
-const dirty = computed(() => d.value && (JSON.stringify(values.value) !== JSON.stringify(d.value.settings) || selectors.value.trim() !== (d.value.selectors || []).join(' ')))
+const dirty = computed(() => d.value && (JSON.stringify(values.value) !== JSON.stringify(d.value.settings) || selectors.value.trim() !== (d.value.selectors || []).join(' ') || site.value !== (d.value.site || '')))
 // pages a plugin adds (UniFi devices, Traefik routers …) are tabs here, not sidebar entries
 const pages = computed(() => (d.value?.enabled ? (spec.value?.pages || []).filter((p) => p.place !== 'policy') : []))
 // a page that reports on the zone policy lives on the Policy page (old links to the tab go there)
@@ -71,9 +73,11 @@ async function save(extra = {}) {
   try {
     const body = { settings: values.value, ...extra }
     if (d.value.per_host) body.selectors = selectors.value
+    if (site.value !== (d.value.site || '')) body.site = site.value
     d.value = await api.put(`/api/integrations/${enc(props.name)}`, body)
     values.value = JSON.parse(JSON.stringify(d.value.settings))
     selectors.value = (d.value.selectors || []).join(' ')
+    site.value = d.value.site || ''
     toast(extra.enabled === undefined ? 'Settings saved' : extra.enabled ? 'Enabled' : 'Disabled')
   } catch (e) {
     if (e instanceof ApiError && e.errors.length) errors.value = e.fields
@@ -208,6 +212,15 @@ const minutes = (m) => (!m ? 'off' : m % 1440 === 0 ? `every ${m / 1440} d` : m 
           <form v-if="fields.length || schedules.length" class="card" @submit.prevent="save()">
             <h2>Settings</h2>
             <fieldset class="bare stack" :disabled="!d.can_admin">
+              <div v-if="(state.meta.sites || []).length > 1 || site">
+                <span class="flabel">Site</span>
+                <select v-model="site" :class="{ invalid: errors.site }">
+                  <option value="">Every site</option>
+                  <option v-for="s in state.meta.sites" :key="s.code" :value="s.code">{{ s.name }}</option>
+                </select>
+                <div v-if="errors.site" class="err">{{ errors.site }}</div>
+                <div v-else class="hint">The hosts, networks, DNS records and aliases it works with. Its credentials belong to this site.</div>
+              </div>
               <div v-if="d.per_host">
                 <span class="flabel">Applies to</span>
                 <input v-model="selectors" type="text" class="mono" placeholder="* or zone:DC_TC tag:admin name:srv-*" :class="{ invalid: errors.selectors }">
@@ -230,7 +243,7 @@ const minutes = (m) => (!m ? 'off' : m % 1440 === 0 ? `every ${m / 1440} d` : m 
             </fieldset>
             <div v-if="d.can_admin" class="row mt-4">
               <button class="btn primary" :disabled="!dirty || !!busy">{{ busy === 'save' ? 'Saving…' : 'Save settings' }}</button>
-              <button v-if="dirty" type="button" class="btn ghost" @click="values = JSON.parse(JSON.stringify(d.settings)); selectors = d.selectors.join(' ')">Reset</button>
+              <button v-if="dirty" type="button" class="btn ghost" @click="values = JSON.parse(JSON.stringify(d.settings)); selectors = d.selectors.join(' '); site = d.site || ''">Reset</button>
             </div>
             <p v-else class="hint">Changing settings needs integration:admin.</p>
           </form>

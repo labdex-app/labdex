@@ -19,7 +19,7 @@ _store: dict = {}
 _lock = threading.Lock()
 _generation = [0]
 WATCHED = {"Host", "Interface", "Service", "Network", "AliasGroup", "Area", "Zone", "Setting", "NamingPart",
-           "Feature", "HostModule", "AuditEvent", "Secret", "ZonePolicy", "Tag"}
+           "Feature", "HostModule", "Site", "Integration", "AuditEvent", "Secret", "ZonePolicy", "Tag"}
 
 
 def bump() -> None:
@@ -49,7 +49,8 @@ def _revision() -> int:
 
 def memo(name: str, fn):
     app = current_app._get_current_object()
-    key = (id(app), app.config.get("SQLALCHEMY_DATABASE_URI"), name)
+    from .sites import current
+    key = (id(app), app.config.get("SQLALCHEMY_DATABASE_URI"), name, current())  # one entry per site scope
     stamp = (_revision(), _generation[0])
     hit = _store.get(key)
     if hit is not None and hit[0] == stamp:

@@ -99,7 +99,7 @@ def seed() -> None:
     db.session.add(ApprovalPolicy(name="demo", position=0, approvals=1, self_approval=True,
                                   description="One approval, and you may approve your own plans"))
     now = datetime.now(UTC).replace(tzinfo=None)
-    lab = Integration(plugin_id="demo-lab", name="lab", enabled=True, settings={}, selectors=["*"],
+    lab = Integration(plugin_id="demo-lab", name="lab", enabled=True, site="", settings={}, selectors=["*"],
                       state={"demo_seeded_at": now.isoformat()})
     db.session.add(lab)
     if current_app.extensions["labdex"]["registry"].get("exports") is not None:  # a plugin: only where it's installed

@@ -15,7 +15,7 @@ const props = defineProps({ name: { type: String, required: true } })
 const router = useRouter()
 const isNew = computed(() => props.name === 'new')
 
-const blank = () => ({ name: '', vlan: '', zone: state.meta.zones[0]?.code || '', prefixes: [], in_dns: true, dns_zone: '', notes: '' })
+const blank = () => ({ name: '', site: state.meta.sites?.[0]?.code || 'home', vlan: '', zone: state.meta.zones[0]?.code || '', prefixes: [], in_dns: true, dns_zone: '', notes: '' })
 const form = reactive(blank())
 const saved = ref('')
 const net = ref(null)
@@ -165,6 +165,11 @@ const tabs = computed(() => [
             </Field>
             <Field label="VLAN" :error="err('vlan')" hint="Empty for tunnels and external ranges">
               <input v-model="form.vlan" type="number" min="1" max="4094" :class="{ invalid: err('vlan') }">
+            </Field>
+            <Field v-if="(state.meta.sites || []).length > 1" label="Site" :error="err('site')" hint="Its hosts are in the same site">
+              <select v-model="form.site">
+                <option v-for="s in state.meta.sites" :key="s.code" :value="s.code">{{ s.name }}</option>
+              </select>
             </Field>
             <Field label="Zone" :error="err('zone')">
               <select v-model="form.zone">

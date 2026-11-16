@@ -48,7 +48,7 @@ def norm_mac(mac: str) -> str:
 # ===================================================================== networks
 def network_to_dict(n: Network, with_stats=False) -> dict:
     d = {
-        "name": n.name, "vlan": n.vlan, "zone": n.zone, "prefix4": n.prefix4, "prefix6": n.prefix6,
+        "name": n.name, "site": n.site, "vlan": n.vlan, "zone": n.zone, "prefix4": n.prefix4, "prefix6": n.prefix6,
         "gateway4": n.gateway4, "dhcp_start": n.dhcp_start, "dhcp_end": n.dhcp_end,
         "in_dns": n.in_dns, "dns_zone": n.dns_zone or "", "notes": n.notes,
         "prefixes": [prefix_to_dict(p) for p in n.prefixes],
@@ -89,6 +89,15 @@ def save_network(data: dict, existing: Network | None = None) -> Network:
     if naming.parse_zone(zone) is None:
         e.add("zone", f"unknown zone '{zone}'")
 
+    from . import sites
+    site = sites.resolve(data.get("site"), existing.site if existing is not None else None)
+    if not sites.exists(site):
+        e.add("site", f"unknown site '{site}'")
+    elif existing is not None and site != existing.site:
+        others = sorted({i.host.name for i in existing.interfaces if i.host.site != site})
+        if others:
+            e.add("site", f"hosts of site {existing.site} have addresses here ({', '.join(others[:3])}{', …' if len(others) > 3 else ''}); move them first")
+
     prefixes = _validate_prefixes(data, e, existing)
     dns_zone = naming.clean_zone(_s(data, "dns_zone"))
     if dns_zone and dns_zone != "@" and not naming.DNS_NAME_RE.match(dns_zone):
@@ -96,7 +105,7 @@ def save_network(data: dict, existing: Network | None = None) -> Network:
     e.raise_if_any()
 
     n = existing or Network()
-    n.name, n.vlan, n.zone = name, vlan, zone
+    n.name, n.vlan, n.zone, n.site = name, vlan, zone, site
     # the old single-prefix fields mirror the first prefix of each family (everything else reads them)
     first4 = next((p for p in prefixes if p["family"] == 4), None)
     first6 = next((p for p in prefixes if p["family"] == 6 and p["prefix"]), None)
@@ -261,13 +270,13 @@ def _validate_prefixes(data: dict, e, existing) -> list[dict]:
 def host_access(h: Host) -> dict:
     """What a permission check needs of a host (rbac.host_facts), without the rest of
     host_to_dict: lists that check every host stay fast."""
-    return {"name": h.name, "zone": h.zone, "tags": list(h.tags or []), "fun": h.fun or "", "fun_names": h.fun_names,
+    return {"name": h.name, "site": h.site, "zone": h.zone, "tags": list(h.tags or []), "fun": h.fun or "", "fun_names": h.fun_names,
             "interfaces": [{"network": i.network.name if i.network else "", "zone": i.network.zone if i.network else ""} for i in h.interfaces]}
 
 
 def host_to_dict(h: Host, derived=False) -> dict:
     d = {
-        "name": h.name, "fun": h.fun or "", "fun_names": h.fun_names, "zone": h.zone, "zone_pinned": bool(h.zone_pinned),
+        "name": h.name, "site": h.site, "fun": h.fun or "", "fun_names": h.fun_names, "zone": h.zone, "zone_pinned": bool(h.zone_pinned),
         "dns_zone": h.dns_zone or "",
         "kind": h.kind or "device", "status": h.status, "function": h.function,
         "hardware": h.hardware, "vendor": h.vendor or "", "model": h.model or "", "icon": h.icon or "", "colour": h.colour or "", "runs_on": h.runs_on.name if h.runs_on else "", "notes": h.notes,
@@ -450,6 +459,11 @@ def save_host(data: dict, existing: Host | None = None) -> Host:
     if status not in naming.STATUSES:
         e.add("status", f"one of {', '.join(naming.STATUSES)}")
 
+    from . import sites
+    site = sites.resolve(data.get("site"), existing.site if existing is not None else None)
+    if not sites.exists(site):
+        e.add("site", f"unknown site '{site}'")
+
     runs_on = None
     if _s(data, "runs_on"):
         runs_on = db.session.scalar(db.select(Host).where(Host.name == _s(data, "runs_on")))
@@ -457,6 +471,8 @@ def save_host(data: dict, existing: Host | None = None) -> Host:
             e.add("runs_on", f"unknown host '{_s(data, 'runs_on')}'")
         elif existing is not None and runs_on is existing:
             e.add("runs_on", "a host can't run on itself")
+        elif runs_on.site != site:
+            e.add("runs_on", f"'{runs_on.name}' is in site {runs_on.site}, this host in {site}")
     from . import racks
     rack = racks.place(data, existing, e)
 
@@ -495,6 +511,8 @@ def save_host(data: dict, existing: Host | None = None) -> Host:
             net = db.session.scalar(db.select(Network).where(Network.name == _s(raw, "network")))
             if net is None:
                 e.add(f"{f}.network", f"unknown network '{_s(raw, 'network')}'")
+            elif net.site != site:
+                e.add(f"{f}.network", f"network '{net.name}' belongs to site {net.site}, this host to {site}")
         ip4, ip6, mac = _s(raw, "ip4"), _s(raw, "ip6"), _s(raw, "mac")
         if ip4:
             try:
@@ -761,7 +779,7 @@ def save_host(data: dict, existing: Host | None = None) -> Host:
     e.raise_if_any()
 
     h = existing or Host()
-    h.name, h.fun, h.zone, h.status = name, fun, zone, status
+    h.name, h.fun, h.zone, h.status, h.site = name, fun, zone, status, site
     h.zone_pinned, h.kind, h.vip_protocol = pinned, kind, vip_protocol
     if existing is None:
         db.session.add(h)  # before relationships, so the members' side (vips) can follow
@@ -1028,6 +1046,7 @@ def zone_meta(code: str) -> dict:
 
 
 def meta() -> dict:
+    from . import sites
     return {
         "settings": naming.settings_dict(),
         "areas": [{"code": a.code, "name": a.name, **({"description": a.description} if a.description else {}),
@@ -1038,6 +1057,7 @@ def meta() -> dict:
         "statuses": naming.STATUSES,
         "alias_types": naming.ALIAS_TYPES,
         "vip_protocols": list(VIP_PROTOCOLS),
+        "sites": [sites.to_dict(s) for s in sites.all_sites()],
     }
 
 

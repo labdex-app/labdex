@@ -10,7 +10,7 @@ from __future__ import annotations
 import yaml
 
 from . import features, hostnames, naming, racks, store
-from .models import AliasGroup, Area, Feature, Host, Interface, Link, NamingPart, Network, Rack, RackItem, Service, Setting, Tag, Zone, db
+from .models import AliasGroup, Area, Feature, Host, Interface, Link, NamingPart, Network, Rack, RackItem, Service, Setting, Site, Tag, Zone, db
 
 INSTANCE_SETTINGS = ("official_repo_seeded", "bundled_installed", "plugin_holds", "plugin_update_mode", "plugin_updates_seen", "plugin_updates_checked", "digest_last")  # settings of this labdex, kept through an import
 
@@ -35,15 +35,21 @@ def _clean(d: dict) -> dict:
     return {k: v for k, v in d.items() if v not in ("", None, [], False) or k in ("name",)}
 
 
-def export_dict() -> dict:
-    from . import funpools
+def export_dict(site: str | None = None) -> dict:
+    """The whole inventory, or with `site` only that site's networks and hosts (the file a site
+    keeps in git: labdex/<site>.yaml; zones, naming and the rest are shared and live elsewhere)."""
+    from . import funpools, sites
     from .models import FunPool
-    nets = db.session.scalars(db.select(Network).order_by(Network.vlan.is_(None), Network.vlan, Network.name)).all()
-    hosts = db.session.scalars(db.select(Host).order_by(Host.name)).all()
+    default_site = sites.default()
+    with sites.scoped(site):
+        nets = db.session.scalars(sites.networks(db.select(Network).order_by(Network.vlan.is_(None), Network.vlan, Network.name))).all()
+        hosts = db.session.scalars(sites.hosts(db.select(Host).order_by(Host.name))).all()
     groups = db.session.scalars(db.select(AliasGroup).order_by(AliasGroup.name)).all()
     out_hosts = []
     for h in hosts:
         d = store.host_to_dict(h)
+        if site or d["site"] == default_site:  # the file's site, or the first one: not repeated per host
+            d.pop("site")
         d["interfaces"] = [_clean({k: v for k, v in i.items() if k not in ("zone", "ip6_all")}) | ({"in_dns": i["in_dns"]} if i["in_dns"] is not None else {})
                            for i in d["interfaces"]]
         d.pop("vips", None)  # derived from the VIPs' member lists
@@ -73,6 +79,8 @@ def export_dict() -> dict:
     out_nets = []
     for n in nets:
         d = store.network_to_dict(n)
+        if site or d["site"] == default_site:
+            d.pop("site")
         in_dns = d.pop("in_dns")
         prefixes = d.pop("prefixes")
         fams = [p["family"] for p in prefixes]
@@ -86,7 +94,16 @@ def export_dict() -> dict:
         if not in_dns:
             d["in_dns"] = False
         out_nets.append(d)
+    if site:
+        s = db.session.get(Site, site)
+        return {"site": site, **({"site_name": s.name} if s is not None and s.name and s.name != site.capitalize() else {}),
+                "networks": out_nets, "hosts": out_hosts}
+    all_sites = [_clean(sites.to_dict(s)) for s in sites.all_sites()]
+    for s in all_sites:
+        if s.get("name") == s["code"].capitalize():
+            s.pop("name")
     return {
+        **({"sites": all_sites} if all_sites != [{"code": "home"}] else {}),
         "settings": {k: v for k, v in meta["settings"].items() if k not in (funpools.SEEDED, "official_repo_seeded")},
         "areas": meta["areas"],
         "zones": [_clean({"code": z.code, "name": z.name, "rank": z.rank, "colour": z.colour, "description": z.description})
@@ -123,8 +140,9 @@ def _policy_export() -> dict:
     return {"zone_policy": cells} if cells else {}
 
 
-def export_yaml() -> str:
-    return HEADER + yaml.dump(export_dict(), Dumper=_Dumper, sort_keys=False, allow_unicode=True, width=120)
+def export_yaml(site: str | None = None) -> str:
+    head = HEADER if not site else f"# labdex inventory of site {site}. Import with `labdex import --site {site}`.\n"
+    return head + yaml.dump(export_dict(site), Dumper=_Dumper, sort_keys=False, allow_unicode=True, width=120)
 
 
 def _used_zones(data: dict) -> set[str]:
@@ -189,6 +207,8 @@ def import_dict(data: dict, commit: bool = True) -> dict:
     """Replace everything with `data`. Raises store.ValidationError (nothing is changed then)."""
     if not isinstance(data, dict):
         raise store.ValidationError([{"field": "file", "message": "expected a YAML mapping at the top level"}])
+    if isinstance(data.get("site"), str):  # one site's file (labdex/<site>.yaml)
+        return import_site(data, data["site"], commit=commit)
     errors = []
     try:
         # areas/trust levels are only replaced when the file has them
@@ -213,6 +233,7 @@ def import_dict(data: dict, commit: bool = True) -> dict:
         db.session.flush()
         if "areas" in data:
             _import_zones(data, errors)
+        _import_sites(data, errors)
         for i, t in enumerate(data.get("tags") or []):
             n = str(t.get("name", "")).strip().lower()
             if not store.TAG_RE.match(n):
@@ -244,12 +265,7 @@ def import_dict(data: dict, commit: bool = True) -> dict:
                 racks.save(r)
             except store.ValidationError as exc:
                 errors += [{**e, "field": f"racks[{i}] {r.get('name', '')}.{e['field']}"} for e in exc.errors]
-        for i, n in enumerate(data.get("networks") or []):
-            try:
-                store.save_network(n)
-                db.session.flush()
-            except store.ValidationError as exc:
-                errors += [{**e, "field": f"networks[{i}] {n.get('name', '')}.{e['field']}"} for e in exc.errors]
+        _import_networks(data.get("networks") or [], errors)
 
         for i, f in enumerate(sorted(data.get("features") or [], key=lambda f: str(f.get("path", "")))):
             try:
@@ -261,47 +277,7 @@ def import_dict(data: dict, commit: bool = True) -> dict:
             for f in data.get("features") or []:
                 features.ensure_parents(str(f.get("path", "")).strip().lower())
 
-        # hosts in two passes: create all, then set runs_on (it may point forward)
-        hosts = data.get("hosts") or []
-        for i, h in enumerate(hosts):
-            try:
-                store.save_host({**{k: v for k, v in h.items() if k != "cables"}, "runs_on": "", "vip_members": []})
-                db.session.flush()
-            except store.ValidationError as exc:
-                errors += [{**e, "field": f"hosts[{i}] {h.get('name', '')}.{e['field']}"} for e in exc.errors]
-        for i, h in enumerate(hosts):
-            if h.get("runs_on"):
-                host = db.session.scalar(db.select(Host).where(Host.name == str(h.get("name", "")).lower()))
-                parent = db.session.scalar(db.select(Host).where(Host.name == h["runs_on"]))
-                if host is not None and parent is None:
-                    errors.append({"field": f"hosts[{i}] {h['name']}.runs_on", "message": f"unknown host '{h['runs_on']}'"})
-                elif host is not None:
-                    host.runs_on = parent
-        for i, h in enumerate(hosts):  # cables, once every host exists
-            if not h.get("cables"):
-                continue
-            host = store.find_host(str(h.get("name", "")))
-            if host is None:
-                continue
-            e = store._Errors()
-            for lk in store._links(h, e):
-                peer = host if lk["peer"] is store.SELF else lk["peer"]  # a cable inside one host
-                if peer is not None:
-                    db.session.add(Link(a_host_id=host.id, a_port=lk["port"], b_host_id=peer.id, b_port=lk["peer_port"],
-                                        medium=lk["medium"], speed=lk["speed"], notes=lk["notes"],
-                                        label=lk["label"], length=lk["length"], colour=lk["colour"]))
-            errors += [{**x, "field": f"hosts[{i}] {h['name']}.{x['field']}"} for x in e.items]
-        for i, h in enumerate(hosts):  # VIP members may point forward too
-            if h.get("vip_members"):
-                vip = db.session.scalar(db.select(Host).where(Host.name == str(h.get("name", "")).lower()))
-                if vip is None:
-                    continue
-                for m in h["vip_members"]:
-                    mh = store.find_host(str(m))
-                    if mh is None or mh.is_vip or mh is vip:
-                        errors.append({"field": f"hosts[{i}] {h['name']}.vip_members", "message": f"'{m}' isn't a host that can hold a VIP"})
-                    elif mh not in vip.vip_members:
-                        vip.vip_members.append(mh)
+        _import_hosts(data.get("hosts") or [], errors)
 
         for i, a in enumerate(data.get("aliases") or []):
             try:
@@ -319,6 +295,7 @@ def import_dict(data: dict, commit: bool = True) -> dict:
             else:
                 policy.put(src, dst, ports, str(c.get("description") or ""))
         db.session.flush()
+        _drop_unlisted_sites(data)
         _restore_ids(ids)
     except (KeyError, TypeError, ValueError) as exc:
         db.session.rollback()
@@ -336,15 +313,155 @@ def import_dict(data: dict, commit: bool = True) -> dict:
     return counts()
 
 
-def import_yaml(text: str, commit: bool = True) -> dict:
+def _import_networks(nets: list, errors: list, site: str | None = None) -> None:
+    for i, n in enumerate(nets):
+        try:
+            store.save_network({**n, "site": site} if site else n)
+            db.session.flush()
+        except store.ValidationError as exc:
+            errors += [{**e, "field": f"networks[{i}] {n.get('name', '')}.{e['field']}"} for e in exc.errors]
+
+
+def _import_hosts(hosts: list, errors: list, site: str | None = None) -> None:
+    """Hosts in passes: create all, then runs_on, cables and VIP members (they may point forward)."""
+    # hosts in two passes: create all, then set runs_on (it may point forward)
+    for i, h in enumerate(hosts):
+        try:
+            store.save_host({**{k: v for k, v in h.items() if k != "cables"}, "runs_on": "", "vip_members": [], **({"site": site} if site else {})})
+            db.session.flush()
+        except store.ValidationError as exc:
+            errors += [{**e, "field": f"hosts[{i}] {h.get('name', '')}.{e['field']}"} for e in exc.errors]
+    for i, h in enumerate(hosts):
+        if h.get("runs_on"):
+            host = db.session.scalar(db.select(Host).where(Host.name == str(h.get("name", "")).lower()))
+            parent = db.session.scalar(db.select(Host).where(Host.name == h["runs_on"]))
+            if host is not None and parent is None:
+                errors.append({"field": f"hosts[{i}] {h['name']}.runs_on", "message": f"unknown host '{h['runs_on']}'"})
+            elif host is not None:
+                host.runs_on = parent
+    for i, h in enumerate(hosts):  # cables, once every host exists
+        if not h.get("cables"):
+            continue
+        host = store.find_host(str(h.get("name", "")))
+        if host is None:
+            continue
+        e = store._Errors()
+        for lk in store._links(h, e):
+            peer = host if lk["peer"] is store.SELF else lk["peer"]  # a cable inside one host
+            if peer is not None:
+                db.session.add(Link(a_host_id=host.id, a_port=lk["port"], b_host_id=peer.id, b_port=lk["peer_port"],
+                                    medium=lk["medium"], speed=lk["speed"], notes=lk["notes"],
+                                    label=lk["label"], length=lk["length"], colour=lk["colour"]))
+        errors += [{**x, "field": f"hosts[{i}] {h['name']}.{x['field']}"} for x in e.items]
+    for i, h in enumerate(hosts):  # VIP members may point forward too
+        if h.get("vip_members"):
+            vip = db.session.scalar(db.select(Host).where(Host.name == str(h.get("name", "")).lower()))
+            if vip is None:
+                continue
+            for m in h["vip_members"]:
+                mh = store.find_host(str(m))
+                if mh is None or mh.is_vip or mh is vip:
+                    errors.append({"field": f"hosts[{i}] {h['name']}.vip_members", "message": f"'{m}' isn't a host that can hold a VIP"})
+                elif mh not in vip.vip_members:
+                    vip.vip_members.append(mh)
+
+
+def _import_sites(data: dict, errors: list) -> None:
+    """`sites:` adds or updates sites in the file's order; without it the sites stay as they are."""
+    from . import sites
+    for i, s in enumerate(data.get("sites") or []):
+        s = s if isinstance(s, dict) else {"code": s}
+        code = str(s.get("code", "")).strip().lower()
+        try:
+            row = sites.save({**s, "code": code}, db.session.get(Site, code))
+            row.position = i
+        except store.ValidationError as exc:
+            errors += [{**e, "field": f"sites[{i}] {code}.{e['field']}"} for e in exc.errors]
+    sites.ensure_default()
+    db.session.flush()
+
+
+def _drop_unlisted_sites(data: dict) -> None:
+    """A site the file doesn't list goes, once nothing uses it."""
+    from . import sites
+    if "sites" not in data:
+        return
+    listed = {str(s.get("code") if isinstance(s, dict) else s).strip().lower() for s in data.get("sites") or []}
+    for s in sites.all_sites():
+        if s.code not in listed and not any(sites.usage(s.code).values()):
+            db.session.delete(s)
+    db.session.flush()
+    sites.ensure_default()
+
+
+def import_site(data: dict, site: str, commit: bool = True) -> dict:
+    """Replace one site's networks and hosts with `data` ({site, networks, hosts}); every other site
+    and everything shared (zones, naming, aliases, features) stays. A new site is made on the way."""
+    from . import sites
+    from .models import vip_member_table
+    site = str(site or "").strip().lower()
+    errors: list = []
+    try:
+        if not sites.exists(site):
+            sites.save({"code": site, "name": data.get("site_name") or ""})
+        ids = _stable_ids()
+        old_hosts = list(db.session.scalars(db.select(Host).where(Host.site == site)))
+        host_ids = [h.id for h in old_hosts]
+        if host_ids:
+            db.session.execute(vip_member_table.delete().where(
+                vip_member_table.c.vip_id.in_(host_ids) | vip_member_table.c.host_id.in_(host_ids)))
+            db.session.execute(db.delete(Link).where(Link.a_host_id.in_(host_ids) | Link.b_host_id.in_(host_ids)))
+            for h in db.session.scalars(db.select(Host).where(Host.runs_on_id.in_(host_ids), Host.site != site)):
+                h.runs_on = None
+        for h in old_hosts:
+            db.session.delete(h)
+        db.session.flush()
+        for n in list(db.session.scalars(db.select(Network).where(Network.site == site))):
+            for i in list(n.interfaces):
+                i.network = None
+            db.session.delete(n)  # its prefixes go with it (delete-orphan)
+        db.session.flush()
+        db.session.expire_all()
+        _import_networks(data.get("networks") or [], errors, site)
+        _import_hosts(data.get("hosts") or [], errors, site)
+        db.session.flush()
+        _restore_ids(ids)
+    except (KeyError, TypeError, ValueError, AttributeError) as exc:
+        db.session.rollback()
+        raise store.ValidationError([{"field": "file", "message": f"malformed inventory: {exc!r}"}]) from exc
+    from .cache import bump
+    bump()
+    if errors:
+        db.session.rollback()
+        raise store.ValidationError(errors)
+    if commit:
+        db.session.commit()
+    else:
+        db.session.flush()
+    return counts(site)
+
+
+def import_yaml(text: str, commit: bool = True, site: str | None = None) -> dict:
+    """Import a whole inventory, or with `site` (or a top-level `site:` in the file) one site's file."""
     try:
         data = yaml.safe_load(text)
     except yaml.YAMLError as exc:
         raise store.ValidationError([{"field": "file", "message": f"not valid YAML: {exc}"}]) from exc
-    return import_dict(data or {}, commit=commit)
+    data = data or {}
+    if site:
+        if not isinstance(data, dict):
+            raise store.ValidationError([{"field": "file", "message": "expected a YAML mapping at the top level"}])
+        if isinstance(data.get("site"), str) and data["site"] != site:
+            raise store.ValidationError([{"field": "site", "message": f"the file is for site '{data['site']}', not '{site}'"}])
+        return import_site(data, site, commit=commit)
+    return import_dict(data, commit=commit)
 
 
-def counts() -> dict:
+def counts(site: str | None = None) -> dict:
+    if site:
+        return {"site": site,
+                "networks": db.session.scalar(db.select(db.func.count()).select_from(Network).where(Network.site == site)),
+                "hosts": db.session.scalar(db.select(db.func.count()).select_from(Host).where(Host.site == site))}
     return {
         "networks": db.session.scalar(db.select(db.func.count()).select_from(Network)),
         "hosts": db.session.scalar(db.select(db.func.count()).select_from(Host)),

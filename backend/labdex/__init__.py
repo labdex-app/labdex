@@ -123,6 +123,8 @@ def create_app(config: dict | None = None) -> Flask:
         if upgraded:
             app.logger.warning("database upgraded: %s", "; ".join(upgraded))
         naming.ensure_defaults_in_session()
+        from . import sites
+        sites.ensure_default()
         rbac.ensure_builtin_roles()
         from . import hostnames
         hostnames.ensure_seeded()
@@ -190,7 +192,7 @@ def _ensure_backup_module(app) -> None:
         return
     if app.extensions["labdex"]["registry"].get("backup") is None:
         return
-    db.session.add(Integration(plugin_id="backup", name="backup", enabled=True,
+    db.session.add(Integration(plugin_id="backup", name="backup", enabled=True, site="",
                                settings={"target": "folder", "path": "", "keep": 14, "schedule_backup": 1440},
                                state={}, selectors=[]))
     db.session.commit()

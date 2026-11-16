@@ -24,7 +24,7 @@ const query = useQuery('/api/hosts', { onError: (e) => toast(e.message, 'error')
 const hosts = computed(() => query.data.value || [])
 const loading = computed(() => query.loading.value && !query.data.value)
 const q = ref(String(route.query.q || ''))
-const filter = ref({ zone: route.query.zone || null, cat: route.query.cat || null, status: route.query.status || null, tag: route.query.tag || null })
+const filter = ref({ site: route.query.site || null, zone: route.query.zone || null, cat: route.query.cat || null, status: route.query.status || null, tag: route.query.tag || null })
 // Physical, virtual (runs on something, or its name says vm/ct/lxc/vps) and VIPs
 const VIRTUAL_TYPES = new Set(['vm', 'ct', 'lxc', 'vps', 'pod'])
 const TABS = ['physical', 'virtual', 'vip']
@@ -34,7 +34,7 @@ const fromQuery = (k) => (TABS.includes(k) ? k : k === 'device' ? 'physical' : '
 const tab = ref(fromQuery(route.query.kind))
 const inTab = computed(() => hosts.value.filter((h) => tabOf(h) === tab.value))
 const groupBy = ref(String(route.query.group || ''))
-const GROUPS = [{ value: 'tag', label: 'tag' }, { value: 'zone', label: 'zone' }, { value: 'runs_on', label: 'runs on' }, { value: 'cat', label: 'category' }, { value: 'status', label: 'status' }]
+const GROUPS = [{ value: 'site', label: 'site' }, { value: 'tag', label: 'tag' }, { value: 'zone', label: 'zone' }, { value: 'runs_on', label: 'runs on' }, { value: 'cat', label: 'category' }, { value: 'status', label: 'status' }]
 function setTab(t) { tab.value = t; syncQuery() }
 const sort = ref({ key: 'name', dir: 1 })
 const PAGE = 200
@@ -44,7 +44,7 @@ const shown = ref(PAGE)
 watch(() => route.query, (rq) => {
   if (route.path !== '/hosts') return
   q.value = String(rq.q || '')
-  filter.value = { zone: rq.zone || null, cat: rq.cat || null, status: rq.status || null, tag: rq.tag || null }
+  filter.value = { site: rq.site || null, zone: rq.zone || null, cat: rq.cat || null, status: rq.status || null, tag: rq.tag || null }
   tab.value = fromQuery(rq.kind)
   groupBy.value = String(rq.group || '')
 })
@@ -62,7 +62,9 @@ const uniq = (arr) => [...new Set(arr.filter(Boolean))]
 const sources = computed(() => [...new Set(hosts.value.flatMap((h) => Object.keys(h.live_sources || {})))].sort())
 const LIVE = { up: 'up', down: 'down', unknown: 'no data' }
 
+const multiSite = computed(() => (state.meta.sites || []).length > 1)
 const facets = computed(() => [
+  { key: 'site', label: 'Site', values: (state.meta.sites || []).map((x) => x.code).filter((c) => inTab.value.some((h) => h.site === c)) },
   { key: 'zone', label: 'Zone', values: state.meta.zones.map((z) => z.code).filter((z) => inTab.value.some((h) => h.zone === z)) },
   { key: 'cat', label: 'Category', values: uniq(inTab.value.map(cat)) },
   { key: 'status', label: 'Status', values: state.meta.statuses.filter((s) => inTab.value.some((h) => h.status === s)) },
@@ -71,11 +73,11 @@ const facets = computed(() => [
 
 // The search box understands tag:backup zone:DC_TC status:active on:srv-pm-pve-01 net:srv cat:srv
 // (quote values with spaces); everything else is plain text. Several tag: terms all have to match.
-const TERMS = { tag: (h, v) => (h.tags || []).includes(v), zone: (h, v) => h.zone.toLowerCase() === v, status: (h, v) => h.status === v,
+const TERMS = { site: (h, v) => h.site === v, tag: (h, v) => (h.tags || []).includes(v), zone: (h, v) => h.zone.toLowerCase() === v, status: (h, v) => h.status === v,
   on: (h, v) => (h.runs_on || '') === v, net: (h, v) => h.interfaces.some((i) => i.network === v), cat: (h, v) => cat(h) === v }
 const parsed = computed(() => {
   const terms = []
-  const text = q.value.replace(/\b(tag|zone|status|on|net|cat):("([^"]*)"|\S+)/gi, (_, k, raw, quoted) => {
+  const text = q.value.replace(/\b(site|tag|zone|status|on|net|cat):("([^"]*)"|\S+)/gi, (_, k, raw, quoted) => {
     terms.push([k.toLowerCase(), (quoted ?? raw).toLowerCase()])
     return ' '
   })
@@ -85,7 +87,7 @@ const searching = computed(() => !!(parsed.value.needle || parsed.value.terms.le
 function matches(h) {
   const { terms, needle } = parsed.value
   const f = filter.value
-  return (!f.zone || h.zone === f.zone) &&
+  return (!f.site || h.site === f.site) && (!f.zone || h.zone === f.zone) &&
     (!f.tag || (h.tags || []).includes(f.tag)) &&
     (!f.cat || cat(h) === f.cat) &&
     (!f.status || h.status === f.status) &&
@@ -119,7 +121,7 @@ const rows = computed(() => {
   return keys.flatMap((k) => [{ head: true, key: `g:${k}`, label: k, n: groups.get(k).length },
     ...groups.get(k).map((h) => ({ h, idx: index.get(h.name), key: `${k}:${h.name}` }))])
 })
-const NOGROUP = { tag: 'no tag', zone: 'no zone', runs_on: 'physical (runs on nothing)', cat: 'unnamed', status: '—' }
+const NOGROUP = { site: '—', tag: 'no tag', zone: 'no zone', runs_on: 'physical (runs on nothing)', cat: 'unnamed', status: '—' }
 function setGroup(v) { groupBy.value = v || ''; syncQuery() }
 function addTerm(k, v) { // a click on a tag chip filters by it
   const t = `${k}:${/\s/.test(v) ? `"${v}"` : v}`
@@ -154,7 +156,7 @@ const saveDlg = ref(null)
 function openSave() { saveDlg.value = { name: '', shared: false, error: '' } }
 function applySearch(s) {
   q.value = s.query.q || ''
-  filter.value = { zone: s.query.zone || null, cat: s.query.cat || null, status: s.query.status || null, tag: s.query.tag || null }
+  filter.value = { site: s.query.site || null, zone: s.query.zone || null, cat: s.query.cat || null, status: s.query.status || null, tag: s.query.tag || null }
   tab.value = fromQuery(s.query.kind)
   groupBy.value = s.query.group || ''
   syncQuery()
@@ -258,7 +260,7 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
       <h1>Hosts</h1>
       <span class="sub">{{ visible.length }} of {{ inTab.length }}</span>
       <span class="grow"></span>
-      <input v-model="q" type="search" placeholder="Search, or tag:backup zone:DC_TC on:pve …" title="Plain text searches everything; tag: zone: status: on: net: cat: narrow it" style="max-width: 340px"
+      <input v-model="q" type="search" placeholder="Search, or tag:backup zone:DC_TC on:pve …" title="Plain text searches everything; site: tag: zone: status: on: net: cat: narrow it" style="max-width: 340px"
              aria-label="Search hosts" @input="syncQuery">
       <MenuButton v-if="searchItems.length" :items="searchItems" :icon="Bookmark" label="Saved" title="Saved searches" />
       <RouterLink v-if="can('host', 'edit')" :to="tab === 'vip' ? '/hosts/new?kind=vip' : tab === 'virtual' ? '/hosts/new?virtual=1' : '/hosts/new'" class="btn primary"><Plus :size="15" /> {{ tab === 'vip' ? 'VIP' : 'Host' }}</RouterLink>
@@ -274,7 +276,7 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
                       @update:model-value="(v) => { filter[f.key] = v; syncQuery() }" />
       </template>
       <FilterSelect :model-value="groupBy || null" label="Group by" any="none" :options="GROUPS" @update:model-value="setGroup" />
-      <button v-if="Object.values(filter).some(Boolean)" class="btn small ghost" @click="filter = { zone: null, cat: null, status: null, tag: null }; syncQuery()">Clear filters</button>
+      <button v-if="Object.values(filter).some(Boolean)" class="btn small ghost" @click="filter = { site: null, zone: null, cat: null, status: null, tag: null }; syncQuery()">Clear filters</button>
     </div>
 
     <div v-if="picked.size" class="bulkbar" role="region" aria-label="Selected hosts">
@@ -333,7 +335,7 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
                 <div v-if="r.h.tags?.length" class="tagrow"><TagChip v-for="t in r.h.tags" :key="t" :name="t" class="tagbtn" role="button" tabindex="0" :title="`Only hosts tagged ${t}`"
                   @click.stop="addTerm('tag', t)" @keydown.enter.stop.prevent="addTerm('tag', t)" /></div>
               </td>
-              <td><ZoneChip :zone="r.h.zone" /></td>
+              <td><ZoneChip :zone="r.h.zone" /><span v-if="multiSite" class="site small faint" :title="`Site ${r.h.site}`">{{ r.h.site }}</span></td>
               <td class="hide-s">
                 <div v-if="addresses(r.h).length" class="ifs">
                   <template v-for="(i, n) in addresses(r.h).slice(0, openAddr[r.h.name] ? 99 : 3)" :key="n">
@@ -413,6 +415,7 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
 </template>
 
 <style scoped>
+.site { margin-left: 6px; }
 .grph td { background: var(--panel); padding-top: 10px; padding-bottom: 6px; border-top: 1px solid var(--line-strong); }
 .tagbtn { cursor: pointer; }
 .tagbtn:hover { border-color: var(--accent); }
