@@ -6,6 +6,9 @@
   page titles) and Red Hat Mono, self-hosted like before, instead of IBM Plex. Text is a step
   larger by default (15 px instead of 14 px), and the menu under your name has **Text**: Compact
   (the old size), Comfortable or Large, kept in this browser.
+- **A flatter sidebar**: every page is in view under its section label (Inventory, Network,
+  Automation, Audit) instead of one section open at a time, and the zone tree at the bottom is
+  gone. The search (Ctrl/⌘ K) now finds zones by code or name, next to hosts and networks.
 - **A lantern look**: the logo is an orange lantern, lit, on a graphite tile, in the header, on
   the sign-in page and as the favicon. The accent moves from violet to lantern orange (buttons,
   links, focus, selection; darker in the light theme so text stays readable), and the greys stay

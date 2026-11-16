@@ -112,8 +112,9 @@ moment, but the map goes back when they reload.
 
 ## The sidebar
 
-One section is open at a time: going to a page opens its section and closes the
-others, and a page under a list (a host) marks the list (Hosts). *Collapse* at the
+Every page is in view, under its section (Inventory, Network, Automation, Audit), and a
+page under a list (a host) marks the list (Hosts). To go to a host, zone, network or
+alias, use the search (<kbd>Ctrl</kbd> <kbd>K</kbd>) or the Zones page. *Collapse* at the
 bottom, or <kbd>Ctrl</kbd> <kbd>B</kbd>, shrinks the sidebar to icons and back. Pages
 that plugins add live as tabs on their integration (Automation → Plugins → the
 integration), not in the sidebar.
