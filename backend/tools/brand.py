@@ -15,9 +15,10 @@ FONT = ROOT / "docs/assets/fonts/red-hat-display-latin-600-normal.woff2"
 DOCS = ROOT / "docs/assets"
 APP = ROOT / "frontend/src/assets"
 
-VIOLET_TOP, VIOLET_BOTTOM = "#8b5cf6", "#6d28d9"
+TILE_TOP, TILE_BOTTOM = "#2a2e36", "#181b20"  # the UI's graphite
+BRASS = "#f59a23"  # the accent orange: the lantern's frame
 GLOW, GLOW_CORE = "#fbbf24", "#fffbeb"
-INK_LIGHT, INK_DARK = "#19171f", "#ece9f2"
+INK_LIGHT, INK_DARK = "#181b21", "#e7e9ee"
 WORD = "labdex"
 TAGLINE = "See the whole lab."
 
@@ -47,11 +48,13 @@ def lantern(line: str, uid: str) -> str:
 
 
 def tile(uid: str = "") -> str:
-    """The app icon: the white lantern on a violet tile."""
+    """The app icon: the orange lantern, lit, on a graphite tile (a hairline edge keeps it apart from dark pages)."""
     return (
-        f'<linearGradient id="b{uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{VIOLET_TOP}"/>'
-        f'<stop offset="1" stop-color="{VIOLET_BOTTOM}"/></linearGradient>'
-        f'<rect width="32" height="32" rx="7" fill="url(#b{uid})"/>' + lantern("#fff", uid)
+        f'<linearGradient id="b{uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{TILE_TOP}"/>'
+        f'<stop offset="1" stop-color="{TILE_BOTTOM}"/></linearGradient>'
+        f'<rect width="32" height="32" rx="7" fill="url(#b{uid})"/>'
+        '<rect x=".5" y=".5" width="31" height="31" rx="6.5" fill="none" stroke="#fff" stroke-opacity=".08"/>'
+        + lantern(BRASS, uid)
     )
 
 
@@ -91,18 +94,18 @@ def social() -> str:
     x = (1280 - (220 + 48 + width)) / 2
     return svg("0 0 1280 640",
                '<radialGradient id="sky" cx="640" cy="300" r="760" gradientUnits="userSpaceOnUse">'
-               '<stop offset="0" stop-color="#2a1f45"/><stop offset="1" stop-color="#121119"/></radialGradient>'
+               '<stop offset="0" stop-color="#3a2a14"/><stop offset=".55" stop-color="#181b20"/><stop offset="1" stop-color="#14161a"/></radialGradient>'
                '<rect width="1280" height="640" fill="url(#sky)"/>'
                f'<g transform="translate({x:.1f} 200) scale(6.875)">{tile("s")}</g>'
                f'<path transform="translate({x + 268:.1f} 362)" fill="{INK_DARK}" d="{path}"/>'
-               f'<path transform="translate({(1280 - tag_w) / 2:.1f} 520)" fill="#b8a4fb" d="{tag}"/>')
+               f'<path transform="translate({(1280 - tag_w) / 2:.1f} 520)" fill="#fbbf6a" d="{tag}"/>')
 
 
 def main() -> None:
     files = {
         APP / "mark.svg": svg("0 0 32 32", tile()),
         DOCS / "labdex-mark.svg": svg("0 0 32 32", tile()),
-        DOCS / "labdex-mark-white.svg": svg("0 0 32 32", lantern("#fff", "")),  # on the docs' violet header
+        DOCS / "labdex-mark-white.svg": svg("0 0 32 32", lantern("#fff", "")),  # the bare lantern, for the docs header
         DOCS / "labdex-logo-light.svg": logo(INK_LIGHT),
         DOCS / "labdex-logo-dark.svg": logo(INK_DARK),
         DOCS / "labdex-social.svg": social(),

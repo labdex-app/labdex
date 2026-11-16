@@ -271,7 +271,7 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 </template>
 
 <style scoped>
-.skip { position: absolute; left: 8px; top: -40px; z-index: 100; background: var(--accent); color: #fff; padding: 6px 12px; border-radius: var(--r-ctl); }
+.skip { position: absolute; left: 8px; top: -40px; z-index: 100; background: var(--accent); color: var(--on-accent); padding: 6px 12px; border-radius: var(--r-ctl); }
 .skip:focus { top: 8px; }
 .main:focus { outline: none; }
 .themes { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 12px 8px; }
@@ -290,7 +290,6 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 .brand { display: inline-flex; align-items: center; gap: 8px; font-family: var(--disp); font-weight: 600; font-size: calc(17px * var(--text)); color: var(--ink); letter-spacing: -.01em; }
 .brand .wm span { color: var(--accent-soft); }
 .brand:hover { text-decoration: none; }
-.brand img { filter: drop-shadow(0 0 6px var(--glow-faint)); }  /* the lantern gives off a little light */
 .inst { font-size: calc(12px * var(--text)); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .side-scroll { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 0 8px; }
 .side-links { flex: none; max-height: 66vh; overflow-y: auto; padding: 2px 8px 6px; scrollbar-width: thin; }
@@ -334,7 +333,7 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 .mhead { padding: 8px 12px 6px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
 .menu-scrim { position: fixed; inset: 0; z-index: 11; }
 .show-m { display: none !important; }
-.avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; display: inline-grid; place-items: center;
+.avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: inline-grid; place-items: center;
   font-size: calc(11px * var(--text)); font-weight: 700; flex: none; margin-left: -2px; }
 .menu { position: absolute; right: 0; top: 38px; z-index: 30; min-width: 240px; }
 .menu a, .menu button { display: block; width: 100%; text-align: left; font: inherit; color: var(--ink); background: none; border: 0;
@@ -349,7 +348,7 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 .small .nl { justify-content: center; }
 .scrim { display: none; }
 .main { min-width: 0; }
-.toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 50; background: var(--accent); color: #fff;
+.toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 50; background: var(--accent); color: var(--on-accent);
   padding: 9px 16px; border-radius: var(--r-box); font-weight: 600; box-shadow: 0 8px 24px var(--shadow); max-width: min(90vw, 640px); }
 .toast.error { background: var(--err-solid); }
 @media (max-width: 860px) {
