@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { api, setUnauthorizedHandler } from './api'
 import {
-  AppWindow, Cable, ChevronRight, CircleCheck, GitFork, Github, Globe, History, Info, KeyRound, LayoutDashboard, Layers, LifeBuoy, ListTree, Menu, Network,
+  AppWindow, Cable, CircleCheck, GitFork, Github, Globe, History, Info, KeyRound, LayoutDashboard, Layers, LifeBuoy, ListTree, Menu, Network,
   GitPullRequestDraft, PanelLeftClose, PanelLeftOpen, Plug, Radar, Rows4, Search, Server, Settings, Shield, Tags, Waypoints,
 } from 'lucide-vue-next'
 import mark from './assets/mark.svg'
@@ -11,7 +11,6 @@ import CommandPalette from './components/CommandPalette.vue'
 import Copy from './components/Copy.vue'
 import { setTextSize, setTheme, textSize, theme } from './theme'
 import ConfirmHost from './components/ConfirmHost.vue'
-import SideTree from './components/SideTree.vue'
 import Login from './views/Login.vue'
 import { loadAuth, loadMeta, loadNav, refreshLint, refreshPending, stamp, startEvents, state, stopEvents } from './store'
 
@@ -75,26 +74,8 @@ const pages = computed(() => [
   { to: '/help', label: 'Help', group: '' },
   { to: '/about', label: 'About labdex', group: '' },
 ].filter(Boolean))
-// One section open at a time: the one of the page you're on opens by itself and closes the others;
-// opening one by hand closes the rest too. Kept in this browser.
-let savedOpen = ''
-try { savedOpen = localStorage.getItem('labdex-side-group') || '' } catch { /* */ }
-const openGroup = ref(savedOpen)
-watch(openGroup, (v) => { try { localStorage.setItem('labdex-side-group', v) } catch { /* */ } })
 // a list page and everything under it: /hosts is active on /hosts/srv-vm-dns-01 too
 const active = (to) => route.path === to || route.path.startsWith(`${to}/`) || (to === '/plugins' && route.path.startsWith('/integrations'))
-const inGroup = (g) => g.items.some((i) => active(i.to))
-watch([() => route.path, groups], () => { const g = groups.value.find(inGroup); if (g) openGroup.value = g.id }, { immediate: true })
-const isOpen = (g) => openGroup.value === g.id
-const toggleGroup = (g) => { openGroup.value = isOpen(g) ? '' : g.id }
-const groupBadge = (g) => {
-  if (g.id === 'audit' && state.lint?.error) return { n: state.lint.error, cls: '' }
-  if (g.id === 'audit' && state.lint?.warning) return { n: state.lint.warning, cls: 'warn' }
-  if (g.id === 'automation' && state.pending) return { n: state.pending, cls: 'info' }
-  return null
-}
-const treeOpen = ref((() => { try { return localStorage.getItem('labdex-side-tree') !== 'closed' } catch { return true } })())
-watch(treeOpen, (v) => { try { localStorage.setItem('labdex-side-tree', v ? 'open' : 'closed') } catch { /* */ } })
 
 // A newer labdex (administrators, when Settings › General has the release check on): a bar with the
 // command to upgrade, until it's dismissed for that release in this browser.
@@ -171,13 +152,10 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
             <LayoutDashboard class="ic" :size="17" /><span class="lb">Dashboard</span>
             <span v-if="state.pending" class="pill info" :title="`${state.pending} plan(s) waiting for review`">{{ state.pending }}</span>
           </RouterLink>
-          <section v-for="g in groups" :key="g.id" class="grp">
-            <button v-if="!small" class="gh" :aria-expanded="isOpen(g)" @click="toggleGroup(g)">
-              <ChevronRight class="car" :class="{ open: isOpen(g) }" :size="14" />
-              <span class="lb">{{ g.label }}</span>
-              <span v-if="!isOpen(g) && groupBadge(g)" class="pill" :class="groupBadge(g).cls">{{ groupBadge(g).n }}</span>
-            </button>
-            <div class="gw" :class="{ open: small || isOpen(g) }" :inert="!(small || isOpen(g))"><div class="gi">
+          <!-- every page in sight under a quiet label; hosts, zones and the rest are one Ctrl K away -->
+          <section v-for="g in groups" :key="g.id" class="grp" :aria-labelledby="`grp-${g.id}`">
+            <h2 :id="`grp-${g.id}`" class="gh">{{ g.label }}</h2>
+            <div class="gi">
               <RouterLink v-for="n in g.items" :key="n.to" :to="n.to" class="nl" active-class="" exact-active-class=""
                           :class="{ 'router-link-active': active(n.to) }" :aria-current="active(n.to) ? 'page' : undefined" :title="n.label">
                 <component :is="n.icon" class="ic" :size="17" />
@@ -187,16 +165,9 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
                 <span v-else-if="n.lint && state.lint?.warning" class="pill warn">{{ state.lint.warning }}</span>
                 <span v-if="n.pending" class="pill info" :title="`${n.pending} plan(s) waiting for review`">{{ n.pending }}</span>
               </RouterLink>
-            </div></div>
+            </div>
           </section>
         </div>
-        <!-- the zone tree scrolls on its own; its scrollbar space is reserved so the width never jumps -->
-        <section v-if="!small" class="side-zones" :class="{ shut: !treeOpen }">
-          <button class="gh" :aria-expanded="treeOpen" @click="treeOpen = !treeOpen">
-            <ChevronRight class="car" :class="{ open: treeOpen }" :size="14" /><span class="lb">Zones</span>
-          </button>
-          <SideTree v-if="treeOpen" />
-        </section>
       </nav>
     </aside>
     <div class="scrim" @click="drawer = false"></div>
@@ -271,7 +242,7 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 </template>
 
 <style scoped>
-.skip { position: absolute; left: 8px; top: -40px; z-index: 100; background: var(--accent); color: #fff; padding: 6px 12px; border-radius: var(--r-ctl); }
+.skip { position: absolute; left: 8px; top: -40px; z-index: 100; background: var(--accent); color: var(--on-accent); padding: 6px 12px; border-radius: var(--r-ctl); }
 .skip:focus { top: 8px; }
 .main:focus { outline: none; }
 .themes { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 12px 8px; }
@@ -292,26 +263,12 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 .brand:hover { text-decoration: none; }
 .inst { font-size: calc(12px * var(--text)); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .side-scroll { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 0 8px; }
-.side-links { flex: none; max-height: 66vh; overflow-y: auto; padding: 2px 8px 6px; scrollbar-width: thin; }
-.side-zones { flex: 1; min-height: 120px; overflow-y: auto; scrollbar-gutter: stable; padding: 0 2px 0 8px; scrollbar-width: thin;
-  border-top: 1px solid var(--line); }
-.side-zones.shut { flex: none; min-height: 0; }
-.side-zones > .gh { position: sticky; top: 0; background: var(--panel); z-index: 3; }
-.grp { margin-top: 6px; }
-.gh { width: 100%; display: flex; align-items: center; gap: 8px; font: inherit; font-weight: 600; color: var(--ink);
-  background: none; border: 0; padding: 7px 8px; cursor: pointer; border-radius: var(--r-ctl); text-align: left; }
-.gh:hover { background: var(--raise); }
-.gh .car { color: var(--faint); }
-/* a section opens and closes by its own height: the grid row goes from 0fr to 1fr */
-.gw { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .22s ease, opacity .22s ease; opacity: 0; }
-.gw.open { grid-template-rows: 1fr; opacity: 1; }
-.gw > .gi { min-height: 0; overflow: hidden; }
-@media (prefers-reduced-motion: reduce) { .gw { transition: none; } }
-.gi { padding-left: 6px; margin-left: 14px; border-left: 1px solid var(--line); }
-.car { transition: transform .15s; flex: none; }
-.car.open { transform: rotate(90deg); }
+.side-links { flex: 1; min-height: 0; overflow-y: auto; padding: 2px 8px 6px; scrollbar-width: thin; }
+.grp { margin-top: 14px; }
+/* a section label, not a control: every link is always in view */
+.gh { margin: 0 0 4px; padding: 0 10px; font-family: var(--sans); font-size: calc(11px * var(--text)); font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
 .gi { display: flex; flex-direction: column; gap: 1px; }
-.small .gi { padding-left: 0; margin-left: 0; border-left: 0; }
 .nl { width: 100%; font: inherit; background: none; border: 0; cursor: pointer; display: flex; align-items: center; gap: 10px;
   color: var(--muted); font-weight: 500; padding: 6px 8px; border-radius: var(--r-ctl); white-space: nowrap; text-align: left; }
 .nl:hover { color: var(--ink); text-decoration: none; background: var(--raise); }
@@ -333,7 +290,7 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 .mhead { padding: 8px 12px 6px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
 .menu-scrim { position: fixed; inset: 0; z-index: 11; }
 .show-m { display: none !important; }
-.avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; display: inline-grid; place-items: center;
+.avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: inline-grid; place-items: center;
   font-size: calc(11px * var(--text)); font-weight: 700; flex: none; margin-left: -2px; }
 .menu { position: absolute; right: 0; top: 38px; z-index: 30; min-width: 240px; }
 .menu a, .menu button { display: block; width: 100%; text-align: left; font: inherit; color: var(--ink); background: none; border: 0;
@@ -342,13 +299,14 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 .icon-btn { font: inherit; background: none; border: 1px solid transparent; color: var(--faint); cursor: pointer; border-radius: var(--r-ctl); padding: 4px; display: inline-grid; place-items: center; }
 .icon-btn:hover { color: var(--ink); border-color: var(--line); }
 .small .lb, .small .count, .small .pill, .small .brand .wm { display: none; }
-.small .grp { margin-top: 0; padding-top: 6px; border-top: 1px solid var(--line); }
+.small .grp { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
+.small .gh { display: none; }
 .small .grp:first-of-type { border-top: 0; }
 .small .side-head { padding: 12px 8px 8px; flex-direction: column; }
 .small .nl { justify-content: center; }
 .scrim { display: none; }
 .main { min-width: 0; }
-.toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 50; background: var(--accent); color: #fff;
+.toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 50; background: var(--accent); color: var(--on-accent);
   padding: 9px 16px; border-radius: var(--r-box); font-weight: 600; box-shadow: 0 8px 24px var(--shadow); max-width: min(90vw, 640px); }
 .toast.error { background: var(--err-solid); }
 @media (max-width: 860px) {

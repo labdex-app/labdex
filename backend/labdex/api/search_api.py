@@ -1,6 +1,6 @@
 """One search over the inventory, for the command palette (Ctrl/⌘ K): hosts by name, fun
 name, function, tag, address or MAC; networks by name, VLAN or an address inside them;
-aliases; services; integrations and the actions you may run. Only what you may see."""
+aliases; services; zones (everyone sees those) by code or name; integrations and the actions you may run. Only what you may see."""
 from __future__ import annotations
 
 import ipaddress
@@ -10,7 +10,7 @@ from flask import current_app, g, jsonify, request
 
 from .. import rbac, store
 from ..generators import aliases as galiases
-from ..models import Integration, Network, db
+from ..models import Integration, Network, Zone, db
 from . import bp
 
 PER_KIND = 8
@@ -120,6 +120,15 @@ def search():
         sub = " · ".join(x for x in (why or n.prefix4 or n.prefix6 or "", f"VLAN {n.vlan}" if n.vlan is not None and not why else "", n.zone) if x)
         hits.append((s, {"kind": "network", "title": n.name, "sub": sub, "link": f"/networks/{n.uid}"}))
     out += [(s, 1, r) for s, r in sorted(hits, key=lambda x: (x[0], x[1]["title"]))[:PER_KIND]]
+
+    # zones: everyone who can sign in sees them, so no rights check (the sidebar's zone tree is gone; this replaces it)
+    hits = []
+    for z in db.session.scalars(db.select(Zone)):
+        s = _score(q, z.code, z.name)
+        if s is not None:
+            hits.append((s, {"kind": "zone", "title": z.code, "sub": " · ".join(x for x in (z.name, f"area {z.area}") if x),
+                             "link": f"/zones/{z.uid}"}))
+    out += [(s, 1.5, r) for s, r in sorted(hits, key=lambda x: (x[0], x[1]["title"]))[:PER_KIND]]
 
     # services (on hosts you can see)
     hits = []

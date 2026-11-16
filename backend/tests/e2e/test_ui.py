@@ -260,9 +260,10 @@ def test_sidebar_marks_detail_pages(page, server):
     page.wait_for_selector(".side a[aria-current=page] >> text=Hosts")
     page.goto(server + "/networks/srv")
     page.wait_for_selector(".side a[aria-current=page] >> text=Networks")
-    page.goto(server + "/topology")  # another section: Inventory closes, Network opens
+    page.goto(server + "/topology")  # another section: every section stays in view, one link is current
     page.wait_for_selector(".side a[aria-current=page] >> text=Topology")
-    assert page.locator(".side .grp .gh[aria-expanded=true]").count() == 1
+    assert page.locator(".side a[aria-current=page]").count() == 1
+    assert page.locator(".side .grp .nl:visible").count() == page.locator(".side .grp .nl").count()
 
 
 def test_topology_views_and_cable_button(page, server):
@@ -377,14 +378,17 @@ def test_bulk_add_interfaces(page, server):
     assert page.locator(".li >> text=sfp+ · 10G").count() == 4
 
 
-def test_sidebar_sections_close_each_other(page, server):
+def test_sidebar_shows_every_section_and_search_finds_zones(page, server):
     page.goto(server + "/hosts")
     page.wait_for_selector("table tbody tr")
-    page.click("button.gh:has-text('Network')")
-    page.wait_for_timeout(400)
-    assert page.locator(".gw.open a:has-text('Topology')").count() == 1
-    assert page.locator(".gw:not(.open) a:has-text('Hosts')").count() == 1  # Inventory closed, and out of the tab order
-    assert page.locator(".gw:not(.open)").first.get_attribute("inert") is not None
+    for label in ("Inventory", "Network", "Automation", "Audit"):  # labels, not toggles: all links stay in view
+        assert page.locator(f".side h2.gh:has-text('{label}')").count() == 1
+    assert page.locator(".side a.nl:has-text('Topology')").is_visible() and page.locator(".side a.nl:has-text('Hosts')").is_visible()
+    assert page.locator(".side-zones").count() == 0  # zones moved to the search
+    page.keyboard.press("Control+k")
+    page.fill("input[aria-label=Search]", "DC_TC")
+    page.click(".pal-t:text-is('DC_TC')")
+    page.wait_for_url("**/zones/*")
 
 
 def test_cable_list_label_and_port_map(page, server):

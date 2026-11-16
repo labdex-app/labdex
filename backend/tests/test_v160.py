@@ -72,3 +72,8 @@ def test_bulk_delete(admin):
     r = admin.post("/api/hosts/bulk", json={"names": ["srv-vm-dns-01", "srv-vm-mon-01"], "delete": True})
     assert r.status_code == 200
     assert admin.get("/api/hosts/srv-vm-dns-01").status_code == 404
+
+
+def test_search_finds_zones(admin):
+    r = [x for x in search(admin, "dc_tc") if x["kind"] == "zone"]
+    assert r and r[0]["title"] == "DC_TC" and r[0]["link"].startswith("/zones/") and "area DC" in r[0]["sub"]
