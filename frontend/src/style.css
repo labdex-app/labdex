@@ -1,4 +1,5 @@
-/* labdex — one quiet graphite surface; colour is reserved for zones, status and the one primary action. */
+/* labdex — one quiet graphite surface, lit by a lantern: amber-orange is the one accent; other colour is
+   reserved for zones and status. Text on a filled accent uses --on-accent (dark on the bright dark-theme orange). */
 @import "@fontsource/red-hat-text/latin-400.css";
 @import "@fontsource/red-hat-text/latin-500.css";
 @import "@fontsource/red-hat-text/latin-600.css";
@@ -17,12 +18,13 @@
   --faint: #8e94a3;
   --line: #2a2e36;
   --line-strong: #3a3f49;
-  --accent: #7c3aed;
-  --accent-hover: #6d28d9;
-  --accent-soft: #b8a4fb;
-  --accent-faint: rgba(139, 92, 246, 0.15);
+  --accent: #f59a23;
+  --accent-hover: #e8850c;
+  --accent-soft: #fbbf6a;
+  --accent-faint: rgba(245, 154, 35, 0.14);
+  --on-accent: #1a1206;
   --ok: #4ade80;
-  --warn: #fbbf24;
+  --warn: #facc15;
   --err: #f87171;
   --err-solid: #b91c1c;        /* filled danger: a destructive button, an error toast (both themes) */
   --err-solid-hover: #991b1b;
@@ -40,14 +42,14 @@
   --r-box: 10px;     /* cards, dialogs */
   --r-sm: 4px;       /* badges, swatches, small marks */
   --gap: 16px;
-  --code: #d9cffd;
+  --code: #fcd9a8;
   --scrim: rgba(8, 9, 12, .62);
   --shadow: rgba(0, 0, 0, .45);
   --bar-bg: rgba(22, 22, 24, .94);
   --zone-mix: 100%;  /* zone and tag colours as chosen; the light theme darkens them to stay readable */
   color-scheme: dark;
 }
-/* Light: a cool, quiet paper; the same accent. Chosen in the user menu, or follows the system. */
+/* Light: a cool, quiet paper; a deeper orange, so white text on it and orange text on paper stay readable. Chosen in the user menu, or follows the system. */
 :root[data-theme="light"] {
   --bg: #f3f4f6;
   --panel: #eceef1;
@@ -59,12 +61,13 @@
   --faint: #5b616e;
   --line: #e0e3e8;
   --line-strong: #c6cbd3;
-  --accent: #7c3aed;
-  --accent-hover: #6d28d9;
-  --accent-soft: #6427d4;
-  --accent-faint: rgba(124, 58, 237, 0.1);
+  --accent: #b85a0a;
+  --accent-hover: #9f4c06;
+  --accent-soft: #a14a06;
+  --accent-faint: rgba(184, 90, 10, 0.1);
+  --on-accent: #fff;
   --ok: #16803c;
-  --warn: #9a5006;
+  --warn: #7a5c00;
   --err: #c42727;
   --c-magenta: #a21caf;
   --c-green: #16803c;
@@ -72,7 +75,7 @@
   --c-blue: #1d5fd1;
   --c-red: #c42727;
   --c-white: #5b5b63;
-  --code: #5b21b6;
+  --code: #9a3412;
   --scrim: rgba(15, 23, 42, .32);
   --shadow: rgba(15, 23, 42, .14);
   --bar-bg: rgba(255, 255, 255, .94);
@@ -91,12 +94,13 @@
     --faint: #5b616e;
     --line: #e0e3e8;
     --line-strong: #c6cbd3;
-    --accent: #7c3aed;
-    --accent-hover: #6d28d9;
-    --accent-soft: #6427d4;
-    --accent-faint: rgba(124, 58, 237, 0.1);
+    --accent: #b85a0a;
+    --accent-hover: #9f4c06;
+    --accent-soft: #a14a06;
+    --accent-faint: rgba(184, 90, 10, 0.1);
+    --on-accent: #fff;
     --ok: #16803c;
-    --warn: #9a5006;
+    --warn: #7a5c00;
     --err: #c42727;
     --c-magenta: #a21caf;
     --c-green: #16803c;
@@ -104,7 +108,7 @@
     --c-blue: #1d5fd1;
     --c-red: #c42727;
     --c-white: #5b5b63;
-    --code: #5b21b6;
+    --code: #9a3412;
     --scrim: rgba(15, 23, 42, .32);
     --shadow: rgba(15, 23, 42, .14);
     --bar-bg: rgba(255, 255, 255, .94);
@@ -171,7 +175,7 @@ b, strong { font-weight: 600; }
 }
 .btn:hover { border-color: var(--faint); text-decoration: none; }
 .btn svg { flex: none; }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .btn.primary:hover { background: var(--accent-hover); }
 .btn.danger { color: var(--err); }
 .btn.danger:hover { border-color: var(--err); }
@@ -302,7 +306,7 @@ ul.plain li { padding: 3px 0; word-break: break-all; }
 @media (max-width: 700px) { .page { padding: 16px; } }
 
 /* v0.2 additions */
-.pill.info { background: var(--accent); }
+.pill.info { background: var(--accent); color: var(--on-accent); }
 .tabs { display: flex; gap: 4px; box-shadow: inset 0 -1px 0 var(--line); margin-bottom: 20px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }
 .tabs a { padding: 8px 12px; color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; white-space: nowrap; }

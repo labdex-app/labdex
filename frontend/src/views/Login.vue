@@ -74,7 +74,9 @@ async function submit() {
 </template>
 
 <style scoped>
-.wrap { min-height: 100vh; display: grid; place-items: center; padding: 16px; border-top: 3px solid var(--accent); }
+/* the sign-in card sits in a pool of lantern light */
+.wrap { min-height: 100vh; display: grid; place-items: center; padding: 16px; border-top: 3px solid var(--accent);
+  background: radial-gradient(circle at 50% 42%, var(--accent-faint), transparent 560px); }
 .box { width: min(400px, 100%); padding: 28px; }
 .brand { display: flex; align-items: center; gap: 10px; font-family: var(--disp); font-weight: 600; font-size: calc(20px * var(--text)); margin-bottom: 18px; }
 .brand span span { color: var(--accent-soft); }

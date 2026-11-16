@@ -4,7 +4,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  AppWindow, ArrowRight, CornerDownLeft, FilePlus2, ListTree, Network, Palette, Play, Plug, Search, Server, Tags,
+  AppWindow, ArrowRight, CornerDownLeft, FilePlus2, Layers, ListTree, Network, Palette, Play, Plug, Search, Server, Tags,
 } from 'lucide-vue-next'
 import { api } from '../api'
 import { confirm } from '../confirm'
@@ -23,8 +23,8 @@ const list = ref(null)
 let timer = null
 let seq = 0
 
-const ICON = { filter: Tags, theme: Palette, host: Server, network: Network, service: AppWindow, alias: ListTree, integration: Plug, action: Play, page: ArrowRight, new: FilePlus2 }
-const KIND = { filter: 'Filter', theme: 'Appearance', host: 'Hosts', network: 'Networks', service: 'Services', alias: 'Aliases', integration: 'Integrations', action: 'Run', page: 'Go to', new: 'Create' }
+const ICON = { filter: Tags, theme: Palette, host: Server, network: Network, zone: Layers, service: AppWindow, alias: ListTree, integration: Plug, action: Play, page: ArrowRight, new: FilePlus2 }
+const KIND = { filter: 'Filter', theme: 'Appearance', host: 'Hosts', network: 'Networks', zone: 'Zones', service: 'Services', alias: 'Aliases', integration: 'Integrations', action: 'Run', page: 'Go to', new: 'Create' }
 
 const creates = computed(() => [
   can('host', 'edit') && { kind: 'new', title: 'New host', link: '/hosts/new', words: 'add create host server vm' },
@@ -133,7 +133,7 @@ const mac = navigator.platform?.toLowerCase().includes('mac')
       <div class="pal" role="dialog" aria-modal="true" aria-label="Search and go">
         <div class="pal-in">
           <Search :size="17" class="faint" />
-          <input ref="input" v-model="q" type="text" placeholder="Hosts, addresses, MACs, networks, services, pages…" aria-label="Search"
+          <input ref="input" v-model="q" type="text" placeholder="Hosts, addresses, MACs, networks, zones, services, pages…" aria-label="Search"
                  role="combobox" :aria-expanded="results.length > 0" aria-controls="pal-list"
                  :aria-activedescendant="results.length ? `pal-${active}` : undefined" autocomplete="off" spellcheck="false" @keydown="key">
           <kbd>Esc</kbd>
@@ -144,7 +144,7 @@ const mac = navigator.platform?.toLowerCase().includes('mac')
             <div v-for="r in g.items" :id="`pal-${r.i}`" :key="r.i" class="pal-r" :class="{ on: r.i === active }" role="option"
                  :aria-selected="r.i === active" @mousemove="active = r.i" @click="pick(r)">
               <component :is="ICON[r.kind]" :size="15" class="pal-ic" />
-              <span class="pal-t" :class="{ mono: r.kind === 'host' || r.kind === 'alias' }">{{ r.title }}</span>
+              <span class="pal-t" :class="{ mono: r.kind === 'host' || r.kind === 'alias' || r.kind === 'zone' }">{{ r.title }}</span>
               <span v-if="r.fun" class="faint small">{{ r.fun }}</span>
               <span class="pal-s">{{ r.sub }}</span>
               <CornerDownLeft v-if="r.i === active" :size="14" class="faint" />
