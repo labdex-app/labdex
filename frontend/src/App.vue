@@ -290,6 +290,7 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 .brand { display: inline-flex; align-items: center; gap: 8px; font-family: var(--disp); font-weight: 600; font-size: calc(17px * var(--text)); color: var(--ink); letter-spacing: -.01em; }
 .brand .wm span { color: var(--accent-soft); }
 .brand:hover { text-decoration: none; }
+.brand img { filter: drop-shadow(0 0 6px var(--glow-faint)); }  /* the lantern gives off a little light */
 .inst { font-size: calc(12px * var(--text)); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .side-scroll { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 0 8px; }
 .side-links { flex: none; max-height: 66vh; overflow-y: auto; padding: 2px 8px 6px; scrollbar-width: thin; }

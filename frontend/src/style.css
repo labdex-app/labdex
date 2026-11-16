@@ -1,4 +1,5 @@
-/* labdex — one quiet graphite surface; colour is reserved for zones, status and the one primary action. */
+/* labdex — a quiet dusk surface, lit like a lantern; colour is reserved for zones, status and the one primary action.
+   --glow (lantern amber) is a brand colour for the mark and brand moments, never a status: warnings keep --warn. */
 @import "@fontsource/red-hat-text/latin-400.css";
 @import "@fontsource/red-hat-text/latin-500.css";
 @import "@fontsource/red-hat-text/latin-600.css";
@@ -7,20 +8,22 @@
 @import "@fontsource/red-hat-mono/latin-500.css";
 
 :root {
-  --bg: #14161a;
-  --panel: #181b20;
-  --card: #1c1f25;
-  --raise: #252931;
+  --bg: #121119;
+  --panel: #17151f;
+  --card: #1c1a25;
+  --raise: #26232f;
   --hover: rgba(255, 255, 255, .035);
-  --ink: #e7e9ee;
-  --muted: #a0a6b2;
-  --faint: #8e94a3;
-  --line: #2a2e36;
-  --line-strong: #3a3f49;
+  --ink: #ece9f2;
+  --muted: #a39fb0;
+  --faint: #918da0;
+  --line: #2b2835;
+  --line-strong: #3c3848;
   --accent: #7c3aed;
   --accent-hover: #6d28d9;
   --accent-soft: #b8a4fb;
   --accent-faint: rgba(139, 92, 246, 0.15);
+  --glow: #fbbf24;             /* lantern amber: the flame in the mark, brand moments only */
+  --glow-faint: rgba(251, 191, 36, .12);
   --ok: #4ade80;
   --warn: #fbbf24;
   --err: #f87171;
@@ -41,28 +44,30 @@
   --r-sm: 4px;       /* badges, swatches, small marks */
   --gap: 16px;
   --code: #d9cffd;
-  --scrim: rgba(8, 9, 12, .62);
+  --scrim: rgba(9, 8, 14, .62);
   --shadow: rgba(0, 0, 0, .45);
-  --bar-bg: rgba(22, 22, 24, .94);
+  --bar-bg: rgba(20, 18, 28, .94);
   --zone-mix: 100%;  /* zone and tag colours as chosen; the light theme darkens them to stay readable */
   color-scheme: dark;
 }
 /* Light: a cool, quiet paper; the same accent. Chosen in the user menu, or follows the system. */
 :root[data-theme="light"] {
-  --bg: #f3f4f6;
-  --panel: #eceef1;
+  --bg: #f5f3f8;
+  --panel: #edeaf2;
   --card: #ffffff;
-  --raise: #e3e6eb;
-  --hover: rgba(15, 23, 42, .04);
-  --ink: #181b21;
-  --muted: #4f5662;
-  --faint: #5b616e;
-  --line: #e0e3e8;
-  --line-strong: #c6cbd3;
+  --raise: #e4e0eb;
+  --hover: rgba(25, 20, 40, .04);
+  --ink: #19171f;
+  --muted: #514c5c;
+  --faint: #5d5869;
+  --line: #e2dee9;
+  --line-strong: #c9c3d4;
   --accent: #7c3aed;
   --accent-hover: #6d28d9;
   --accent-soft: #6427d4;
   --accent-faint: rgba(124, 58, 237, 0.1);
+  --glow: #b45309;
+  --glow-faint: rgba(217, 119, 6, .1);
   --ok: #16803c;
   --warn: #9a5006;
   --err: #c42727;
@@ -73,28 +78,30 @@
   --c-red: #c42727;
   --c-white: #5b5b63;
   --code: #5b21b6;
-  --scrim: rgba(15, 23, 42, .32);
-  --shadow: rgba(15, 23, 42, .14);
+  --scrim: rgba(25, 20, 40, .32);
+  --shadow: rgba(25, 20, 40, .14);
   --bar-bg: rgba(255, 255, 255, .94);
   --zone-mix: 42%;
   color-scheme: light;
 }
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]):not([data-theme="light"]) {
-  --bg: #f3f4f6;
-    --panel: #eceef1;
+  --bg: #f5f3f8;
+    --panel: #edeaf2;
     --card: #ffffff;
-    --raise: #e3e6eb;
-    --hover: rgba(15, 23, 42, .04);
-    --ink: #181b21;
-    --muted: #4f5662;
-    --faint: #5b616e;
-    --line: #e0e3e8;
-    --line-strong: #c6cbd3;
+    --raise: #e4e0eb;
+    --hover: rgba(25, 20, 40, .04);
+    --ink: #19171f;
+    --muted: #514c5c;
+    --faint: #5d5869;
+    --line: #e2dee9;
+    --line-strong: #c9c3d4;
     --accent: #7c3aed;
     --accent-hover: #6d28d9;
     --accent-soft: #6427d4;
     --accent-faint: rgba(124, 58, 237, 0.1);
+    --glow: #b45309;
+    --glow-faint: rgba(217, 119, 6, .1);
     --ok: #16803c;
     --warn: #9a5006;
     --err: #c42727;
@@ -105,8 +112,8 @@
     --c-red: #c42727;
     --c-white: #5b5b63;
     --code: #5b21b6;
-    --scrim: rgba(15, 23, 42, .32);
-    --shadow: rgba(15, 23, 42, .14);
+    --scrim: rgba(25, 20, 40, .32);
+    --shadow: rgba(25, 20, 40, .14);
     --bar-bg: rgba(255, 255, 255, .94);
     --zone-mix: 42%;
     color-scheme: light;
