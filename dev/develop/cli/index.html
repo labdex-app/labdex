@@ -534,6 +534,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guide/sites/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sites
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guide/inventory/" class="md-nav__link">
         
   
@@ -1631,6 +1659,9 @@
 <h1 id="cli">CLI<a class="headerlink" href="#cli" title="Permanent link">&para;</a></h1>
 <div class="highlight"><pre><span></span><code>labdex<span class="w"> </span>import<span class="w"> </span>inventory.yaml<span class="w">       </span><span class="c1"># replace the inventory (asks first; --yes to skip)</span>
 labdex<span class="w"> </span><span class="nb">export</span><span class="w"> </span>-o<span class="w"> </span>inventory.yaml<span class="w">    </span><span class="c1"># write the inventory</span>
+labdex<span class="w"> </span>sites<span class="w">                       </span><span class="c1"># the sites with their networks, hosts and integrations</span>
+labdex<span class="w"> </span><span class="nb">export</span><span class="w"> </span>--site<span class="w"> </span>public<span class="w"> </span>-o<span class="w"> </span>labdex/public.yaml<span class="w">   </span><span class="c1"># one site's networks and hosts</span>
+labdex<span class="w"> </span>import<span class="w"> </span>labdex/public.yaml<span class="w">   </span><span class="c1"># a site file (top-level site:) replaces only that site</span>
 labdex<span class="w"> </span>lint<span class="w">                        </span><span class="c1"># exit 1 on errors; --warnings-as-errors for strict CI</span>
 labdex<span class="w"> </span>import-from<span class="w"> </span>netbox<span class="p">|</span>phpipam<span class="p">|</span>csv<span class="w"> </span>--zone<span class="w"> </span>DC_TC<span class="w">   </span><span class="c1"># add from another tool; preview first, --apply keeps it</span>
 labdex<span class="w"> </span>changeset<span class="w"> </span>FILE<span class="w"> </span><span class="o">[</span>--apply<span class="o">]</span><span class="w">    </span><span class="c1"># preview (or apply) a file of changes as one unit</span>
