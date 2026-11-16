@@ -983,6 +983,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../plugins/pulumi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pulumi (public site)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../plugins/ansible/" class="md-nav__link">
         
   
@@ -7232,6 +7260,13 @@
   <code>?site=</code>. <code>labdex export --site public</code> writes one site's file and <code>labdex import</code> of that file
   replaces only that site. Everything you had moves into <code>home</code>; with one site the UI looks as
   before. See <em>Sites</em> in the guide.</li>
+<li><strong>Pulumi engine</strong> (<code>labdex.iac</code>) and the <strong>Pulumi (public site)</strong> plugin: the hosts of a site
+  kept at Contabo (an instance per node; existing ones are adopted, protected from deletion by
+  default) and Cloudflare (an A/AAAA record per name, from a <code>{fun}.node</code> style template), made
+  from the inventory. <code>pulumi preview</code> is the plan, <code>pulumi up</code> the apply, both through the usual
+  approvals. Pulumi's state stays in the data folder (file backend, one stack per integration,
+  encrypted with a passphrase) and goes into backups as <code>pulumi-state.tar.gz</code>. Build the image
+  with <code>--build-arg PULUMI=1</code> for the SDK and CLI; <code>pip install labdex[pulumi]</code> for a checkout.</li>
 <li><strong>New fonts and larger text</strong>: the UI is set in Red Hat Text, Red Hat Display (the wordmark and
   page titles) and Red Hat Mono, self-hosted like before, instead of IBM Plex. Text is a step
   larger by default (15 px instead of 14 px), and the menu under your name has <strong>Text</strong>: Compact
