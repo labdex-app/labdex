@@ -56,6 +56,7 @@ nav:
       - Demo mode: guide/demo.md
   - Concepts:
       - Zones and names: guide/zones.md
+      - Sites: guide/sites.md
       - Hosts, networks, services: guide/inventory.md
       - Working fast: guide/working-fast.md
       - Coming from another tool: guide/import.md

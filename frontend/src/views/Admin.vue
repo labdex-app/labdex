@@ -9,11 +9,12 @@ import AdminApprovals from '../components/AdminApprovals.vue'
 import AdminImport from '../components/AdminImport.vue'
 import AdminNotifications from '../components/AdminNotifications.vue'
 import AdminPlugins from '../components/AdminPlugins.vue'
+import AdminSites from '../components/AdminSites.vue'
 import { ago, changed, state, toast } from '../store'
 
 defineProps({ tab: String })
 const GROUPS = [
-  ['Instance', [['general', 'General']]],
+  ['Instance', [['general', 'General'], ['sites', 'Sites']]],
   ['People', [['users', 'Users'], ['groups', 'Groups'], ['roles', 'Roles'], ['access', 'Access']]],
   ['Operate', [['approvals', 'Approvals & windows'], ['notifications', 'Notifications']]],
   ['Extensions', [['plugins', 'Plugins']]],
@@ -429,6 +430,7 @@ const me = computed(() => state.auth.user.username)
     </div>
 
     <!-- ====================================================== conventions -->
+    <AdminSites v-else-if="tab === 'sites'" />
     <AdminPlugins v-else-if="tab === 'plugins'" />
     <AdminApprovals v-else-if="tab === 'approvals'" />
     <AdminNotifications v-else-if="tab === 'notifications'" />

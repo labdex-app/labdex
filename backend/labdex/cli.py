@@ -39,31 +39,58 @@ def register(app: Flask) -> None:
     @app.cli.command("import")
     @click.argument("path", type=click.Path(exists=True, dir_okay=False))
     @click.option("--yes", is_flag=True, help="Don't ask before replacing the inventory.")
-    def import_cmd(path, yes):
-        """Replace the inventory with a YAML file (users and integrations stay)."""
-        if not yes:
-            click.confirm(f"Replace the whole inventory with {path}?", abort=True)
+    @click.option("--site", default="", help="Replace only this site's networks and hosts (a labdex/<site>.yaml file).")
+    def import_cmd(path, yes, site):
+        """Replace the inventory with a YAML file (users and integrations stay).
+
+        A file with a top-level `site:` (or --site) replaces only that site's networks and hosts."""
+        text = open(path, encoding="utf-8").read()
+        import yaml as _yaml
         try:
-            counts = inventory.import_yaml(open(path, encoding="utf-8").read(), commit=False)
+            peek = _yaml.safe_load(text)
+        except _yaml.YAMLError:
+            peek = None
+        site = site or (peek.get("site") if isinstance(peek, dict) and isinstance(peek.get("site"), str) else "")
+        if not yes:
+            click.confirm(f"Replace the networks and hosts of site {site} with {path}?" if site else f"Replace the whole inventory with {path}?", abort=True)
+        try:
+            counts = inventory.import_yaml(text, commit=False, site=site or None)
         except store.ValidationError as exc:
             for e in exc.errors:
                 click.echo(f"  {e['field']}: {e['message']}", err=True)
             raise SystemExit(f"Import failed with {len(exc.errors)} error(s); nothing changed.") from exc
+        if site:
+            audit.record("import", "inventory", path, summary=f"site {site}: imported {counts['networks']} networks, {counts['hosts']} hosts", actor=CLI)
+            db.session.commit()
+            click.echo(f"Site {site}: imported {counts['networks']} networks, {counts['hosts']} hosts.")
+            return
         audit.record("import", "inventory", path, summary=f"imported {counts['networks']} networks, {counts['hosts']} hosts, {counts['aliases']} aliases", actor=CLI)
         db.session.commit()
         click.echo(f"Imported {counts['networks']} networks, {counts['hosts']} hosts, {counts['aliases']} aliases.")
 
     @app.cli.command("export")
     @click.option("-o", "--output", type=click.Path(dir_okay=False), help="File to write (default: stdout).")
-    def export_cmd(output):
+    @click.option("--site", default="", help="Only this site's networks and hosts (the labdex/<site>.yaml file).")
+    def export_cmd(output, site):
         """Write the inventory as YAML."""
-        text = inventory.export_yaml()
+        from . import sites as _sites
+        if site and not _sites.exists(site):
+            raise SystemExit(f"unknown site '{site}' (labdex sites lists them)")
+        text = inventory.export_yaml(site=site or None)
         if output:
             with open(output, "w", encoding="utf-8") as f:
                 f.write(text)
             click.echo(f"Wrote {output}", err=True)
         else:
             click.echo(text, nl=False)
+
+    @app.cli.command("sites")
+    def sites_cmd():
+        """List the sites with how many networks, hosts and integrations each has."""
+        from . import sites as _sites
+        for s in _sites.all_sites():
+            u = _sites.usage(s.code)
+            click.echo(f"{s.code:<16} {s.name:<24} {u['networks']:>4} networks {u['hosts']:>5} hosts {u['integrations']:>3} integrations")
 
     @app.cli.command("lint")
     @click.option("--warnings-as-errors", is_flag=True)

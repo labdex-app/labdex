@@ -75,7 +75,7 @@ def instance_dict(integ: Integration, full=False) -> dict:
          "plugin_name": spec.name if spec else integ.plugin_id, "kind": spec.kind if spec else "",
          "error": (spec.error if spec else "plugin not installed"),
          "can_apply": p.can("integration", "apply", _facts(integ.name)),
-         "selectors": list(integ.selectors or []), "per_host": bool(spec and spec.per_host),
+         "selectors": list(integ.selectors or []), "per_host": bool(spec and spec.per_host), "site": integ.site or "",
          "can_admin": p.can("integration", "admin", _facts(integ.name))}
     last = db.session.scalar(db.select(Job).where(Job.integration_id == integ.id).order_by(Job.id.desc()).limit(1))
     d["last_job"] = job_dict(last) if last else None
@@ -143,6 +143,19 @@ def get_plugin(pid):
 
 
 # ------------------------------------------------------------------ instances
+def _site_of(data: dict, spec) -> tuple[str, dict | None]:
+    """The site an integration works in: what was asked, else the plugin's own default
+    (`site: all` in the manifest for instance-wide plugins like backups), else the first site."""
+    from .. import sites
+    if "site" in data:
+        site = str(data.get("site") or "").strip().lower()
+    else:
+        site = "" if str(spec.manifest.get("site", "")).lower() == "all" else sites.default()
+    if site and not sites.exists(site):
+        return site, {"field": "site", "message": f"unknown site '{site}'"}
+    return site, None
+
+
 @bp.get("/integrations")
 def list_integrations():
     p = g.principal
@@ -167,10 +180,13 @@ def create_integration():
         errors.append({"field": "name", "message": "lowercase letters, digits and dashes"})
     elif db.session.scalar(db.select(Integration).where(Integration.name == name)):
         errors.append({"field": "name", "message": "already exists"})
+    site, site_error = _site_of(data, spec)
+    if site_error:
+        errors.append(site_error)
     if errors:
         return err(422, "validation failed", errors)
     rbac.require("integration", "admin", _facts(name))
-    integ = Integration(plugin_id=spec.id, name=name, enabled=False, settings={}, state={},
+    integ = Integration(plugin_id=spec.id, name=name, enabled=False, settings={}, state={}, site=site,
                         selectors=[str(x) for x in spec.manifest.get("applies_to") or ["*"]])  # a plugin may start narrower (SNMP: tag:snmp)
     stored, _ = coerce_settings(spec, {}, {}, _vault())  # defaults; required ones are checked on enable
     integ.settings = stored
@@ -193,7 +209,12 @@ def update_integration(name):
     if spec is None or spec.error:
         return err(409, "the plugin isn't available")
     data = body()
-    before = {"enabled": integ.enabled, "selectors": list(integ.selectors or []), **public_settings(spec, integ.settings or {})[0]}
+    before = {"enabled": integ.enabled, "site": integ.site or "", "selectors": list(integ.selectors or []), **public_settings(spec, integ.settings or {})[0]}
+    if "site" in data:
+        site, site_error = _site_of(data, spec)
+        if site_error:
+            return err(422, "validation failed", [site_error])
+        integ.site = site
     if "selectors" in data:
         sel = data["selectors"]
         if isinstance(sel, str):
@@ -201,7 +222,7 @@ def update_integration(name):
         sel = [str(x).strip() for x in sel or [] if str(x).strip()]
         bad = rbac.validate_scopes(sel)
         if bad:
-            return err(422, "validation failed", [{"field": "selectors", "message": f"invalid: {', '.join(bad)} (use *, zone:, area:, network:, tag:, name:)"}])
+            return err(422, "validation failed", [{"field": "selectors", "message": f"invalid: {', '.join(bad)} (use *, site:, zone:, area:, network:, tag:, name:)"}])
         integ.selectors = sel
     if "settings" in data:
         stored, errors = coerce_settings(spec, data["settings"] or {}, integ.settings or {}, _vault())
@@ -214,12 +235,12 @@ def update_integration(name):
             if errors:
                 return err(422, "fill in the required settings before enabling", errors)
         integ.enabled = bool(data["enabled"])
-    after = {"enabled": integ.enabled, "selectors": list(integ.selectors or []), **public_settings(spec, integ.settings or {})[0]}
+    after = {"enabled": integ.enabled, "site": integ.site or "", "selectors": list(integ.selectors or []), **public_settings(spec, integ.settings or {})[0]}
     changed_secrets = [f["key"] for f in spec.settings if f.get("type") == "secret" and (data.get("settings") or {}).get(f["key"])]
     audit.record("update", "integration", name, before, after,
                  summary=(audit._summary("update", "", "", before, after) + (f"; secrets changed: {', '.join(changed_secrets)}" if changed_secrets else "")))
     db.session.commit()
-    if before["selectors"] != after["selectors"]:
+    if before["selectors"] != after["selectors"] or before["site"] != after["site"]:
         jobs.emit("hostmodule.updated")
     return jsonify(instance_dict(integ, full=True))
 

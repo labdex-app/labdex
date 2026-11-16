@@ -47,9 +47,11 @@ def _net(name) -> Network | None:
 @bp.get("/networks")
 def list_networks():
     p = g.principal
-    nets = db.session.scalars(db.select(Network).order_by(Network.vlan.is_(None), Network.vlan, Network.name))
+    q = db.select(Network).order_by(Network.vlan.is_(None), Network.vlan, Network.name)
+    if request.args.get("site"):
+        q = q.where(Network.site == request.args["site"].lower())
     out = []
-    for n in nets:
+    for n in db.session.scalars(q):
         d = store.network_to_dict(n, with_stats=True)
         if p.can("network", "view", rbac.network_facts(d)):
             d["can_edit"] = p.can("network", "edit", rbac.network_facts(d))
@@ -241,7 +243,7 @@ def _payload_facts(data: dict) -> rbac.Facts:
                             "interfaces": data.get("interfaces") or []})
 
 
-HOST_SORTS = {"name", "zone", "status", "function", "fun", "ip"}
+HOST_SORTS = {"name", "site", "zone", "status", "function", "fun", "ip"}
 
 
 @bp.get("/hosts")
@@ -249,7 +251,7 @@ def list_hosts():
     """All visible hosts. Optional, all combinable:
     fields=name,fun,zone  only these keys (skips live status and links unless asked for)
     q=text                 name, fun names, tags, addresses or description contain the text
-    zone=DC_TC             exact zone; status=active
+    zone=DC_TC             exact zone; status=active; site=home
     sort=name|-zone|ip     sort key, '-' for descending
     limit=, offset=        a page; the total before paging is in X-Total-Count
     """
@@ -261,10 +263,10 @@ def list_hosts():
     out = []
     from .. import health
     live = health.states() if want("live") else {}
-    zone, status = args.get("zone", "").upper(), args.get("status", "")
+    zone, status, site = args.get("zone", "").upper(), args.get("status", ""), args.get("site", "").lower()
     for e in store.host_index():
         src = e["host"]
-        if (zone and src["zone"] != zone) or (status and src["status"] != status):
+        if (zone and src["zone"] != zone) or (status and src["status"] != status) or (site and src["site"] != site):
             continue
         f = e["facts"]
         if not p.can("host", "view", f):

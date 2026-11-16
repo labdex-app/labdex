@@ -3,6 +3,9 @@
 ```sh
 labdex import inventory.yaml       # replace the inventory (asks first; --yes to skip)
 labdex export -o inventory.yaml    # write the inventory
+labdex sites                       # the sites with their networks, hosts and integrations
+labdex export --site public -o labdex/public.yaml   # one site's networks and hosts
+labdex import labdex/public.yaml   # a site file (top-level site:) replaces only that site
 labdex lint                        # exit 1 on errors; --warnings-as-errors for strict CI
 labdex import-from netbox|phpipam|csv --zone DC_TC   # add from another tool; preview first, --apply keeps it
 labdex changeset FILE [--apply]    # preview (or apply) a file of changes as one unit

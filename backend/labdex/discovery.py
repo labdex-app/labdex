@@ -126,7 +126,7 @@ def _ip_index() -> dict[str, tuple[Host, Interface]]:
 
 def _host_facts(host: Host) -> rbac.Facts:
     return rbac.Facts.make(host.name, [host.zone], [i.network.name for i in host.interfaces if i.network],
-                           host.tags or [], host.fun_names)
+                           host.tags or [], host.fun_names, host.site)
 
 
 class _Net:

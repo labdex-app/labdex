@@ -151,6 +151,21 @@ class ChangeSet(db.Model):
     applied_at: Mapped[datetime | None] = mapped_column(default=None)
 
 
+class Site(db.Model):
+    """A part of one person's infrastructure with its own hosts, networks, integrations and
+    credentials: `home` behind the firewall, `public` at a cloud provider. Zones, naming rules,
+    features, users and notification channels are shared by every site."""
+
+    code: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(64), default="")
+    description: Mapped[str] = mapped_column(Text, default="")
+    colour: Mapped[str] = mapped_column(String(7), default="")  # #rrggbb; '' = neutral
+    position: Mapped[int] = mapped_column(default=0)
+
+
+DEFAULT_SITE = "home"
+
+
 class Area(db.Model):
     code: Mapped[str] = mapped_column(String(16), primary_key=True)
     name: Mapped[str] = mapped_column(String(64))
@@ -185,6 +200,7 @@ class Network(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     uid: Mapped[str] = mapped_column(String(12), unique=True, default=new_uid)
     name: Mapped[str] = mapped_column(String(32), unique=True)
+    site: Mapped[str] = mapped_column(String(32), default=DEFAULT_SITE, index=True)
     vlan: Mapped[int | None] = mapped_column(unique=True)
     zone: Mapped[str] = mapped_column(String(48))
     prefix4: Mapped[str] = mapped_column(String(43), default="")
@@ -253,6 +269,7 @@ class Host(db.Model):
     def fun_names(self) -> list[str]:
         return ([self.fun] if self.fun else []) + list(self.fun_extra or [])
     zone: Mapped[str] = mapped_column(String(48))  # home zone: name, host alias, permissions
+    site: Mapped[str] = mapped_column(String(32), default=DEFAULT_SITE, index=True)
     zone_pinned: Mapped[bool] = mapped_column(default=False)  # False = follow the primary interface's network
     kind: Mapped[str] = mapped_column(String(16), default="device")  # device | vip
     dns_zone: Mapped[str] = mapped_column(String(253), default="")  # '' = the domain: short name, fun names, aliases
@@ -665,6 +682,8 @@ class Integration(db.Model):
     settings: Mapped[dict] = mapped_column(JSONValue, default=dict)  # secrets stored encrypted
     state: Mapped[dict] = mapped_column(JSONValue, default=dict)  # last schedule runs etc.
     selectors: Mapped[list] = mapped_column(JSONList, default=lambda: ["*"])  # hosts it applies to (RBAC scope syntax)
+    # the site whose hosts, networks and credentials it works with; '' = every site (backups, exports)
+    site: Mapped[str] = mapped_column(String(32), default=DEFAULT_SITE)
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
 
 

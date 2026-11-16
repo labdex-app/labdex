@@ -5,7 +5,7 @@ from __future__ import annotations
 import ipaddress
 from dataclasses import dataclass, field
 
-from .. import naming
+from .. import naming, sites
 from ..models import AliasGroup, Area, Host, Network, db
 
 
@@ -36,7 +36,7 @@ class Alias:
 
 def _live_hosts():
     return db.session.scalars(
-        db.select(Host).where(Host.status != "offline").order_by(Host.name)
+        sites.hosts(db.select(Host).where(Host.status != "offline").order_by(Host.name))
     ).all()
 
 
@@ -68,7 +68,7 @@ def host_aliases(host: Host) -> list[Alias]:
 
 
 def generated() -> list[Alias]:
-    nets = db.session.scalars(db.select(Network).order_by(Network.vlan.is_(None), Network.vlan, Network.name)).all()
+    nets = db.session.scalars(sites.networks(db.select(Network).order_by(Network.vlan.is_(None), Network.vlan, Network.name))).all()
     out: list[Alias] = []
     by_zone: dict[str, list[str]] = {}
     for net in nets:
@@ -115,6 +115,10 @@ def resolve_group(group: AliasGroup, generated_names: set[str]) -> Alias:
             host = find_host(value)
             if host is None:
                 errors.append(f"unknown host '{value}'")
+            elif not sites.in_scope(host.site) and group.type != "mac":
+                # a host of another site: read-only, by its addresses (a public node in a home firewall alias)
+                addrs = [a for i in host.interfaces for a in i.all_addresses]
+                content.extend(addrs) if addrs else errors.append(f"host '{value}' (site {host.site}) has no addresses")
             elif group.type == "mac":
                 macs = [i.mac for i in host.interfaces if i.mac]
                 content.extend(macs) if macs else errors.append(f"host '{value}' has no MAC address")
@@ -126,6 +130,10 @@ def resolve_group(group: AliasGroup, generated_names: set[str]) -> Alias:
             net = db.session.scalar(db.select(Network).where(Network.name == value))
             if net is None:
                 errors.append(f"unknown network '{value}'")
+            elif not sites.in_scope(net.site):
+                from .. import ipam
+                cidrs = [str(p) for fam in (4, 6) for p in ipam.known_prefixes(net, fam)]
+                content.extend(cidrs) if cidrs else errors.append(f"network '{value}' (site {net.site}) has no prefix")
             elif naming.network_alias(net) in generated_names:
                 content.append(naming.network_alias(net))
             else:

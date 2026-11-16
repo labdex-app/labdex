@@ -15,7 +15,8 @@ ANSI = {"magenta": "35", "green": "32", "yellow": "33", "blue": "34", "red": "31
 
 
 def _hosts(include_offline=False):
-    q = db.select(Host).order_by(Host.name)
+    from .. import sites
+    q = sites.hosts(db.select(Host).order_by(Host.name))
     if not include_offline:
         q = q.where(Host.status != "offline")
     return db.session.scalars(q).all()
@@ -72,6 +73,7 @@ def ansible_inventory() -> dict:
             "labdex_fun": h.fun or "",
             "labdex_fun_names": h.fun_names,
             "labdex_zone": h.zone,
+            "labdex_site": h.site,
             "labdex_zone_long": naming.zone_long(h.zone),
             "labdex_status": h.status,
             "labdex_function": h.function,
@@ -102,7 +104,7 @@ def ansible_inventory() -> dict:
         hv.update(feat.host_vars(h, feats))
         hostvars[h.name] = hv
         names = [f"cat_{h.name.split('-')[0]}" if naming.hostname_re().match(h.name) else "cat_unnamed",
-                 f"zone_{h.zone.lower()}", f"status_{h.status}"]
+                 f"zone_{h.zone.lower()}", f"status_{h.status}", "site_" + h.site.replace("-", "_")]
         if z:
             names.append(f"area_{z.area.lower()}")
         names += [f"tag_{t}" for t in (h.tags or [])]

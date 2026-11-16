@@ -94,6 +94,15 @@ def _note_hosts(job: Job, names) -> None:
 
 # ---------------------------------------------------------------- execution
 def _execute(job_id: int, phase: str) -> None:
+    """Run one phase of a job, with the generators limited to its integration's site."""
+    from .. import sites
+    job = db.session.get(Job, job_id)
+    site = job.integration.site if job is not None and job.integration is not None else None
+    with sites.scoped(site):
+        _execute_scoped(job_id, phase)
+
+
+def _execute_scoped(job_id: int, phase: str) -> None:
     job = db.session.get(Job, job_id)
     log = _JobLog(job_id)
     try:
@@ -104,7 +113,7 @@ def _execute(job_id: int, phase: str) -> None:
         job.status = "applying" if phase == "apply" else "running"
         job.started_at = job.started_at or utcnow()
         db.session.commit()
-        log(f"{phase} {spec.id}.{job.action} on '{integ.name}' ({job.trigger})"
+        log(f"{phase} {spec.id}.{job.action} on '{integ.name}' ({job.trigger}" + (f", site {integ.site}" if integ.site else "") + ")"
             + (f" for host {job.params['host']}" if job.params.get("host") else ""))
         limit = job.params.get("limit") or job.params.get("host") or settings.get("limit") or None
         if action.get("ansible") and spec.per_host and not job.params.get("host"):

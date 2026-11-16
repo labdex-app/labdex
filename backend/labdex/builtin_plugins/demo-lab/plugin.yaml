@@ -1,6 +1,7 @@
 id: demo-lab
 name: Demo lab
 kind: integration
+site: all  # the demo spans every site
 version: "1.0"
 demo_only: true
 tags: [demo, dns, status]

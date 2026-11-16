@@ -25,6 +25,8 @@ def override(integ: Integration, host_name: str) -> HostModule | None:
 
 def state(integ: Integration, host: dict, hm: HostModule | None = None, *, lookup=True) -> tuple[bool, str]:
     """(enabled, why) for one host."""
+    if integ.site and host.get("site") and host["site"] != integ.site:
+        return False, f"site {host['site']} (this integration works in {integ.site})"
     if lookup and hm is None:
         hm = override(integ, host["name"])
     if hm is not None and hm.enabled is not None:
@@ -36,6 +38,8 @@ def enabled_hosts(integ: Integration, include_offline=False) -> list[dict]:
     """Host dicts this integration applies to, each with `module_settings` (raw, encrypted secrets)."""
     hms = {hm.host_name: hm for hm in db.session.scalars(db.select(HostModule).where(HostModule.integration_id == integ.id))}
     q = db.select(Host).order_by(Host.name)
+    if integ.site:  # an integration works in its own site
+        q = q.where(Host.site == integ.site)
     if not include_offline:
         q = q.where(Host.status != "offline")
     out = []
