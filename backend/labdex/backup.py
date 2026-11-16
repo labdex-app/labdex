@@ -5,6 +5,9 @@ The database is in it twice on SQLite: labdex.db (a consistent snapshot of the
 file) and database.json (a portable dump, see dbdump.py). On PostgreSQL only the
 dump; it restores into either backend.
 
+With Pulumi integrations, their stacks' state is in it too (pulumi-state.tar.gz; its secrets
+are encrypted with each integration's state passphrase).
+
 What a backup does NOT contain: secret.key. Secrets inside the database stay
 encrypted with it, so a stolen backup doesn't reveal API keys or SSH keys, and
 restoring them needs the original secret.key (keep it somewhere safe, offline).
@@ -87,6 +90,9 @@ def create(version: str, passphrase: str = "") -> tuple[str, bytes, dict]:
     from .models import db
     with db.engine.connect() as conn:
         files["database.json"] = dbdump.dumps(conn)
+    state = pulumi_state()
+    if state:
+        files["pulumi-state.tar.gz"] = state
     manifest = {
         "labdex": version, "created": now.isoformat(), "host": socket.gethostname(),
         "files": {n: {"size": len(b), "sha256": hashlib.sha256(b).hexdigest()} for n, b in files.items()},
@@ -105,6 +111,26 @@ def create(version: str, passphrase: str = "") -> tuple[str, bytes, dict]:
         data, name = encrypt(data, passphrase), name + ".enc"
     manifest["encrypted"] = bool(passphrase)
     return name, data, manifest
+
+
+def pulumi_state() -> bytes:
+    """The Pulumi integrations' stacks (data/pulumi/<integration>/.pulumi/…) as one .tar.gz,
+    without the provider plugins and work folders Pulumi re-creates. b'' when there are none.
+    Restore by unpacking it into the data folder: tar -xzf pulumi-state.tar.gz -C /data"""
+    from flask import current_app, has_app_context
+    if not has_app_context():
+        return b""
+    root = Path(current_app.config.get("LABDEX_DATA_DIR", "./data")) / "pulumi"
+    if not root.is_dir():
+        return b""
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+        for path in sorted(root.rglob("*")):
+            rel = path.relative_to(root.parent)
+            if not path.is_file() or path.is_symlink() or {"home", "work"} & set(rel.parts[2:3]):
+                continue
+            tar.add(path, arcname=str(rel), recursive=False)
+    return buf.getvalue() if any(root.rglob("*.json")) else b""
 
 
 MAX_UNPACKED = 4 * 1024 ** 3  # a gzip bomb stops here

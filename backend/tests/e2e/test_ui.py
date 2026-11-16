@@ -308,6 +308,7 @@ def test_dashboard_cards(page, server):
     page.click(".dlg-foot >> text=Apply")
     page.click("button:has-text('Done')")
     page.wait_for_selector("a.lk[href='https://jellyfin.example.net']")
+    page.wait_for_selector("button:has-text('Edit')")  # the save has landed: the link shows while editing too
     page.reload()
     page.wait_for_selector("a.lk >> text=Jellyfin")
 

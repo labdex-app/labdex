@@ -1,0 +1,53 @@
+id: pulumi
+name: Pulumi (public site)
+kind: integration
+tags: [iac, cloud, dns]
+provides: [iac]
+version: "0.1"
+labdex: ">=1.24"
+description: >-
+  Keeps the hosts of a site in existence at cloud providers with Pulumi: a Contabo instance per
+  node and a Cloudflare A/AAAA record per name, made from the inventory. Every change is
+  previewed as a plan and applied after review. Pulumi's state stays in labdex's data folder,
+  encrypted with your passphrase; no Pulumi Cloud account is needed. Needs the Pulumi CLI in the
+  image (build with PULUMI=1).
+settings:
+  - {key: state_passphrase, label: State passphrase, type: secret, required: true, help: "Encrypts the secrets in Pulumi's state. Keep it in your password manager: without it the state can't be read."}
+  - {key: contabo, label: Manage Contabo instances, type: bool, default: false}
+  - {key: contabo_client_id, label: Contabo client ID, type: string, when: {contabo: true}, help: "Customer Control Panel › API"}
+  - {key: contabo_client_secret, label: Contabo client secret, type: secret, when: {contabo: true}}
+  - {key: contabo_api_user, label: Contabo API user, type: string, when: {contabo: true}, help: "The e-mail address of the API user"}
+  - {key: contabo_api_password, label: Contabo API password, type: secret, when: {contabo: true}}
+  - {key: default_product_id, label: Default product, type: string, when: {contabo: true}, help: "For new instances, e.g. V45 (Cloud VPS 2). A host can set its own."}
+  - {key: default_region, label: Default region, type: select, default: EU, options: [EU, US-central, US-east, US-west, SIN, UK, AUS, JPN, IND], when: {contabo: true}}
+  - {key: default_image_id, label: Default image, type: string, when: {contabo: true}, help: "The image id for new instances (Contabo lists them under Images)"}
+  - {key: ssh_keys, label: SSH key secret ids, type: string, when: {contabo: true}, help: "Space separated ids of SSH keys stored at Contabo, put on new instances"}
+  - {key: protect_instances, label: Protect instances from deletion, type: bool, default: true, when: {contabo: true}, help: "Pulumi refuses to remove a protected instance: a host taken out of the inventory stays running until you turn this off"}
+  - {key: allow_cancel, label: Cancel instances removed from the inventory, type: bool, default: false, when: {contabo: true}, help: "Off: labdex only forgets them. On: they're cancelled at Contabo (they run to the end of their term)"}
+  - {key: cloudflare, label: Manage Cloudflare records, type: bool, default: false}
+  - {key: cloudflare_api_token, label: Cloudflare API token, type: secret, when: {cloudflare: true}, help: "A token limited to Zone › DNS › Edit on the one zone"}
+  - {key: cloudflare_zone, label: Zone, type: string, when: {cloudflare: true}, help: "e.g. example.com"}
+  - {key: cloudflare_zone_id, label: Zone ID, type: string, when: {cloudflare: true}, help: "On the zone's overview page in Cloudflare"}
+  - {key: record_name, label: Record name, type: string, default: "{fun}", when: {cloudflare: true}, help: "Relative to the zone: {fun} is the host's first fun name (or its name), {host} its name. {fun}.node gives oak.node.example.com"}
+  - {key: record_ttl, label: TTL (seconds, 1 = automatic), type: int, default: 1, when: {cloudflare: true}}
+  - {key: proxied, label: Proxy through Cloudflare, type: bool, default: false, when: {cloudflare: true}}
+  - {key: ipv6, label: AAAA records too, type: bool, default: true, when: {cloudflare: true}}
+host_settings:
+  - {key: instance_id, label: Contabo instance id, type: string, help: "An instance that exists already: Pulumi adopts it instead of ordering a new one"}
+  - {key: product_id, label: Contabo product, type: string, help: "Empty = the integration's default"}
+  - {key: region, label: Contabo region, type: string}
+  - {key: image_id, label: Contabo image, type: string}
+  - {key: no_instance, label: No Contabo instance for this host, type: bool, default: false}
+  - {key: record_name, label: Record name, type: string, help: "Empty = the integration's template"}
+  - {key: record_id_a, label: Existing A record id, type: string, help: "Adopt a record that exists already"}
+  - {key: record_id_aaaa, label: Existing AAAA record id, type: string}
+  - {key: proxied, label: Proxy through Cloudflare, type: bool, default: false}
+  - {key: skip, label: Leave this host out, type: bool, default: false}
+host_view: true
+actions:
+  - {id: test, label: Test connection, mode: run}
+  - {id: resources, label: Show what Pulumi would keep, mode: run, description: "The resources made from the inventory, without running Pulumi"}
+  - {id: up, label: Plan and apply, mode: plan, schedulable: true, description: "pulumi preview, then pulumi up after review"}
+  - {id: refresh, label: Read back from the providers, mode: run, schedulable: true, description: "pulumi refresh: changes made by hand show up in the next plan"}
+endpoints:
+  - {id: instances, label: Contabo instances}

@@ -71,6 +71,7 @@ nav:
       - Installing and trust: plugins/installing.md
       - OPNsense: plugins/opnsense.md
       - Technitium DNS: plugins/technitium.md
+      - Pulumi (public site): plugins/pulumi.md
       - Ansible and features: plugins/ansible.md
       - Monitoring: plugins/monitoring.md
       - Compute and network: plugins/compute.md

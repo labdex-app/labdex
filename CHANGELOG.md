@@ -12,6 +12,13 @@
   `?site=`. `labdex export --site public` writes one site's file and `labdex import` of that file
   replaces only that site. Everything you had moves into `home`; with one site the UI looks as
   before. See *Sites* in the guide.
+- **Pulumi engine** (`labdex.iac`) and the **Pulumi (public site)** plugin: the hosts of a site
+  kept at Contabo (an instance per node; existing ones are adopted, protected from deletion by
+  default) and Cloudflare (an A/AAAA record per name, from a `{fun}.node` style template), made
+  from the inventory. `pulumi preview` is the plan, `pulumi up` the apply, both through the usual
+  approvals. Pulumi's state stays in the data folder (file backend, one stack per integration,
+  encrypted with a passphrase) and goes into backups as `pulumi-state.tar.gz`. Build the image
+  with `--build-arg PULUMI=1` for the SDK and CLI; `pip install labdex[pulumi]` for a checkout.
 - **New fonts and larger text**: the UI is set in Red Hat Text, Red Hat Display (the wordmark and
   page titles) and Red Hat Mono, self-hosted like before, instead of IBM Plex. Text is a step
   larger by default (15 px instead of 14 px), and the menu under your name has **Text**: Compact

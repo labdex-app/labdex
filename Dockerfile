@@ -19,7 +19,11 @@ LABEL org.opencontainers.image.title="labdex" \
       org.opencontainers.image.licenses="AGPL-3.0-only"
 # nmap for service discovery (TCP connect scans, no root); git for the YAML mirror.
 # ansible-core is optional: docker build --build-arg ANSIBLE=1 .
+# Pulumi (SDK, Cloudflare provider and CLI) for the Pulumi integration too: --build-arg PULUMI=1
 ARG ANSIBLE=0
+ARG PULUMI=0
+# the CLI and the SDK move together
+ARG PULUMI_VERSION=3.276.0
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     LABDEX_DATA=/data \
@@ -27,13 +31,18 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     HOME=/tmp
 WORKDIR /app
 # System packages and Python dependencies first: they change rarely, so this layer comes
-# from the build cache unless pyproject.toml (or ANSIBLE) changes.
+# from the build cache unless pyproject.toml (or ANSIBLE, PULUMI) changes.
 COPY backend/pyproject.toml ./
 RUN apt-get update && apt-get install -y --no-install-recommends nmap git openssh-client \
  && rm -rf /var/lib/apt/lists/* \
  && mkdir -p labdex && echo '__version__ = "0"' > labdex/__init__.py \
  && pip install --no-cache-dir ".[server,postgres,uptimekuma]" && pip uninstall -y labdex \
  && if [ "$ANSIBLE" = "1" ]; then pip install --no-cache-dir "ansible-core>=2.17"; fi \
+ && if [ "$PULUMI" = "1" ]; then pip install --no-cache-dir "pulumi==${PULUMI_VERSION}" "pulumi-cloudflare>=6,<7" \
+      && arch="$(dpkg --print-architecture | sed 's/amd64/x64/')" \
+      && python -c "import sys, urllib.request; sys.stdout.buffer.write(urllib.request.urlopen(sys.argv[1]).read())" \
+         "https://get.pulumi.com/releases/sdk/pulumi-v${PULUMI_VERSION}-linux-${arch}.tar.gz" | tar -xz -C /opt \
+      && ln -s /opt/pulumi/* /usr/local/bin/; fi \
  && rm -rf labdex build *.egg-info \
  && useradd --system --uid 10001 --home-dir /data labdex \
  && mkdir -p /data/plugins && chown -R labdex /data
