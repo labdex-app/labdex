@@ -1,8 +1,8 @@
 # Inventory in git
 
 The inventory can live in a git repository as YAML, so a change is a commit and a merge request
-shows what it would do before anyone merges it. This page covers the first part: **planning a file**,
-with `labdex plan`, in a terminal or in CI.
+shows what it would do before anyone merges it. A site can take its file from git (and write its
+edits back), and `labdex plan` shows what a file would change, in a terminal or in CI.
 
 ## The files
 
@@ -87,8 +87,32 @@ labdex-plan:
 
 `labdex lint` runs the same way, to fail the pipeline on convention errors.
 
-## What comes next
+## A site's git source
 
-Labdex reading the repository by itself (on a push or a webhook), and UI edits becoming commits or merge
-requests, build on this. Until then, the [YAML mirror](../plugins/index.md) plugin writes the inventory to a
-git working copy after every change.
+In **Settings › Sites**, edit a site and give it a **Git source**: the repository, the branch and the
+file (default `labdex/<site>.yaml`). From then on labdex keeps the two in step:
+
+- **A new commit** on the branch is planned and imported, as soon as a webhook says so or at the next
+  check (every 5 minutes by default; 0 checks only on a webhook). History shows it as an import
+  "from git" with the commit. A commit whose file has errors changes nothing; the site shows why.
+- **An edit made in labdex** is committed to the branch within half a minute, as `labdex: site <code>`.
+  With *Edits made here: Open a merge request*, it goes to a `labdex/<site>` branch with a merge request
+  (GitLab) or pull request (GitHub) instead, and comes back in once that's merged.
+- **Both changed** since the last sync: nothing happens until someone chooses on the Sites page,
+  **Keep git** (import the file, drop the edits made here) or **Keep labdex** (commit over it).
+- The first sync takes whichever side has the site: an empty file in git gets labdex's site, an empty
+  site gets git's file. When both have one and they differ, that's a conflict to choose.
+
+The **token** is a vault field (`vault:git/lab#token`) with an access token that may read and write the
+repository; for merge requests it also needs API access (GitLab: a project access token with `api` and
+`write_repository`; GitHub: a fine-grained token with *Contents* and *Pull requests*). It's read for
+each sync and handed to git in the environment, never stored in the working copy, which lives in
+`<data>/git/<site>`. Without a token, the address can be one git reaches by itself (`file://` or a path).
+
+**Webhook**: the site's edit form shows its address (`/api/git/hook/<site>`) and secret. In GitLab add a
+webhook for *Push events* with the secret as *Secret token*; in GitHub a webhook for the *push* event,
+content type JSON, with the secret. The webhook only asks for a sync; labdex fetches the branch itself.
+
+The sync runs in the job worker, with the scheduler on (the default; `LABDEX_SCHEDULER`).
+**Sync now** on the Sites page, or `POST /api/sites/<site>/git/sync` (`{"prefer": "git" | "labdex"}` settles
+a conflict), runs it right away.

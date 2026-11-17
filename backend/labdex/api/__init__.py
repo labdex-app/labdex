@@ -10,7 +10,8 @@ from ..plugins.base import PluginError
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 
-PUBLIC = {"api.auth_status", "api.auth_login", "api.auth_setup", "api.auth_oidc_login", "api.auth_oidc_callback"}
+PUBLIC = {"api.auth_status", "api.auth_login", "api.auth_setup", "api.auth_oidc_login", "api.auth_oidc_callback", "api.git_hook"}
+HOOKS = {"api.git_hook"}  # called by GitLab or GitHub: signed with a secret, no session and no CSRF header
 
 
 @bp.before_request
@@ -19,6 +20,8 @@ def _authenticate():
     p = auth.g.principal
     if request.endpoint not in PUBLIC and p.user is None:
         return err(401, "login required")
+    if request.endpoint in HOOKS:
+        return None
     if not auth.csrf_ok():
         return err(403, "missing X-Requested-With header")
     if request.method == "GET" and request.args.get("site"):

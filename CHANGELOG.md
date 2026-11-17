@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Git source per site**: a site's file (`labdex/<site>.yaml`) can live in a GitLab or GitHub
+  repository (Settings › Sites › Git source). New commits are planned and imported on a webhook or
+  a timer; edits made in labdex are committed to the branch, or opened as a merge request (pull
+  request on GitHub) per site. When both sides changed, nothing moves until someone keeps git or
+  keeps labdex. The token is a vault reference. See *Inventory in git*.
 - **`labdex plan FILE`**: what importing an inventory file (or one site's file) would change,
   without keeping anything: the hosts, networks and other objects that change, field by field, and
   the DNS records, firewall aliases and DHCP reservations labdex would generate differently. With

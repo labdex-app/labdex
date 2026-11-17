@@ -1,7 +1,7 @@
 """Sites: home, public … each with its own hosts, networks and integrations."""
 from __future__ import annotations
 
-from flask import Response, g, jsonify, request
+from flask import Response, current_app, g, jsonify, request
 
 from .. import audit, inventory, rbac, sites, store
 from ..models import Site, db
@@ -10,7 +10,17 @@ from . import body, bp, err
 
 
 def _list():
-    return [sites.to_dict(s, with_usage=True) for s in sites.all_sites()]
+    from .. import gitsource
+    admin = bool(getattr(g, "principal", None) and g.principal.is_admin)
+    out = []
+    for s in sites.all_sites():
+        d = sites.to_dict(s, with_usage=True)
+        if admin:  # where the site's file lives, and the webhook secret to give GitLab or GitHub
+            d["git"] = gitsource.public(s)
+            if d["git"]:
+                d["git"]["hook_secret"] = s.git.get("hook_secret", "")
+        out.append(d)
+    return out
 
 
 @bp.get("/sites")
@@ -72,3 +82,35 @@ def export_site(code):
     text = inventory.export_yaml(site=code)
     disp = "attachment" if request.args.get("download") else "inline"
     return Response(text, mimetype="application/yaml", headers={"Content-Disposition": f'{disp}; filename="{code}.yaml"'})
+
+
+@bp.post("/sites/<code>/git/sync")
+def sync_site_git(code):
+    """Sync the site with its git source now; {prefer: git | labdex} settles a conflict."""
+    from .. import gitsource
+    rbac.require_admin()
+    s = db.session.get(Site, code)
+    if s is None or gitsource.config(s) is None:
+        return err(404, f"site '{code}' has no git source")
+    prefer = str(body().get("prefer") or "") or None
+    if prefer not in (None, "git", "labdex"):
+        return err(422, "prefer: git or labdex")
+    out = gitsource.sync(code, prefer=prefer, actor=audit._actor())
+    if out.get("plan"):
+        from .. import fileplan
+        out["plan_markdown"] = fileplan.markdown(out.pop("plan"))
+    return jsonify(out | {"sites": _list()}), 409 if out["action"] == "conflict" else 502 if out["action"] == "error" else 200
+
+
+@bp.post("/git/hook/<code>")
+def git_hook(code):
+    """A push webhook from GitLab or GitHub (no login: the site's secret signs it). The next round
+    of the job worker pulls the new commit."""
+    from .. import gitsource
+    s = db.session.get(Site, code)
+    if s is None or not gitsource.hook_ok(s, request.headers, request.get_data()):
+        return err(403, "unknown site or wrong secret")
+    gitsource.request_pull(s)
+    if current_app.config.get("LABDEX_JOBS_SYNC"):
+        gitsource.tick()
+    return jsonify({"queued": True}), 202
