@@ -367,3 +367,15 @@ def admin_restore():
     db.session.commit()
     jobs.emit("inventory.imported")
     return jsonify({"imported": counts})
+
+
+@bp.post("/admin/plan")
+def admin_plan():
+    """What importing a file would change (nothing is kept): {yaml, base?, site?} → the plan, with markdown."""
+    from .. import fileplan
+    data = body()
+    base = data.get("base")
+    if isinstance(base, str):
+        base = [base]
+    p = fileplan.plan(str(data.get("yaml", "")), [str(b) for b in base] if isinstance(base, list) else None, str(data.get("site") or "") or None)
+    return jsonify(p | {"markdown": fileplan.markdown(p), "empty": fileplan.empty(p)})
