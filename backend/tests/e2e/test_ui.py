@@ -70,7 +70,10 @@ def test_hosts_search_open_and_back(page):
     page.fill("input[aria-label=\"Search hosts\"]", "dns")
     page.wait_for_timeout(200)
     assert 0 < rows.count() < total
-    rows.first.click()
+    rows.first.click()  # list-detail: the host shows in a drawer beside the list first
+    page.wait_for_selector(".drawer >> text=srv-vm-dns-01")
+    assert "peek=" in page.url and rows.count() > 0
+    page.click(".drawer >> text=Open host")
     page.wait_for_selector(".glance")
     page.go_back()
     page.wait_for_selector("table tbody tr")
@@ -211,6 +214,13 @@ def test_rows_open_with_the_keyboard(page, server):
     page.goto(server + "/networks")
     page.wait_for_selector("table tbody tr[role=link]")
     page.focus("table tbody tr[role=link]")
+    page.keyboard.press("Enter")  # the network shows beside the list, and focus moves into it
+    page.wait_for_selector(".drawer:focus")
+    page.keyboard.press("Escape")  # closes it, focus goes back to the row
+    page.wait_for_selector(".drawer", state="detached")
+    assert page.evaluate("document.activeElement.getAttribute('role')") == "link"
+    page.keyboard.press("Enter")
+    page.focus(".drawer >> text=Open network")
     page.keyboard.press("Enter")
     page.wait_for_selector(".tabs >> text=Hosts")
     assert "/networks/" in page.url

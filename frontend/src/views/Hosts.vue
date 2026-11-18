@@ -13,6 +13,7 @@ import Modal from '../components/Modal.vue'
 import Copy from '../components/Copy.vue'
 import FilterSelect from '../components/FilterSelect.vue'
 import HostIcon from '../components/HostIcon.vue'
+import HostPeek from '../components/HostPeek.vue'
 import TagChip from '../components/TagChip.vue'
 import ZoneChip from '../components/ZoneChip.vue'
 import { can, changed, state, tagColour, toast } from '../store'
@@ -21,6 +22,11 @@ import Loading from '../components/Loading.vue'
 const route = useRoute()
 const router = useRouter()
 const query = useQuery('/api/hosts', { onError: (e) => toast(e.message, 'error') })
+// list-detail: a click shows the host in a drawer beside the list (?peek=<uid>); a double click,
+// or "Open host" in the drawer, opens its page
+const peeked = computed(() => route.query.peek ? (query.data.value || []).find((h) => h.uid === route.query.peek || h.name === route.query.peek) : null)
+function peek(h) { router.replace({ query: { ...route.query, peek: h.uid || h.name } }) }
+function unpeek() { const { peek: _, ...rest } = route.query; router.replace({ query: rest }) }
 const hosts = computed(() => query.data.value || [])
 const loading = computed(() => query.loading.value && !query.data.value)
 const q = ref(String(route.query.q || ''))
@@ -255,7 +261,7 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
 </script>
 
 <template>
-  <div class="page">
+  <div class="page" :class="{ peeking: peeked }">
     <div class="page-head">
       <h1>Hosts</h1>
       <span class="sub">{{ visible.length }} of {{ inTab.length }}</span>
@@ -310,8 +316,9 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
             <tr v-if="r.head" class="grph"><td :colspan="(editable ? 7 : 6) + sources.length">
               <b :class="{ mono: groupBy !== 'status' }">{{ r.label || NOGROUP[groupBy] }}</b> <span class="faint small">{{ r.n }}</span>
               <a v-if="r.label && groupBy === 'tag'" href="#" class="small ml-2" @click.prevent="addTerm('tag', r.label)">only these</a></td></tr>
-            <tr v-else v-rowlink class="click" :class="{ sel: picked.has(r.h.name) }" @mouseenter="hover(r.h)"
-                @click="router.push(`/hosts/${r.h.uid || r.h.name}`)">
+            <tr v-else v-rowlink class="click" :class="{ sel: picked.has(r.h.name), peek: peeked && peeked.name === r.h.name }" @mouseenter="hover(r.h)"
+                :aria-expanded="peeked && peeked.name === r.h.name ? 'true' : 'false'"
+                @click="peek(r.h)" @dblclick="router.push(`/hosts/${r.h.uid || r.h.name}`)">
               <td v-if="editable" class="pick" @click.stop="pick(r.h, r.idx, $event)">
                 <input type="checkbox" :checked="picked.has(r.h.name)" :aria-label="`Select ${r.h.name}`" @click.stop="pick(r.h, r.idx, $event)"></td>
               <td>
@@ -411,6 +418,7 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
         <button class="btn primary" :disabled="busy || (bulk.runs === 'set' && !bulk.runs_on)" @click="saveBulk">Change {{ picked.size }} host{{ picked.size === 1 ? '' : 's' }}</button>
       </template>
     </Modal>
+    <HostPeek v-if="peeked" :key="peeked.name" :host="peeked" @close="unpeek" />
   </div>
 </template>
 
@@ -422,6 +430,10 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
 .pick { width: 34px; padding-right: 0 !important; cursor: default; }
 .pick input { cursor: pointer; }
 tr.sel td { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+tr.peek td { background: var(--accent-faint); }
+tr.peek td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+/* the drawer covers the right: the list makes room on screens wide enough for both */
+@media (min-width: 1200px) { .page.peeking { padding-right: 524px; } }
 .bulkbar { position: sticky; top: 8px; z-index: 5; display: flex; align-items: center; gap: 10px; padding: 8px 12px; margin-bottom: 10px;
   background: var(--card); border: 1px solid var(--accent); border-radius: var(--r-box); box-shadow: 0 8px 24px var(--shadow); }
 @media (max-width: 640px) { .g2 { grid-template-columns: minmax(0, 1fr); } .hide-s { display: none; } }

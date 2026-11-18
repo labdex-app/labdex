@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '../query'
 import Copy from '../components/Copy.vue'
 import ZoneChip from '../components/ZoneChip.vue'
+import NetworkPeek from '../components/NetworkPeek.vue'
 import { can, state, toast } from '../store'
 import Loading from '../components/Loading.vue'
 
@@ -22,11 +23,15 @@ const visible = computed(() => {
   const inSite = site.value ? nets.value.filter((x) => x.site === site.value) : nets.value
   return n ? inSite.filter((x) => JSON.stringify(x).toLowerCase().includes(n)) : inSite
 })
+// list-detail: a click shows the network beside the list (?peek=<uid>); a double click opens it
+const peeked = computed(() => route.query.peek ? nets.value.find((n) => n.uid === route.query.peek || n.name === route.query.peek) : null)
+function peek(n) { router.replace({ query: { ...route.query, peek: n.uid || n.name } }) }
+function unpeek() { const { peek: _, ...rest } = route.query; router.replace({ query: rest }) }
 const dhcp = (n) => (n.dhcp_start ? `${n.dhcp_start.split('.').pop()}–${n.dhcp_end.split('.').pop()}` : '—')
 </script>
 
 <template>
-  <div class="page">
+  <div class="page" :class="{ peeking: peeked }">
     <div class="page-head">
       <h1>Networks</h1>
       <span class="sub">{{ nets.length }}</span>
@@ -46,7 +51,8 @@ const dhcp = (n) => (n.dhcp_start ? `${n.dhcp_start.split('.').pop()}–${n.dhcp
             <tr><th>VLAN</th><th>Name</th><th>Prefix</th><th>Zone</th><th>Gateway</th><th>DHCP</th><th>Static usage</th><th>Hosts</th><th>Notes</th></tr>
           </thead>
           <tbody>
-            <tr v-for="n in visible" :key="n.name" class="click" v-rowlink @click="router.push(`/networks/${n.uid || n.name}`)">
+            <tr v-for="n in visible" :key="n.name" class="click" :class="{ peek: peeked && peeked.name === n.name }" v-rowlink
+                :aria-expanded="peeked && peeked.name === n.name ? 'true' : 'false'" @click="peek(n)" @dblclick="router.push(`/networks/${n.uid || n.name}`)">
               <td><b v-if="n.vlan">{{ n.vlan }}</b><span v-else class="faint">—</span></td>
               <td>
                 <b>{{ n.name.toUpperCase() }}</b>
@@ -82,5 +88,12 @@ const dhcp = (n) => (n.dhcp_start ? `${n.dhcp_start.split('.').pop()}–${n.dhcp
         <Loading v-if="loading" />
       </div>
     </div>
+    <NetworkPeek v-if="peeked" :key="peeked.name" :net="peeked" @close="unpeek" />
   </div>
 </template>
+
+<style scoped>
+tr.peek td { background: var(--accent-faint); }
+tr.peek td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+@media (min-width: 1200px) { .page.peeking { padding-right: 524px; } }
+</style>

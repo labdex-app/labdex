@@ -16,6 +16,9 @@
   selected one beside it with a Plan, Review, Apply, Verify stepper, add/change/destroy counts
   and the approvals still missing. **Plan again to verify** re-plans an applied action; an empty
   plan means the target matches. Plans in `/api/jobs` now carry `ops` and `site`.
+- **List and detail** on Hosts and Networks: a click shows the item in a panel beside the list
+  (addresses, services, links; prefixes, DHCP, usage) with *Open host* or *Open network* for
+  everything else; a double click opens the page at once, Esc closes the panel.
 - **Host agents** (`labdex-agent`): a systemd service on Linux hosts that keeps one outgoing
   WebSocket connection to labdex, so hosts need no open port. Enrol it from the host's new
   **Agent** tab with a one-time token; labdex keeps only a hash of the host's key, and **Revoke**

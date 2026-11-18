@@ -122,6 +122,11 @@ search away (<kbd>Ctrl</kbd> <kbd>K</kbd>). The arrow at the top, or <kbd>Ctrl</
 <kbd>B</kbd>, shrinks the sidebar to icons and back. Pages that plugins add live as tabs on
 their integration (Change → Integrations → the integration), not in the sidebar.
 
+On Hosts and Networks a click on a row shows that host or network in a panel on the
+right, beside the list, with what you need most often and a button to its full page; a
+double click goes straight to the page, and <kbd>Esc</kbd> closes the panel. The address
+keeps the open panel (`?peek=…`), so a link or a reload brings it back.
+
 The top bar says where you are (site, area, page, item) and holds the search box. The status
 bar at the foot shows whether the page is live (changes arrive as they happen), the git
 commit and sync time of each site that has a repository, how many agents are linked, and
