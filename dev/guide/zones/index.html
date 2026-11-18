@@ -1880,6 +1880,12 @@ rank (the area defaults) aren't checked.</p>
 categories and types come from the lists under Naming, the role is free text, and
 the number is the next free one. They say what a host does, which is what you want
 in a prompt, a firewall rule or a log line.</p>
+<p>Already have a naming scheme? List it under Settings → General → <strong>Hostname patterns</strong>,
+one per line, and the linter accepts those names instead. Tokens: <code>{category}</code> (one of
+the categories under Naming), <code>{type}</code>, <code>{role}</code>, <code>{name}</code> (one or more dash-separated
+words) and <code>{nn}</code> (two digits); anything else is taken literally. For example
+<code>{category}-{type}-{name}</code> accepts <code>srv-vm-europa</code>, and <code>{category}-{type}-{role}-{nn}</code>
+stays the default.</p>
 <p><strong>Fun names</strong> are what you remember (<code>arcanine</code>, <code>resolver</code>). A host can have several;
 each becomes a DNS CNAME and the first shows in the login banner and prompt. Pools of
 fun names ship with labdex; paste your own and tie them to a category or zone, and

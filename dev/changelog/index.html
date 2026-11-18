@@ -7384,6 +7384,9 @@
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>Hostname patterns</strong>: a lab with its own naming scheme lists it under Settings › General
+  (<code>{category}-{type}-{name}</code>, one pattern per line), and the linter accepts those names instead
+  of warning about every host. <code>{category}-{type}-{role}-{nn}</code> stays the default.</li>
 <li><strong>Patches</strong>: which hosts have updates waiting, how many are security updates, which need a
   reboot and when each was last patched, on a new Patches page and in a card on each host's
   dashboard. Hosts report with <code>labdex-patch-report</code> (one Python file, apt, dnf and Proxmox VE,
