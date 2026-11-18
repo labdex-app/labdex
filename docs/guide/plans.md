@@ -40,3 +40,25 @@ run past midnight). An approved plan waits as *approved* until its delay has pas
 its window is open; the worker applies it then.
 
 On the command line `labdex action <integration> <action> --apply` applies at once.
+
+## Drift
+
+A plan with no changes means the system matches labdex; a plan with changes means it differs,
+because someone changed it by hand or labdex changed and wasn't applied yet. Give a plan action a
+schedule (its *Run every* setting on the integration, `1440` for nightly) and that plan becomes
+the drift check:
+
+- When a scheduled plan finds changes after one that found none, labdex sends `drift.found`
+  once. It doesn't repeat it every night while the system still differs.
+- When a scheduled plan finds nothing again, it sends `drift.cleared`.
+- A plan that fails says nothing either way; `job.failed` covers it.
+
+Pick the events for a channel under *Notifications*. `GET /api/drift` lists every plan action
+of every integration with its state: `in_sync`, `drift` (with `changes` and `since`, the first
+plan in a row that found changes), `applied` (labdex wrote it, the next check says whether it
+held), `failed` or `unchecked`, and `schedule_minutes` (0 = no drift check scheduled).
+
+**Applying low-risk changes by themselves:** an approval policy with `approvals: 0` for, say,
+`integrations: [dns-*]` applies those plans as soon as they are made. Drift found there is put
+right without anyone, and `drift.found` still tells you it happened. Plans of actions marked
+`approval: always` (Patching, Compose stacks, Proxmox guest changes) always wait for a person.

@@ -238,11 +238,23 @@ def _run_claimed(app: Flask, job_id: int, phase: str) -> None:
         try:
             _execute(job_id, phase)
             if phase == "plan":
+                _drift_note(job_id)
                 _after_plan(job_id)
             if phase != "apply":
                 _rerun_if_pending(job_id)
         finally:
             db.session.remove()
+
+
+def _drift_note(job_id: int) -> None:
+    """A scheduled plan is the drift check: say when its answer changed (drift.py)."""
+    from .. import drift
+    db.session.expire_all()
+    try:
+        drift.note(db.session.get(Job, job_id))
+    except Exception:  # never let the check break the plan
+        db.session.rollback()
+        current_app.logger.exception("the drift check of job #%s failed", job_id)
 
 
 def _after_plan(job_id: int) -> None:

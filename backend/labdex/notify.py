@@ -8,6 +8,7 @@ retries failures a few times. Events labdex itself sends:
     plan.applied    a plan was applied
     job.failed      an action failed (a plan, a run or an apply)
     backup.failed   a backup failed
+    drift.found / drift.cleared   a scheduled plan's answer changed (drift.py)
     host.down       a host stopped answering (sent by status integrations)
     host.up         … and came back
     host.patches    a host has security updates waiting or needs a reboot (patches.py)
@@ -41,6 +42,8 @@ EVENTS = [
     ("plan.applied", "A plan was applied"),
     ("job.failed", "An action failed"),
     ("backup.failed", "A backup failed"),
+    ("drift.found", "A scheduled plan found a system that differs from labdex"),
+    ("drift.cleared", "A system matches labdex again"),
     ("host.down", "A host stopped answering"),
     ("host.up", "A host answers again"),
     ("host.patches", "A host has security updates waiting or needs a reboot"),
