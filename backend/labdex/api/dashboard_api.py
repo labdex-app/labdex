@@ -6,7 +6,7 @@ from datetime import timedelta
 from flask import current_app, g, jsonify
 
 from .. import approvals, audit, discovery, lint, rbac, store
-from ..models import AuditEvent, ChangeWindow, Job, JobTemplate, Network, Notification, db, utcnow
+from ..models import AuditEvent, ChangeWindow, Integration, Job, JobTemplate, Network, Notification, db, utcnow
 from ..plugins import jobs
 from . import bp
 from .plugins_api import job_dict
@@ -111,7 +111,47 @@ def dashboard():
     if not p.is_admin:
         health["jobs"]["workers"] = [{"mode": w["mode"], "running": w["running"]} for w in health["jobs"]["workers"]]
 
-    return jsonify({"counts": counts, "waiting": waiting[:15], "scheduled": scheduled[:10], "failing": failing,
+    # ------------------------------------------------------------------ sites
+    # one row per site for the Overview: health, updates, git source, open plans, last apply
+    from .. import gitsource, patches, sites as sitemod
+    pstate = patches.overview()
+    upd = {"hosts": 0, "security": 0, "reboot": 0}
+    per: dict[str, dict] = {}
+    for st in sitemod.all_sites():
+        cfg = gitsource.config(st)
+        gs = st.git_state or {}
+        per[st.code] = {"code": st.code, "name": st.name or st.code, "hosts": 0, "down": 0, "monitored": 0, "updates": 0,
+                        "open_plans": 0, "last_apply": None,
+                        "git": {"branch": cfg.get("branch") or "main", "commit": (gs.get("commit") or "")[:7], "synced_at": gs.get("synced_at"),
+                                "error": bool(gs.get("error") or gs.get("conflict"))} if cfg else None}
+    for e in hosts:
+        d = e["host"]
+        row = per.get(d.get("site") or "")
+        ps = pstate.get(d["name"])
+        if ps and ps["pending"]:
+            upd["hosts"] += 1
+            upd["security"] += ps["security"]
+        if ps and ps["reboot"]:
+            upd["reboot"] += 1
+        if row is None:
+            continue
+        row["hosts"] += 1
+        if ps and ps["pending"]:
+            row["updates"] += 1
+        if d["status"] == "active" and d.get("kind") != "vip" and (hst.get(d["name"]) or {}).get("by") == "sources":
+            row["monitored"] += 1
+            row["down"] += live.get(d["name"]) == "down"
+    for j in waiting + scheduled:
+        if j.get("site") in per:
+            per[j["site"]]["open_plans"] += 1
+    for code, row in per.items():
+        last = db.session.scalar(db.select(Job).join(Job.integration).where(Job.status == "applied", Integration.site == code)
+                                 .order_by(Job.id.desc()).limit(1))
+        if last is not None and can_view(last):
+            row["last_apply"] = _iso(last.finished_at or last.created_at)
+    counts["updates"] = upd
+
+    return jsonify({"counts": counts, "sites": list(per.values()), "waiting": waiting[:15], "scheduled": scheduled[:10], "failing": failing,
                     "running": running, "upcoming": upcoming[:8], "windows": windows, "changes": changes, "health": health,
                     "lint_top": [i for i in issues if i["severity"] == "error"][:5]})
 

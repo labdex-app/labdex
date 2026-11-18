@@ -107,7 +107,7 @@ def test_change_elsewhere_arrives_live(page, server):
 
 
 @pytest.mark.parametrize("path, marker", [
-    ("/", ".tiles .tile"), ("/networks", "table tbody tr"), ("/aliases", "table tbody tr"), ("/services", ".svc-card"),
+    ("/", ".kpis .kpi"), ("/networks", "table tbody tr"), ("/aliases", "table tbody tr"), ("/services", ".svc-card"),
     ("/admin/approvals", "text=Approval policies"), ("/admin/notifications", "text=Notification channels"),
     ("/lint", "h1"), ("/history", "h1"), ("/integrations", "h1"), ("/zones", "text=Areas and zones"),
     ("/naming", "text=Hostname parts"), ("/dns", "h1"), ("/naming?tab=tags", "text=Tags"), ("/admin/zones", "text=Areas and zones"), ("/features", "h1"),
@@ -307,7 +307,8 @@ def test_zone_page_by_its_id(page, server):
 
 def test_dashboard_cards(page, server):
     page.goto(server + "/")
-    page.wait_for_selector(".ditem .tile")
+    page.wait_for_selector(".kpis .kpi")  # the start page leads with the numbers strip
+    assert page.locator(".ditem .tile").count() == 0  # so its counts card is left out there
     page.click("a:has-text('Dashboard') >> nth=-1")  # "+ Dashboard"
     page.fill(".dlg input", "Links")
     page.click(".dlg-foot >> text=Create")

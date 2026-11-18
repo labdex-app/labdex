@@ -15,3 +15,10 @@ def test_plan_list_has_ops_and_site(admin):
         assert row["changes"] == len(plan["plan"])
     finally:
         fw.srv.close()
+
+
+def test_dashboard_sites_and_updates(admin):
+    d = admin.get("/api/dashboard").get_json()
+    home = next(s for s in d["sites"] if s["code"] == "home")
+    assert home["hosts"] == d["counts"]["hosts"] and home["git"] is None and home["open_plans"] == 0
+    assert set(d["counts"]["updates"]) == {"hosts", "security", "reboot"}

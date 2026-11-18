@@ -8,6 +8,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import { confirm } from '../confirm'
 import DashItem from '../components/DashItem.vue'
+import OverviewTop from '../components/OverviewTop.vue'
 import Field from '../components/Field.vue'
 import Modal from '../components/Modal.vue'
 import { useQuery } from '../query'
@@ -33,7 +34,9 @@ const widgetsQ = useQuery('/api/widgets', { staleMs: 30000 })
 // ------------------------------------------------------------------ editing
 const editing = ref(false)
 const work = ref([]) // the cards while editing
-const items = computed(() => (editing.value ? work.value : dash.value?.items || []))
+// on the start page the numbers strip above says what the "counts" card would: leave the card out there
+const isStart = computed(() => Boolean(current.value && current.value.uid === list.value[0]?.uid))
+const items = computed(() => (editing.value ? work.value : (dash.value?.items || []).filter((it) => !(isStart.value && it.type === 'counts'))))
 const busy = ref(false)
 function startEdit() { work.value = JSON.parse(JSON.stringify(dash.value.items)); editing.value = true }
 function cancelEdit() { editing.value = false; work.value = [] }
@@ -102,8 +105,10 @@ function keyMove(e, it) {
   else { it.x = Math.max(0, Math.min(COLS - it.w, it.x + k[0])); it.y = Math.max(0, it.y + k[1]) }
   settle(it)
 }
-const place = (it) => ({ gridColumn: `${it.x + 1} / span ${it.w}`, gridRow: `${it.y + 1} / span ${it.h}` })
-const rows = computed(() => Math.max(1, ...items.value.map((it) => it.y + it.h)) + (editing.value ? 4 : 0))
+// a card left out at the top (counts, on the start page) leaves no empty rows behind
+const top = computed(() => (editing.value || !items.value.length ? 0 : Math.min(...items.value.map((it) => it.y))))
+const place = (it) => ({ gridColumn: `${it.x + 1} / span ${it.w}`, gridRow: `${it.y - top.value + 1} / span ${it.h}` })
+const rows = computed(() => Math.max(1, ...items.value.map((it) => it.y - top.value + it.h)) + (editing.value ? 4 : 0))
 
 // ------------------------------------------------------------------ cards
 const SIZE = { counts: [12, 3], widgets: [12, 6], widget: [4, 4], links: [6, 4], services: [6, 5], note: [4, 3] }
@@ -179,8 +184,8 @@ watch(() => route.query.d, () => { editing.value = false })
 <template>
   <div class="page dashpage">
     <div class="page-head">
-      <h1>{{ state.nav?.instance_name && state.nav.instance_name !== 'labdex' ? state.nav.instance_name : 'Dashboard' }}</h1>
-      <span class="sub">labdex {{ state.meta.version }}</span>
+      <h1>{{ state.nav?.instance_name && state.nav.instance_name !== 'labdex' ? state.nav.instance_name : 'Overview' }}</h1>
+      <span class="h-tag">site {{ state.site || 'all' }}</span>
       <span class="grow"></span>
       <template v-if="dash?.can_edit">
         <template v-if="editing">
@@ -207,6 +212,9 @@ watch(() => route.query.d, () => { editing.value = false })
     <div v-if="d && !d.health.jobs.ok" class="warnbox mb-4">
       Jobs are left to <code>labdex worker</code>, and none was seen in the last minute: {{ d.health.jobs.waiting }} waiting.
     </div>
+
+    <!-- the shared start page leads with the lab's state; the cards below stay yours to arrange -->
+    <OverviewTop v-if="d && isStart && !editing" :d="d" class="mb-4" />
 
     <div v-if="dash" ref="gridEl" class="dgrid" :class="{ editing }" :style="{ gridTemplateRows: `repeat(${rows}, ${ROW}px)` }">
       <div v-for="it in [...items].sort((a, b) => a.y - b.y || a.x - b.x)" :key="it.id" class="ditem" :style="place(it)" :data-type="it.type">
