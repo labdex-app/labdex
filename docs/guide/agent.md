@@ -120,6 +120,13 @@ fetches the bundle over the same connection and checks the hash. It unpacks the 
 absolute paths, no `..` and no links, then runs `ansible-playbook -i localhost, -c local` through
 `systemd-run`. Tick *check only* for `--check --diff`.
 
+## All agents
+
+**Agents** in the sidebar lists every host's agent: linked or not, when it was last seen, whether it
+runs as root, which writes are on at both ends, whether the link used its client certificate, and
+its latest CPU, memory and `/` use. The tiles filter the list, for example to agents that link
+without a certificate before you switch `LABDEX_AGENT_MTLS` to `required`.
+
 ## Revoke
 
 **Revoke** on the Agent tab stops the key at once: labdex closes the live connection within a

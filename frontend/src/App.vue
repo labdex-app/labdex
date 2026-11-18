@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { api, setUnauthorizedHandler } from './api'
 import {
-  AppWindow, Cable, CircleCheck, GitFork, Github, Globe, History, Info, KeyRound, LayoutDashboard, Layers, LifeBuoy, ListTree, Menu, Network,
+  AppWindow, Antenna, Cable, CircleCheck, GitFork, Github, Globe, History, Info, KeyRound, LayoutDashboard, Layers, LifeBuoy, ListTree, Menu, Network,
   GitPullRequestDraft, PackageCheck, PanelLeftClose, PanelLeftOpen, Plug, QrCode, Radar, Rows4, Search, Server, Settings, Shield, Tags, Unplug, Waypoints,
 } from 'lucide-vue-next'
 import mark from './assets/mark.svg'
@@ -14,7 +14,7 @@ import ConfirmHost from './components/ConfirmHost.vue'
 import Login from './views/Login.vue'
 import { loadAuth, loadMeta, loadNav, refreshLint, refreshPending, stamp, startEvents, state, stopEvents } from './store'
 
-const KEEP = ['Hosts', 'Networks', 'Services', 'Patches', 'Aliases', 'Lint', 'Dns', 'Discovery', 'History'] // pages kept alive between visits
+const KEEP = ['Hosts', 'Networks', 'Services', 'Patches', 'Agents', 'Aliases', 'Lint', 'Dns', 'Discovery', 'History'] // pages kept alive between visits
 
 const route = useRoute()
 const error = ref('')
@@ -38,6 +38,7 @@ const groups = computed(() => {
       { to: '/labels', label: 'Labels', icon: QrCode },
       { to: '/services', label: 'Services', icon: AppWindow },
       { to: '/patches', label: 'Patches', icon: PackageCheck },
+      { to: '/agents', label: 'Agents', icon: Antenna },
       { to: '/dns', label: 'DNS', icon: Globe },
       { to: '/naming', label: 'Naming', icon: Tags },
       { to: '/vault', label: 'Vault', icon: KeyRound },

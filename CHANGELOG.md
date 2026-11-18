@@ -25,6 +25,8 @@
   stopped every sudo rule; a capability bounding set takes its place. `patch.apply` stops when
   `apt-get update` couldn't fetch, and Ansible installed with pip is found. New guide: *A first
   agent, read-only*.
+- **Agents** page: every host's agent with its link, last contact, root, writes, client
+  certificate and latest metrics, with tiles to filter.
 - **Kubernetes workloads & Flux** plugin (read-only, one per cluster): Deployments, StatefulSets
   and DaemonSets with ready against wanted replicas, Flux Kustomizations and HelmReleases with
   their Ready state, applied revision and source, and the Git, OCI and Helm sources, on a Cluster
