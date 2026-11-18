@@ -40,6 +40,7 @@ export const api = {
   text: (path) => request('GET', path, undefined, { text: true }),
   post: (path, body) => request('POST', path, body ?? {}),
   put: (path, body) => request('PUT', path, body),
+  patch: (path, body) => request('PATCH', path, body),
   del: (path, body) => request('DELETE', path, body),
 }
 
