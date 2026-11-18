@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Hostname patterns**: a lab with its own naming scheme lists it under Settings › General
+  (`{category}-{type}-{name}`, one pattern per line), and the linter accepts those names instead
+  of warning about every host. `{category}-{type}-{role}-{nn}` stays the default.
 - **Patches**: which hosts have updates waiting, how many are security updates, which need a
   reboot and when each was last patched, on a new Patches page and in a card on each host's
   dashboard. Hosts report with `labdex-patch-report` (one Python file, apt, dnf and Proxmox VE,
