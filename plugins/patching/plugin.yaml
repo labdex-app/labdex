@@ -1,0 +1,46 @@
+id: patching
+name: Patching (Ansible)
+kind: integration
+tags: [patching, updates, ansible]
+version: "0.1"
+labdex: ">=1.24"
+description: >-
+  Installs the waiting updates (apt, dnf, yum) on the hosts of a site with Ansible, one host at a
+  time, and reboots where one is needed if you allow it. The plan lists what each host has waiting
+  (from the Patches page); a person approves every run, whatever the approval policy says. Every
+  host reports its state back afterwards. Also reads the patch state over SSH without installing
+  anything. Needs Ansible in the image (build with ANSIBLE=1).
+settings:
+  - {key: ssh_user, label: SSH user, type: string}
+  - {key: ssh_private_key, label: SSH private key, type: secret, help: Pick a global secret to share one key with the Ansible runner}
+  - {key: connection, label: Connection, type: select, default: ssh, options: [ssh, local]}
+  - {key: host_key_checking, label: Check SSH host keys, type: bool, default: true}
+  - {key: reboot, label: Reboot, type: select, default: never, options: [never, if_needed], help: "if_needed: reboot a host after patching when it asks for one (reboot-required, needs-restarting)"}
+  - {key: reboot_hypervisors, label: Reboot hosts that run guests, type: bool, default: false, help: "Off: a Proxmox node or Docker host with guests in the inventory is patched but never rebooted by labdex"}
+  - {key: reboot_timeout, label: Wait for a reboot (seconds), type: int, default: 900}
+  - {key: serial, label: Hosts at a time, type: int, default: 1, help: "The run stops at the first host that fails, so the rest stay as they were"}
+  - {key: autoremove, label: Remove unused packages (apt autoremove), type: bool, default: false}
+  - {key: include_unreported, label: Patch hosts without a report, type: bool, default: false, help: "Off: only hosts with a patch report are planned, so switches and appliances are left alone"}
+host_settings:
+  - {key: ssh_user, label: SSH user for this host, type: string}
+  - {key: port, label: SSH port, type: int}
+  - {key: no_reboot, label: Never reboot this host, type: bool, default: false}
+  - {key: skip, label: Never patch this host, type: bool, default: false}
+actions:
+  - {id: test, label: Check setup, mode: run, description: Checks that ansible-playbook is installed and lists the hosts a patch run would cover}
+  - id: report
+    label: Read patch state
+    mode: run
+    schedulable: true
+    description: Reads every host's waiting updates and reboot state over SSH (nothing is installed) and shows it on the Patches page
+  - id: patch
+    label: Install updates
+    mode: plan
+    schedulable: true
+    danger: true
+    approval: always
+    description: Plans from each host's patch state; after an approval installs the updates, reboots if allowed, and reports back
+    params:
+      - {key: hosts, label: Only these hosts, type: list, help: "Host names; empty = every host this integration applies to"}
+      - {key: reboot, label: Reboot, type: select, options: ["", never, if_needed], help: "Empty = the integration's setting"}
+      - {key: security_only, label: Only hosts with security updates, type: bool, default: false}

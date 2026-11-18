@@ -137,6 +137,12 @@ class InventoryView:
         from .. import features
         return {p: features.to_dict(f) for p, f in features.all_features().items()}
 
+    def patches(self) -> dict[str, dict]:
+        """host → patch state (pending, security, reboot, state, patched_at, …) for this site's hosts."""
+        from .. import patches
+        with self._scope():
+            return {n: {k: v for k, v in s.items() if k != "sources"} for n, s in patches.overview().items()}
+
     def sites(self) -> list[dict]:
         """Every site ({code, name, description, colour}); the one this integration works in is `site`."""
         from .. import sites

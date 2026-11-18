@@ -128,7 +128,8 @@ class _Remote:
 
 
 INVENTORY = ("hosts", "networks", "aliases", "custom_aliases", "dns_records", "apply_delegated_prefixes", "dns_zones",
-             "dhcp_reservations", "dns_zone", "ansible_inventory", "yaml", "settings", "features", "sites")
+             "dhcp_reservations", "dns_zone", "ansible_inventory", "yaml", "settings", "features", "sites",
+             "patches")
 DISCOVERY = ("record_scan", "record_neighbours", "record_links", "record_macs")
 
 

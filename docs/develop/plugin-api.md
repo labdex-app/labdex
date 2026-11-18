@@ -12,7 +12,7 @@ Anything not listed here (other modules, models, private methods) may change.
 | `kind` | `integration` (instances) or `module` (one) |
 | `labdex` | PEP 440 range of labdex versions, e.g. `">=1.0,<2"` |
 | `settings`, `host_settings` | fields: `key`, `label`, `type` (`string secret bool int select text list networks table yaml`), `required`, `default`, `help`, `placeholder`, `options` (select), `columns` (table) |
-| `actions` | `id`, `label`, `mode` (`run plan export`), `description`, `scope` (`global host`), `params`, `schedulable`, `schedule_default` (minutes), `danger`, `ansible` (playbook path) |
+| `actions` | `id`, `label`, `mode` (`run plan export`), `description`, `scope` (`global host`), `params`, `schedulable`, `schedule_default` (minutes), `danger`, `approval` (`always`: a plan always needs at least one approval, whatever the policy), `ansible` (playbook path) |
 | `hooks` | `events` (globs: `host.*`, `network.*`, `alias.*`, `policy.updated`, …), `action` |
 | `pages` | `id`, `label`: pages, shown as tabs on the integration |
 | `widgets` | `id`, `label`, `where` (`dashboard host`), `size` (`small wide`), `refresh` (seconds) |
@@ -71,6 +71,7 @@ class Plugin(labdex.plugins.base.Plugin):
 | `ansible(playbook, *, extravars, limit, check, diff, …)` | runs a playbook; an `AnsibleResult` (`ok`, `rc`, `changed`, `failed`, `unreachable`, `output`) |
 | `state`, `set_state(key, value)` | small private state kept on the instance |
 | `report_status({host: {state, detail, data}})` | host status from this source (`up`, `down`, `unknown`) |
+| `inventory.patches()` | host → patch state (`state`, `pending`, `security`, `reboot`, `patched_at`, …) for the integration's site |
 | `report_patches({host: {pending, security, packages, reboot, os, kernel, patched_at}}, replace=True)` | updates waiting and reboots from this source ([Patches](../guide/patches.md)) |
 | `match_host()` | a function: address, name, URL or `host:port` → host name |
 | `notify(event, title, body="", link="", data=None)` | a notification (`plugin.<id>.<event>`; `host.down`/`host.up` as is) |
