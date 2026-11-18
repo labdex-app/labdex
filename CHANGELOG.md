@@ -36,6 +36,9 @@
   page (checked, in Activity, and to the site's git repository when it has one). New:
   `PATCH /api/hosts/<name>` (with `dry_run`) and `GET /api/hosts/<name>/yaml`. YAML and diffs
   are coloured by token in both themes.
+- **Inbox › Checks** is a list and detail: findings on the left (All, Errors, Warnings, Info,
+  Accepted), the picked one beside them with its object, the other findings on that object,
+  *Open* and *Accept…*.
 - **Host agents** (`labdex-agent`): a systemd service on Linux hosts that keeps one outgoing
   WebSocket connection to labdex, so hosts need no open port. Enrol it from the host's new
   **Agent** tab with a one-time token; labdex keeps only a hash of the host's key, and **Revoke**

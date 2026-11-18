@@ -109,6 +109,18 @@ def test_quick_edit_in_the_drawer_shows_a_diff_and_saves(page, server):
     assert "edit=1" in page.url  # still editing the same host, with the list updated beside it
 
 
+def test_checks_list_beside_the_finding(page, server):
+    page.goto(server + "/lint")
+    page.wait_for_selector(".list-pane .row-btn")
+    rows = page.locator(".list-pane .row-btn")
+    assert rows.count() > 1
+    second = rows.nth(1).locator(".rb-title").inner_text()
+    rows.nth(1).click()
+    page.wait_for_url(lambda u: "item=" in u)
+    page.wait_for_selector(f".detail-pane .d-title >> text={second}")
+    assert page.locator(".detail-pane >> text=Open").count() >= 1
+
+
 def test_change_elsewhere_arrives_live(page, server):
     """Another tab changes a host; the open list updates through the event stream, without reload."""
     page.fill("input[aria-label=\"Search hosts\"]", "sonos")
