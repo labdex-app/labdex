@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Fix**: `labdex plan` of a site file with a VIP (a keepalived pair, say) no longer fails
+  with a database error when that site is already loaded.
 - **Hostname patterns**: a lab with its own naming scheme lists it under Settings › General
   (`{category}-{type}-{name}`, one pattern per line), and the linter accepts those names instead
   of warning about every host. `{category}-{type}-{role}-{nn}` stays the default.

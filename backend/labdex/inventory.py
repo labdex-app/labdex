@@ -413,6 +413,11 @@ def import_site(data: dict, site: str, commit: bool = True) -> dict:
             db.session.execute(db.delete(Link).where(Link.a_host_id.in_(host_ids) | Link.b_host_id.in_(host_ids)))
             for h in db.session.scalars(db.select(Host).where(Host.runs_on_id.in_(host_ids), Host.site != site)):
                 h.runs_on = None
+            # The rows are gone, but VIP collections loaded earlier (a plan's snapshot) still list them, and
+            # deleting a host would then delete those rows a second time. Reload what's left.
+            db.session.flush()
+            db.session.expire_all()
+            old_hosts = list(db.session.scalars(db.select(Host).where(Host.site == site)))
         for h in old_hosts:
             db.session.delete(h)
         db.session.flush()
