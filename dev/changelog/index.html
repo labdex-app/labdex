@@ -616,6 +616,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../guide/patches/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Patches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../guide/working-fast/" class="md-nav__link">
         
   
@@ -7278,6 +7306,13 @@
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>Patches</strong>: which hosts have updates waiting, how many are security updates, which need a
+  reboot and when each was last patched, on a new Patches page and in a card on each host's
+  dashboard. Hosts report with <code>labdex-patch-report</code> (one Python file, apt, dnf and Proxmox VE,
+  from cron or Ansible; download it from <code>/api/patches/agent</code>), plugins with
+  <code>ctx.report_patches()</code>, scripts with <code>POST /api/patches</code>. Several sources per host are merged;
+  a report older than three days is stale. New notification <code>host.patches</code> when a host gets
+  security updates or needs a reboot. See <em>Patches</em> in the guide.</li>
 <li><strong>Git source per site</strong>: a site's file (<code>labdex/&lt;site&gt;.yaml</code>) can live in a GitLab or GitHub
   repository (Settings › Sites › Git source). New commits are planned and imported on a webhook or
   a timer; edits made in labdex are committed to the branch, or opened as a merge request (pull

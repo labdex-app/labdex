@@ -618,6 +618,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guide/patches/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Patches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guide/working-fast/" class="md-nav__link">
         
   
@@ -2130,6 +2158,10 @@ Anything not listed here (other modules, models, private methods) may change.</p
 <tr>
 <td><code>report_status({host: {state, detail, data}})</code></td>
 <td>host status from this source (<code>up</code>, <code>down</code>, <code>unknown</code>)</td>
+</tr>
+<tr>
+<td><code>report_patches({host: {pending, security, packages, reboot, os, kernel, patched_at}}, replace=True)</code></td>
+<td>updates waiting and reboots from this source (<a href="../../guide/patches/">Patches</a>)</td>
 </tr>
 <tr>
 <td><code>match_host()</code></td>
