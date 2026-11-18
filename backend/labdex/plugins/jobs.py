@@ -326,6 +326,7 @@ class Dispatcher:
                     _due(self.app)
                     if self.scheduler:
                         _tick(self.app)
+                        _git_tick(self.app)
             finally:
                 db.session.remove()
         return started
@@ -597,6 +598,17 @@ def _due(app: Flask) -> None:
             app.logger.exception("applying approved plans failed")
         finally:
             db.session.remove()
+
+
+def _git_tick(app: Flask) -> None:
+    """Sites with a git source: pull new commits, push labdex's edits (gitsource.py)."""
+    with app.app_context():
+        try:
+            from .. import gitsource
+            gitsource.tick()
+        except Exception:
+            db.session.rollback()
+            app.logger.exception("git sync failed")
 
 
 def _tick(app: Flask) -> None:

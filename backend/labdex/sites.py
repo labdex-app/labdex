@@ -117,6 +117,13 @@ def save(data: dict, existing: Site | None = None) -> Site:
     s.name = str(data.get("name") or "").strip()[:64] or code.capitalize()
     s.description = str(data.get("description") or "")
     s.colour = colour
+    if "git" in data:
+        from . import gitsource
+        old = s.git if existing else None
+        s.git = gitsource.validate(code, data["git"] if isinstance(data["git"], dict) else None, old)
+        keys = ("url", "branch", "path")
+        if s.git is None or [s.git.get(k) for k in keys] != [(old or {}).get(k) for k in keys]:
+            s.git_state = None  # another repository, branch or file: the next sync starts over
     if existing is None:
         db.session.add(s)
     db.session.flush()

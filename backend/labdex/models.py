@@ -161,6 +161,10 @@ class Site(db.Model):
     description: Mapped[str] = mapped_column(Text, default="")
     colour: Mapped[str] = mapped_column(String(7), default="")  # #rrggbb; '' = neutral
     position: Mapped[int] = mapped_column(default=0)
+    # git source (gitsource.py): {url, branch, path, mode, poll, token_ref, hook_secret}; None = off
+    git: Mapped[dict | None] = mapped_column(JSONValue, nullable=True)
+    # how far it's synced: {commit, synced_at, error, dirty, pull, mr_url}
+    git_state: Mapped[dict | None] = mapped_column(JSONValue, nullable=True)
 
 
 DEFAULT_SITE = "home"

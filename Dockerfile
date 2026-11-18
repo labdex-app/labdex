@@ -10,7 +10,7 @@ COPY frontend/ ./
 RUN mkdir -p /src/backend/labdex && npm run build
 
 # ---- app --------------------------------------------------------------------
-FROM python:3.12-slim
+FROM python:3.15-slim
 # what the GHCR package page and `docker inspect` show
 LABEL org.opencontainers.image.title="labdex" \
       org.opencontainers.image.description="A small homelab inventory with zones, naming rules, IPAM, plans you approve and plugins." \

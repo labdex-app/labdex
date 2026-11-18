@@ -473,3 +473,23 @@ def test_marketplace_install_from_a_repository_below_the_fold(page, server, tmp_
         card.locator(".done").wait_for()
     finally:
         repo.close()
+
+
+def test_site_git_source(page, server, tmp_path):
+    import subprocess
+    bare = tmp_path / "lab.git"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(bare)], check=True)
+    page.goto(server + "/admin/sites")
+    page.click("button[aria-label='Edit site']")
+    page.fill(".dlg input[placeholder^='https://gitlab']", str(bare))
+    page.wait_for_selector(".dlg >> text=Edits made here")
+    page.click(".dlg-foot >> text=Save site")
+    page.wait_for_selector(".li .git >> text=labdex/home.yaml")
+    page.click("button[aria-label='Sync with git now']")
+    page.wait_for_selector(".li .git >> text=at ")  # the commit it's at
+    out = subprocess.run(["git", "-C", str(bare), "log", "-1", "--format=%s"], capture_output=True, text=True).stdout
+    assert out.strip() == "labdex: site home"
+    page.click("button[aria-label='Edit site']")
+    page.wait_for_selector(".dlg >> text=Webhook:")
+    page.screenshot(path=str(tmp_path / "sites-git.png"))
+    assert not page.errors

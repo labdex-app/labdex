@@ -7,6 +7,7 @@ labdex sites                       # the sites with their networks, hosts and in
 labdex export --site public -o labdex/public.yaml   # one site's networks and hosts
 labdex import labdex/public.yaml   # a site file (top-level site:) replaces only that site
 labdex lint                        # exit 1 on errors; --warnings-as-errors for strict CI
+labdex plan FILE [--base FILE]     # what importing FILE would change; --format markdown for a merge request
 labdex import-from netbox|phpipam|csv --zone DC_TC   # add from another tool; preview first, --apply keeps it
 labdex changeset FILE [--apply]    # preview (or apply) a file of changes as one unit
 labdex openapi -o api.json        # the OpenAPI description of the REST API
