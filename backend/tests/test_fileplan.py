@@ -124,3 +124,25 @@ def test_cli_base_ref(loaded, tmp_path):
     assert r.exit_code == 2 and "1 to remove" in r.output, r.output
     r = runner.invoke(args=["plan", str(f), "--base-ref", "no-such-ref"])  # a file new on its branch: no base
     assert r.exit_code == 0, r.output
+
+
+def test_a_site_file_with_a_vip(admin):
+    """Planning a site whose hosts are already loaded with a VIP and its members (keepalived pairs)."""
+    site = {"site": "edge", "networks": [{"name": "edge-lan", "zone": "DC_TC", "prefix4": "192.0.2.0/24"}],
+            "hosts": [
+                {"name": "srv-vm-dns-11", "zone": "DC_TC", "interfaces": [{"network": "edge-lan", "ip4": "192.0.2.11"}]},
+                {"name": "srv-vm-dns-12", "zone": "DC_TC", "interfaces": [{"network": "edge-lan", "ip4": "192.0.2.12"}]},
+                {"name": "srv-vip-dns-10", "zone": "DC_TC", "kind": "vip", "vip_protocol": "keepalived",
+                 "vip_members": ["srv-vm-dns-11", "srv-vm-dns-12"],
+                 "interfaces": [{"network": "edge-lan", "ip4": "192.0.2.10"}]},
+            ]}
+    text = yaml.safe_dump(site)
+    inventory.import_yaml(text)
+    p = fileplan.plan(text)
+    assert p["ok"] and fileplan.empty(p), p["inventory"]
+    site["hosts"][2]["vip_members"] = ["srv-vm-dns-11"]
+    p = fileplan.plan(yaml.safe_dump(site))
+    assert p["ok"]
+    assert [(c["op"], c["name"]) for c in p["inventory"]] == [("update", "srv-vip-dns-10")]
+    vip = db.session.scalar(db.select(Host).where(Host.name == "srv-vip-dns-10"))
+    assert [m.name for m in vip.vip_members] == ["srv-vm-dns-11", "srv-vm-dns-12"]  # nothing kept

@@ -1,0 +1,19 @@
+id: netbird
+name: NetBird
+kind: integration
+tags: [vpn, discovery, status]
+version: "0.1"
+labdex: ">=1.24"
+provides: [discovery]
+description: "Read-only. Peers of a NetBird network (netbird.io or self-hosted) into Discovery with their mesh addresses, so they can be assigned to hosts; known peers report connected or not as host status, with their groups, OS and version on the host page."
+settings:
+  - {key: url, label: Management API, type: string, default: "https://api.netbird.io", help: "Self-hosted: your management URL, e.g. https://netbird.example.net"}
+  - {key: token, label: Access token, type: secret, required: true, help: "A personal access token of a service user with the read-only role (Team › Service users)"}
+  - {key: offline, label: A disconnected peer is, type: select, default: unknown, options: [unknown, down], help: "Laptops and phones disconnect all the time; 'down' sends host.down"}
+  - {key: groups, label: Only peers in these groups, type: list, help: "Group names, e.g. servers; empty = every peer"}
+actions:
+  - {id: test, label: Check connection, mode: run}
+  - {id: poll, label: Read peers, mode: run, schedulable: true, schedule_default: 10}
+widgets:
+  - {id: peers, label: NetBird, where: dashboard}
+  - {id: host, label: NetBird peer, where: host}

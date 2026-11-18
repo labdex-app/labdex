@@ -27,7 +27,7 @@ def quiet_tls_warnings() -> None:
 
 quiet_tls_warnings()
 
-__version__ = "1.24.1-1"
+__version__ = "1.25.0"
 
 STATIC_DIR = Path(__file__).parent / "static"
 

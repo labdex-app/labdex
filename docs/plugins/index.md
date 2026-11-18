@@ -34,6 +34,7 @@ page listing its instances, what it can do and its signature.
 | [Proxmox VE](compute.md) | Imports guests as hosts, links, drift |
 | [k3s / Kubernetes](compute.md#k3s) | Nodes, readiness, versions, drift |
 | [Tailscale / Headscale](compute.md#tailscale) | Tailnet devices into Discovery, online state |
+| [NetBird](compute.md#netbird) | Peers into Discovery, connected state, groups |
 | [UniFi Network](compute.md#unifi) | Clients into Discovery, devices as host status, cables from LLDP |
 | [SNMP neighbours](compute.md#snmp-neighbours) | Cables from LLDP and CDP over SNMP v2c/v3 |
 | [Traefik](compute.md#traefik) | HTTP routers as services with their host names |
