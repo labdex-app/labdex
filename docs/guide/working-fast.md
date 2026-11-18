@@ -148,7 +148,7 @@ their integration (Change → Integrations → the integration), not in the side
 
 The **star** next to the breadcrumb pins what's on screen to your sidebar, under Overview
 and Inbox: a host (with its live dot), a network, a zone, a plan, any page, or a list with
-filters (a saved view). *Your sidebar* in the menu under your name reorders and unpins them,
+filters (a saved view). *Your sidebar* in the menu under your name reorders (drag a row by its grip, or use the arrows) and unpins them,
 and hides or reorders pages; hidden pages stay in the search. This is kept for you only, on
 the server, so it follows you to other browsers. Until you change the pages, they follow the
 default: administrators set it with *Make these pages the default*, and *Use the default

@@ -122,6 +122,8 @@
   /api/workloads/<integration>/<host>/<name>`.
 - **What breaks? on the map**: switched on, a click on a host marks it red and what goes down
   or is cut off with it amber, with the reasons and services in a panel beside the map.
+- **Your sidebar**: drag pins and pages by their grip to reorder them; the arrows stay for the
+  keyboard.
 
 ## 1.26.0
 

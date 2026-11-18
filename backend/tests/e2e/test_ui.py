@@ -611,6 +611,11 @@ def test_pin_a_host_and_hide_a_page(page, server):
     page.wait_for_selector(".side #grp-pins", state="detached")
     page.click("button:has-text('Use the default pages')")
     page.wait_for_selector(".side a.nl:has-text('Physical')")
+    # drag a page by its grip: Services above Hosts
+    rows = page.locator(".pgrp").nth(1).locator("li")
+    rows.nth(2).locator(".grip").drag_to(rows.nth(0))
+    page.wait_for_function("() => document.querySelectorAll('.pgrp')[1].querySelector('li').innerText.includes('Services')")
+    page.click("button:has-text('Use the default pages')")
     # an administrator's pages become everyone's default
     page.click("label.check:has(input[aria-label='Show DNS in the sidebar'])")
     page.wait_for_selector(".side a.nl:has-text('DNS')", state="detached")
