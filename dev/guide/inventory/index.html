@@ -696,10 +696,32 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#impact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Impact
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#cables" class="md-nav__link">
     <span class="md-ellipsis">
       
         Cables
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#labels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Labels
       
     </span>
   </a>
@@ -1920,10 +1942,32 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#impact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Impact
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#cables" class="md-nav__link">
     <span class="md-ellipsis">
       
         Cables
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#labels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Labels
       
     </span>
   </a>
@@ -2073,11 +2117,28 @@ and snaps what you drop to it.</p>
 options and where you've zoomed to ("Rack room", "Kube networks"). Everyone who sees the
 topology can open them from the list or by link (<code>/topology?v=&lt;id&gt;</code>); people who edit
 hosts save, update and delete them. <strong>PNG</strong> and <strong>SVG</strong> download the whole picture.</p>
+<h2 id="impact">Impact<a class="headerlink" href="#impact" title="Permanent link">&para;</a></h2>
+<p>Network › <strong>Impact</strong> answers <em>what breaks if this goes down?</em>, after a failure or before you
+take something down for maintenance. Pick one or more hosts (a host's <strong>Impact</strong> button, or
+<em>What breaks if X goes down?</em> in the search box). labdex lists:</p>
+<ul>
+<li>the hosts that <strong>go down with it</strong>: what runs on it, VMs and containers, recursively;</li>
+<li>the hosts that are <strong>cut off</strong>: still running, but every cable path to their network's
+  gateway runs through something that's down (patch panels are followed port by port, so two
+  runs through one panel stay apart);</li>
+<li><strong>networks without routing</strong>, <strong>VIPs</strong> that lose some or all members, <strong>services</strong> that become
+  unavailable and whether <strong>DNS</strong> stops or just has fewer servers.</li>
+</ul>
+<p><img alt="What breaks if the core switch goes down" src="../../screenshots/impact.png" /></p>
+<p>Each affected host says why ("runs on srv-pm-pve-01", "only cabled through net-sw-core-01").
+Nothing is guessed: it all comes from runs-on, cables, gateways, VIPs and services in the
+inventory. Hosts with no cable on record are listed apart, as labdex can't tell. Set the
+networks' gateways and the hosts that hold them to get <em>cut off</em> answers.</p>
 <h2 id="cables">Cables<a class="headerlink" href="#cables" title="Permanent link">&para;</a></h2>
 <p>Inventory › <strong>Cables</strong> lists every cable you may see both ends of: its <strong>label</strong> (what's
 printed on it), both ends, medium, speed, <strong>length</strong> in metres and jacket <strong>colour</strong>.
 <em>Next free</em> continues the labels the lab already uses (C-0042 → C-0043); a label belongs
-to one cable only. <strong>Print labels</strong> prints a sheet with two labels per cable, one for each
+to one cable only. <strong>Print labels</strong> opens <a href="#labels">Labels</a> with two labels per cable, one for each
 end, each naming this end and the other one (the ticked cables, or all shown). Label,
 length and colour are also on the cable dialogs of a host and of the topology.</p>
 <p><strong>Seen by switches.</strong> Switches that tell labdex their neighbours (the <em>SNMP neighbours</em>
@@ -2100,6 +2161,23 @@ cable's label, colour and length.</p>
 <p>A host with four ports or more shows a <strong>front panel</strong> on its Dashboard and Network tab:
 its ports in order, odd ones on top, RJ45 and SFP-style cages apart, a cabled one in its
 speed's colour. Point at a port for where it goes; click it for its cable (or a new one).</p>
+<h2 id="labels">Labels<a class="headerlink" href="#labels" title="Permanent link">&para;</a></h2>
+<p>Inventory › <strong>Labels</strong> prints labels with a <strong>QR code</strong>: scan one with a phone and labdex opens
+that host, cable or rack. Choose <em>Hosts</em>, <em>Cables</em>, <em>Ports</em> (every cabled port of a switch or
+patch panel, naming the far end) or <em>Racks</em>, pick what to print, then the label size.</p>
+<p><img alt="Labels with QR codes" src="../../screenshots/labels.png" /></p>
+<ul>
+<li><strong>Roll printers</strong> (Brother DK 62 × 29 and 54 × 17, Dymo 99012 and 11352) print one label
+  per page at the label's own size. A <strong>cable flag</strong> (72 × 12 mm, for 12 mm tape) wraps around
+  a cable: the same text on both halves.</li>
+<li><strong>A4 sheets</strong> (Avery L7651, 65 per page, and 3474, 24 per page) place the labels on the
+  grid. <em>Start at label</em> skips the ones you've already used on a part-used sheet.</li>
+<li>Print at 100 % (not "fit to page"). On labels shorter than 14 mm the QR code is left out:
+  it would be too small to scan.</li>
+<li>The code leads to the address under Settings › General › <em>Public address</em>, or to the address
+  you're using now. Set it if your phone reaches labdex by another name than your computer does.</li>
+</ul>
+<p>Every host also has a <strong>Label</strong> button, and Cables prints its selection here.</p>
 <h2 id="interfaces">Interfaces<a class="headerlink" href="#interfaces" title="Permanent link">&para;</a></h2>
 <p>The Network tab lists <strong>physical</strong> interfaces (ethernet and Wi-Fi ports) first and
 <strong>virtual</strong> ones (bonds, bridges, VLANs, tunnels, loopbacks) below, each under what it

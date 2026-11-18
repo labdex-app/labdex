@@ -1866,6 +1866,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#1250" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.25.0
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.25.0">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#impact-what-breaks-if-this-goes-down" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Impact: what breaks if this goes down?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#labels-with-qr-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Labels with QR codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#1241-1" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4661,6 +4700,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#1250" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.25.0
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.25.0">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#impact-what-breaks-if-this-goes-down" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Impact: what breaks if this goes down?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#labels-with-qr-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Labels with QR codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#1241-1" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -7418,14 +7496,11 @@
 </ul>
 <h3 id="labels">Labels<a class="headerlink" href="#labels" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>Host labels with a QR code</strong>: <em>Label</em> on a host's page, or tick hosts and choose <em>Labels</em>
-  to print a sheet. Each label has the fun name, hostname, addresses and zone, and a QR code
-  that opens the host. SVG in millimetres (62 × 29, 50 × 25 or 89 × 36), so it prints true on
-  a label printer. <code>GET /api/hosts/&lt;name&gt;/label.svg?size=…</code>.</li>
-<li><strong>Cable labels with a QR code</strong> next to each cable on the Cables page
-  (<code>GET /api/cables/label.svg?host=&amp;port=</code>); the code opens the cable's trace.</li>
-<li>Set the address of your labdex (Settings › General) so the codes work from outside; without
-  it they use the address you opened labdex with. New dependency: <code>segno</code> (pure Python).</li>
+<li><strong>Labels as SVG from the API</strong>, made on the server: <code>GET /api/hosts/&lt;name&gt;/label.svg?size=…</code>
+  (62 × 29, 50 × 25 or 89 × 36 mm) for a host and <code>GET /api/cables/label.svg?host=&amp;port=</code> for a
+  cable, whose code opens the cable's trace. A tag icon next to each cable on the Cables page
+  opens its label. Ticking hosts and choosing <em>Labels</em> opens the Labels page with them.
+  New dependency: <code>segno</code> (pure Python).</li>
 </ul>
 <h3 id="hosts">Hosts<a class="headerlink" href="#hosts" title="Permanent link">&para;</a></h3>
 <ul>
@@ -7468,6 +7543,22 @@
   and <strong>Check now</strong> on the card asks again at once (<code>POST /api/about/update-check</code>; at most
   every 30 seconds). The card says when it last looked. Versions are compared the PEP 440
   way, so <code>1.24.10</code> is newer than <code>1.24.9</code> and a <code>.post</code>, <code>rc</code> or <code>.dev</code> build compares right.</li>
+</ul>
+<h2 id="1250">1.25.0<a class="headerlink" href="#1250" title="Permanent link">&para;</a></h2>
+<h3 id="impact-what-breaks-if-this-goes-down">Impact: what breaks if this goes down?<a class="headerlink" href="#impact-what-breaks-if-this-goes-down" title="Permanent link">&para;</a></h3>
+<ul>
+<li>New page <strong>Impact</strong> (Network). Pick hosts and labdex lists what goes down with them, what's
+  cut off from its gateway (through switches and patch panels), networks left without
+  routing, VIPs, unavailable services and whether DNS stops, each with the reason.
+  Also from a host's <strong>Impact</strong> button and the search box. API: <code>GET /api/impact</code>.</li>
+</ul>
+<h3 id="labels-with-qr-codes">Labels with QR codes<a class="headerlink" href="#labels-with-qr-codes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>New page <strong>Labels</strong> (Inventory): labels for hosts, cables, switch and patch panel ports
+  and racks, each with a QR code that opens it in labdex. Sizes for Brother and Dymo label
+  printers, a cable flag for 12 mm tape and Avery A4 sheets (with "start at label" for a
+  part-used sheet). Cables → Print labels and a host's new <strong>Label</strong> button lead here.</li>
+<li>Settings › General › <em>Public address</em> is what the QR codes point to.</li>
 </ul>
 <h2 id="1241-1">1.24.1-1<a class="headerlink" href="#1241-1" title="Permanent link">&para;</a></h2>
 <h3 id="fixes_2">Fixes<a class="headerlink" href="#fixes_2" title="Permanent link">&para;</a></h3>
