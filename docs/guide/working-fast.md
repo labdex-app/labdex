@@ -122,6 +122,12 @@ search away (<kbd>Ctrl</kbd> <kbd>K</kbd>). The arrow at the top, or <kbd>Ctrl</
 <kbd>B</kbd>, shrinks the sidebar to icons and back. Pages that plugins add live as tabs on
 their integration (Change → Integrations → the integration), not in the sidebar.
 
+The **star** next to the breadcrumb pins what's on screen to your sidebar, under Overview
+and Inbox: a host (with its live dot), a network, a zone, a plan, any page, or a list with
+filters (a saved view). *Your sidebar* in the menu under your name reorders and unpins them,
+and hides or reorders pages; hidden pages stay in the search. This is kept for you only, on
+the server, so it follows you to other browsers.
+
 On Hosts and Networks a click on a row shows that host or network in a panel on the
 right, beside the list, with what you need most often and a button to its full page; a
 double click goes straight to the page, and <kbd>Esc</kbd> closes the panel. The address

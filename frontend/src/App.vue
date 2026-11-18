@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, setUnauthorizedHandler } from './api'
-import { AlertTriangle, CheckCircle2, ChevronRight, ChevronsUpDown, Inbox, Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, X } from 'lucide-vue-next'
+import { AlertTriangle, CheckCircle2, ChevronRight, ChevronsUpDown, GitPullRequestArrow, Inbox, Layers, Menu, Network, PanelLeftClose, PanelLeftOpen, Search, Server, Settings, SquareStack, Star, Tags, X } from 'lucide-vue-next'
 import mark from './assets/mark.svg'
 import CommandPalette from './components/CommandPalette.vue'
 import Copy from './components/Copy.vue'
@@ -11,7 +11,7 @@ import { setTextSize, setTheme, textSize, theme } from './theme'
 import ConfirmHost from './components/ConfirmHost.vue'
 import Login from './views/Login.vue'
 import { SECTIONS, entryFor } from './nav'
-import { loadAuth, loadMeta, loadNav, refreshBar, refreshLint, refreshPending, setSite, stamp, startEvents, state, stopEvents } from './store'
+import { isPinned, loadAuth, loadMeta, loadNav, loadSidebar, refreshBar, refreshLint, refreshPending, setSite, stamp, startEvents, state, stopEvents, togglePin } from './store'
 
 const KEEP = ['Hosts', 'Networks', 'Services', 'Patches', 'Aliases', 'Lint', 'Dns', 'Discovery', 'History'] // pages kept alive between visits
 
@@ -29,7 +29,22 @@ watch(() => route.fullPath, () => { drawer.value = false; menu.value = false })
 const shows = (what) => !what || Boolean(state.nav?.show[what])
 const inboxCount = computed(() => (state.lint?.error || 0) + (state.lint?.warning || 0))
 const badge = (i) => (i.badge === 'inbox' ? inboxCount.value : i.badge === 'pending' ? state.pending : 0)
-const groups = computed(() => SECTIONS.map((g) => ({ ...g, items: g.items.filter((i) => shows(i.show)) })).filter((g) => g.items.length))
+// your sidebar: pages you hid are left out (still in Ctrl K), and your order wins inside each group
+const rank = (to) => { const n = state.sidebar.order.indexOf(to); return n < 0 ? 1000 : n }
+const groups = computed(() => SECTIONS.map((g) => ({
+  ...g, items: g.items.filter((i) => shows(i.show) && !state.sidebar.hidden.includes(i.to))
+    .map((i, n) => ({ i, n })).sort((a, b) => rank(a.i.to) - rank(b.i.to) || a.n - b.n).map((x) => x.i),
+})).filter((g) => g.items.length))
+
+// pins: anything with an address, shown under Overview and Inbox; hosts carry their live dot
+const PIN_ICON = { host: Server, network: Network, zone: Layers, service: SquareStack, change: GitPullRequestArrow, view: Tags, page: Star }
+const live = computed(() => {
+  const m = {}
+  for (const z of state.nav?.tree || []) for (const h of [...z.hosts, ...z.networks.flatMap((x) => x.hosts)]) { m[h.name] = h.live; if (h.fun) m[h.fun] ??= h.live }
+  return m
+})
+const LIVE_DOT = { up: 'ok', down: 'err', degraded: 'warn' }
+const pinActive = (p) => route.fullPath === p.to || route.path === p.to
 
 // the site switcher: pages that can filter by site get it in their link
 const sites = computed(() => state.meta?.sites || [])
@@ -52,6 +67,20 @@ onMounted(() => {
 })
 
 const entry = computed(() => entryFor(route.path))
+
+// the star in the top bar pins what's on screen: an item, a page, or a filtered list (a saved view)
+const here = computed(() => {
+  const { peek: _p, job: _j, ...q } = route.query
+  const qs = new URLSearchParams(Object.entries(q).filter(([, v]) => typeof v === 'string' && v)).toString()
+  const to = route.path + (qs ? `?${qs}` : '')
+  const p = route.path
+  const kind = p.startsWith('/hosts/') ? 'host' : p.startsWith('/networks/') ? 'network' : p.startsWith('/zones/') ? 'zone'
+    : p.startsWith('/jobs/') ? 'change' : qs ? 'view' : 'page'
+  const last = crumbs.value[crumbs.value.length - 1]?.label || p
+  const label = kind === 'view' ? `${last} · ${Object.values(q).filter((v) => typeof v === 'string').join(' ')}` : last
+  return { to, kind, label: label.slice(0, 80), key: kind === 'host' ? last : '' }
+})
+const canPin = computed(() => route.path !== '/' && route.params.name !== 'new' && !route.path.startsWith('/account/sidebar'))
 const active = (i) => entry.value === i
 const tabs = computed(() => (entry.value?.tabs || []).filter((t) => shows(t.show)))
 const tabOn = (t) => route.path === t.to || route.path.startsWith(`${t.to}/`)
@@ -116,6 +145,7 @@ async function start() {
     refreshPending()
     loadNav()
     loadUpdate()
+    loadSidebar()
     refreshBar()
     startEvents()
   } catch (e) {
@@ -166,7 +196,8 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
       </label>
       <nav class="side-scroll" aria-label="Pages">
         <div class="side-links">
-          <section v-for="g in groups" :key="g.id" class="grp" :aria-labelledby="g.label ? `grp-${g.id}` : undefined">
+          <template v-for="(g, gn) in groups" :key="g.id">
+          <section class="grp" :aria-labelledby="g.label ? `grp-${g.id}` : undefined">
             <h2 v-if="g.label" :id="`grp-${g.id}`" class="gh label">{{ g.label }}</h2>
             <div class="gi">
               <RouterLink v-for="n in g.items" :key="n.to" :to="link(n.to)" class="nl" active-class="" exact-active-class=""
@@ -179,6 +210,18 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
               </RouterLink>
             </div>
           </section>
+          <section v-if="gn === 0 && state.sidebar.pins.length" class="grp" aria-labelledby="grp-pins">
+            <h2 id="grp-pins" class="gh label pinhead">Pinned <RouterLink to="/account/sidebar" class="edit">Edit</RouterLink></h2>
+            <div class="gi">
+              <RouterLink v-for="p in state.sidebar.pins" :key="p.to" :to="p.to" class="nl" active-class="" exact-active-class=""
+                          :class="{ on: pinActive(p) }" :aria-current="pinActive(p) ? 'page' : undefined" :title="p.label">
+                <component :is="PIN_ICON[p.kind] || Star" class="ic" :size="17" />
+                <span class="lb" :class="{ mono: ['host', 'network', 'zone'].includes(p.kind) }">{{ p.label }}</span>
+                <span v-if="p.kind === 'host' && live[p.key]" class="dot" :class="LIVE_DOT[live[p.key]] || 'unknown'" :title="live[p.key]"></span>
+              </RouterLink>
+            </div>
+          </section>
+          </template>
         </div>
       </nav>
       <div class="who">
@@ -204,6 +247,7 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
                       :title="{ compact: '14 px', comfortable: '15 px', large: '16 px' }[t]" @click="setTextSize(t)">{{ t[0].toUpperCase() + t.slice(1) }}</button>
             </div>
           </div>
+          <RouterLink to="/account/sidebar">Your sidebar</RouterLink>
           <RouterLink to="/account">Password &amp; API tokens</RouterLink>
           <RouterLink to="/vault">Vault</RouterLink>
           <RouterLink to="/naming">Naming</RouterLink>
@@ -227,6 +271,9 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
             <span v-else :aria-current="n === crumbs.length - 1 ? 'page' : undefined" :class="{ last: n === crumbs.length - 1 }">{{ c.label }}</span>
           </template>
         </nav>
+        <button v-if="canPin" class="icon-btn pin" :class="{ on: isPinned(here.to) }" :aria-pressed="isPinned(here.to)"
+                :title="isPinned(here.to) ? 'Unpin from your sidebar' : 'Pin to your sidebar'" :aria-label="isPinned(here.to) ? 'Unpin' : 'Pin to the sidebar'"
+                @click="togglePin(here)"><Star :size="15" /></button>
         <span class="grow"></span>
         <button class="find" :title="`Search and run (${isMac ? '⌘' : 'Ctrl'} K)`" @click="palette?.show()">
           <Search :size="15" /><span class="lb">Type a command or search</span><kbd>{{ isMac ? '⌘' : 'Ctrl' }} K</kbd>
@@ -322,6 +369,12 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 .ic { color: var(--muted); flex: none; }
 .nl.on .ic { color: var(--accent-soft); }
 .lb { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.pinhead { display: flex; align-items: center; }
+.pinhead .edit { margin-left: auto; color: var(--faint); font: inherit; }
+.pinhead .edit:hover { color: var(--ink); text-decoration: none; }
+.nl .mono { font-family: var(--mono); font-size: calc(13px * var(--text)); }
+.pin.on { color: var(--accent-soft); }
+.pin.on svg { fill: currentColor; }
 .count { color: var(--faint); font: calc(11.5px * var(--text)) var(--mono); font-variant-numeric: tabular-nums; }
 
 .who { position: relative; display: flex; align-items: center; gap: 4px; padding: 10px 10px 12px; border-top: 1px solid var(--line); }
@@ -363,7 +416,7 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 .icon-btn:hover { color: var(--ink); background: var(--raise); text-decoration: none; }
 .show-m { display: none !important; }
 
-.small .lb, .small .count, .small .pill, .small .wm, .small .gh, .small .gear { display: none; }
+.small .lb, .small .count, .small .pill, .small .wm, .small .gh, .small .gear, .small .nl .dot { display: none; }
 .small .grp + .grp { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
 .small .side-head { padding: 12px 8px 8px; flex-direction: column; }
 .small .side-links { padding: 0 6px 8px; }

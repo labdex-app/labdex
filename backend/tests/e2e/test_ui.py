@@ -540,3 +540,17 @@ def test_changes_page_lists_plans_beside_the_detail(page, server):
     page.wait_for_url("**/changesets")
     assert page.locator(".side a[aria-current=page]").inner_text().startswith("Changes")
     assert not page.errors
+
+
+def test_pin_a_host_and_hide_a_page(page, server):
+    open_host(page, server, "srv-vm-dns-01")
+    page.click("button.pin")
+    page.wait_for_selector(".side #grp-pins")
+    assert page.locator(".side .grp:has(#grp-pins) a.nl").count() == 1
+    page.goto(server + "/account/sidebar")
+    page.click("label.check:has(input[aria-label='Show Physical in the sidebar'])")
+    page.wait_for_selector(".side a.nl:has-text('Physical')", state="detached")
+    page.click("button:has-text('Unpin')")
+    page.wait_for_selector(".side #grp-pins", state="detached")
+    page.click("button:has-text('Reset pages to default')")
+    page.wait_for_selector(".side a.nl:has-text('Physical')")

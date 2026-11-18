@@ -243,3 +243,54 @@ def admin_sso():
                              "confidential": bool(c["client_secret"]), "redirect_uri": oidc.redirect_uri(), "autocreate": bool(c["autocreate"]),
                              "groups_claim": c["groups_claim"] or "groups", "admin_groups": c["admin_groups"] or "", "only": bool(c["only"])},
                     "header": current_app.config.get("LABDEX_SSO_HEADER") or ""})
+
+
+# -------------------------------------------------------------------- your sidebar
+SIDEBAR_KINDS = {"host", "network", "zone", "service", "page", "view", "change"}
+MAX_PINS = 30
+
+
+def _sidebar(u: User) -> dict:
+    s = (u.prefs or {}).get("sidebar") or {}
+    return {"pins": list(s.get("pins") or []), "hidden": list(s.get("hidden") or []), "order": list(s.get("order") or [])}
+
+
+@bp.get("/me/sidebar")
+def my_sidebar():
+    """Your sidebar: pinned items, hidden pages and page order (only for you)."""
+    if g.principal.user is None:
+        return err(403, "only a signed-in user has a sidebar")
+    return jsonify(_sidebar(g.principal.user))
+
+
+@bp.put("/me/sidebar")
+def save_my_sidebar():
+    """Save your pins, hidden pages and page order. Paths are app paths ("/hosts/…"); labels are shown as text."""
+    u = g.principal.user
+    if u is None:
+        return err(403, "only a signed-in user has a sidebar")
+    data = body()
+    errors = []
+
+    def path_ok(v) -> bool:
+        return isinstance(v, str) and v.startswith("/") and not v.startswith("//") and len(v) <= 300 and "\\" not in v
+
+    pins = []
+    for n, p in enumerate(data.get("pins") or []):
+        if not isinstance(p, dict) or not path_ok(p.get("to")) or p.get("kind") not in SIDEBAR_KINDS:
+            errors.append({"field": f"pins[{n}]", "message": "a pin needs a path starting with / and a known kind"})
+            continue
+        pins.append({"to": p["to"], "kind": p["kind"], "label": str(p.get("label") or p["to"])[:80], "key": str(p.get("key") or "")[:128]})
+    if len(pins) > MAX_PINS:
+        errors.append({"field": "pins", "message": f"at most {MAX_PINS} pins"})
+    lists = {}
+    for k in ("hidden", "order"):
+        v = data.get(k) or []
+        if not isinstance(v, list) or not all(path_ok(x) for x in v) or len(v) > 100:
+            errors.append({"field": k, "message": "a list of page paths"})
+        lists[k] = list(dict.fromkeys(v)) if isinstance(v, list) else []
+    if errors:
+        return err(422, "validation failed", errors)
+    u.prefs = {**(u.prefs or {}), "sidebar": {"pins": pins, **lists}}
+    db.session.commit()
+    return jsonify(_sidebar(u))

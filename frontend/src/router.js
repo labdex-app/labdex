@@ -31,6 +31,7 @@ export const router = createRouter({
     { path: '/changes', component: () => import('./views/Changes.vue'), meta: { title: 'Changes' } },
     { path: '/changesets', component: () => import('./views/ChangeSets.vue'), meta: { title: 'Change sets' } },
     { path: '/lint', component: () => import('./views/Lint.vue'), meta: { title: 'Lint' } },
+    { path: '/account/sidebar', component: () => import('./views/Sidebar.vue'), meta: { title: 'Your sidebar' } },
     { path: '/account', component: () => import('./views/Account.vue'), meta: { title: 'Account' } },
     { path: '/topology', component: () => import('./views/Topology.vue'), meta: { title: 'Topology' } },
     { path: '/labels', component: () => import('./views/Labels.vue'), meta: { title: 'Labels' } },

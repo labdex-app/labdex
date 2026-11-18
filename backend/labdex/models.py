@@ -597,6 +597,7 @@ class User(db.Model):
     active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
     last_login: Mapped[datetime | None] = mapped_column()
+    prefs: Mapped[dict | None] = mapped_column(JSONValue, nullable=True)  # {"sidebar": {pins, hidden, order}}
 
     groups: Mapped[list[Group]] = relationship(secondary=user_groups, back_populates="members")
     tokens: Mapped[list[ApiToken]] = relationship(back_populates="user", cascade="all, delete-orphan")

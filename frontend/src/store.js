@@ -12,7 +12,22 @@ export const state = reactive({
   live: false, // the event stream is open: the status bar's "live"
   bar: null, // /api/statusbar: git sync per site, agents, vault
   site: readSite(), // the site switcher: '' is every site
+  sidebar: { pins: [], hidden: [], order: [] }, // /api/me/sidebar: only for this user
 })
+
+export async function loadSidebar() {
+  try { state.sidebar = await api.get('/api/me/sidebar') } catch { /* an API token has no sidebar */ }
+}
+export async function saveSidebar(next) {
+  const before = state.sidebar
+  state.sidebar = { ...before, ...next } // at once; put back if the server says no
+  try { state.sidebar = await api.put('/api/me/sidebar', state.sidebar) } catch (e) { state.sidebar = before; toast(e.message, 'error') }
+}
+export const isPinned = (to) => state.sidebar.pins.some((p) => p.to === to)
+export function togglePin(pin) {
+  const pins = isPinned(pin.to) ? state.sidebar.pins.filter((p) => p.to !== pin.to) : [...state.sidebar.pins, pin]
+  return saveSidebar({ pins })
+}
 
 function readSite() { try { return localStorage.getItem('labdex-site') || '' } catch { return '' } }
 export function setSite(code) {
