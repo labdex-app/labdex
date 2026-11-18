@@ -113,6 +113,9 @@
   the host's address in your own SSH app (`ssh://`); labdex runs no shell.
 - **Overview**: *Plan changes* opens the search box on the plans you may make (type `plan` in
   Ctrl K for the same); Needs attention orders by impact or newest.
+- **Quick edit as YAML**: *Edit YAML* in the host drawer changes the host's entry as text, with
+  *Preview diff* first (`PUT /api/hosts/<name>/yaml`, with `dry_run`). Left-out fields take their
+  defaults; cables are changed on the host page.
 
 ## 1.26.0
 

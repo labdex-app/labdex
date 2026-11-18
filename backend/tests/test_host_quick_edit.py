@@ -54,3 +54,24 @@ def test_host_yaml_and_git_target(admin):
     s.git = {"url": "https://git.example.com/lab.git", "branch": "main", "path": "labdex/home.yaml", "mode": "commit"}
     db.session.commit()
     assert admin.get("/api/hosts/srv-pm-pve-01/yaml").get_json()["git"] == {"branch": "main", "path": "labdex/home.yaml", "mode": "commit"}
+
+
+def test_put_yaml_round_trips_and_saves(admin):
+    y = admin.get("/api/hosts/srv-pm-pve-01/yaml").get_json()["yaml"]
+    same = admin.put("/api/hosts/srv-pm-pve-01/yaml", json={"yaml": y, "dry_run": True}).get_json()
+    assert same["before"] == same["after"]
+    changed = y.replace("- name: srv-pm-pve-01\n", "- name: srv-pm-pve-01\n  notes: from yaml\n", 1)
+    assert changed != y
+    r = admin.put("/api/hosts/srv-pm-pve-01/yaml", json={"yaml": changed})
+    assert r.status_code == 200, r.get_json()
+    assert r.get_json()["notes"] == "from yaml"
+    assert admin.get("/api/history?type=host&name=srv-pm-pve-01").get_json()[0]["action"] == "update"
+
+
+def test_put_yaml_refuses_bad_yaml_and_cable_edits(admin):
+    r = admin.put("/api/hosts/srv-pm-pve-01/yaml", json={"yaml": "- name: [unclosed"})
+    assert r.status_code == 422 and "line" in r.get_json()["errors"][0]["message"]
+    r = admin.put("/api/hosts/srv-pm-pve-01/yaml", json={"yaml": "- name: srv-pm-pve-01\n  cables: [{port: eth9, peer: x, peer_port: y}]\n"})
+    assert r.status_code == 422 and "cables" in r.get_json()["errors"][0]["message"]
+    r = admin.put("/api/hosts/srv-pm-pve-01/yaml", json={"yaml": "- just a string"})
+    assert r.status_code == 422

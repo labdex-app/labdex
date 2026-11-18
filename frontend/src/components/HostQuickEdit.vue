@@ -26,6 +26,10 @@ const mode = ref('form')
 const preview = ref(null) // {before, after}
 const errors = ref({})
 const busy = ref(false)
+const yamlText = ref('') // the entry as typed in the YAML editor
+const yamlBase = ref('')
+const fromYaml = ref(false) // the diff on screen is the YAML editor's
+const yamlDirty = computed(() => mode.value === 'yamledit' && yamlText.value !== yamlBase.value)
 const featureList = ref([])
 const tagList = ref([])
 
@@ -71,6 +75,7 @@ async function showDiff() {
   errors.value = {}
   try {
     preview.value = await api.patch(`/api/hosts/${encodeURIComponent(id.value)}`, { ...diff.value, dry_run: true })
+    fromYaml.value = false
     mode.value = 'diff'
   } catch (e) { fail(e) }
 }
@@ -78,6 +83,36 @@ async function showDiff() {
 async function showYaml() {
   mode.value = 'yaml'
   if (dirty.value) await showDiff().then(() => { mode.value = 'yaml' })
+}
+
+function editYaml() {
+  yamlBase.value = yamlText.value = preview.value && dirty.value ? preview.value.after : src.value.yaml
+  mode.value = 'yamledit'
+}
+
+async function previewYaml() {
+  errors.value = {}
+  try {
+    preview.value = await api.put(`/api/hosts/${encodeURIComponent(id.value)}/yaml`, { yaml: yamlText.value, dry_run: true })
+    fromYaml.value = true
+    mode.value = 'diff'
+  } catch (e) { fail(e) }
+}
+
+async function saveYaml() {
+  busy.value = true
+  errors.value = {}
+  try {
+    const h = await api.put(`/api/hosts/${encodeURIComponent(id.value)}/yaml`, { yaml: yamlText.value })
+    toast(git.value ? `Saved ${h.name}; it goes to git ${git.value.mode === 'mr' ? 'as a merge request' : `on ${git.value.branch}`}` : `Saved ${h.name}`)
+    setQueryData(`/api/hosts/${h.uid}`, h)
+    await changed()
+    emit('saved', h)
+    await load()
+    preview.value = null
+    fromYaml.value = false
+    mode.value = 'form'
+  } catch (e) { fail(e) } finally { busy.value = false }
 }
 
 async function save() {
@@ -106,7 +141,7 @@ function addFeature(e) {
   <Drawer label="Edit host" :title="full?.name || host.name" @close="emit('close')">
     <template #head>
       <div class="seg sm" role="tablist" aria-label="View">
-        <button role="tab" :aria-selected="mode === 'form'" :class="{ on: mode === 'form' }" @click="mode = 'form'">Form</button>
+        <button role="tab" :aria-selected="mode === 'form'" :class="{ on: mode === 'form' }" @click="mode = 'form'; fromYaml = false">Form</button>
         <button role="tab" :aria-selected="mode !== 'form'" :class="{ on: mode !== 'form' }" @click="showYaml">YAML</button>
       </div>
     </template>
@@ -174,7 +209,13 @@ function addFeature(e) {
     </template>
     <template v-else-if="mode === 'yaml'">
       <CodeDiff :after="preview && dirty ? preview.after : src.yaml" :file="file" />
-      <p class="hint">This host's entry in the site file{{ dirty ? ', with your changes' : '' }}. Edit it in the form, or in git.</p>
+      <div class="row yrow"><p class="hint m-0 grow">This host's entry in the site file{{ dirty ? ', with your changes' : '' }}.</p>
+        <button v-if="full.can_edit !== false" class="btn small" @click="editYaml">Edit YAML</button></div>
+    </template>
+    <template v-else-if="mode === 'yamledit'">
+      <textarea v-model="yamlText" class="mono yedit" spellcheck="false" aria-label="The host as YAML" rows="22"></textarea>
+      <div v-if="err('yaml')" class="err">{{ err('yaml') }}</div>
+      <p class="hint">Left-out fields take their defaults, like a file from git. Cables are changed on the host page.</p>
     </template>
     <template v-else>
       <CodeDiff :before="preview.before" :after="preview.after" :file="file" />
@@ -185,11 +226,18 @@ function addFeature(e) {
       <div class="where">
         <div class="small"><template v-if="git">Saves to git <b class="mono">{{ git.branch }}</b> · <span class="mono">{{ git.path }}</span></template>
           <template v-else>Saves to labdex · recorded in Activity</template></div>
-        <div class="small muted">{{ dirty ? `${Object.keys(diff).length} change${Object.keys(diff).length === 1 ? '' : 's'}: ${summary}` : 'No changes yet' }}</div>
+        <div v-if="mode === 'yamledit' || fromYaml" class="small muted">{{ yamlDirty || fromYaml ? 'Edited as YAML' : 'No changes yet' }}</div>
+        <div v-else class="small muted">{{ dirty ? `${Object.keys(diff).length} change${Object.keys(diff).length === 1 ? '' : 's'}: ${summary}` : 'No changes yet' }}</div>
       </div>
-      <button class="btn" :disabled="!dirty || busy" @click="mode === 'diff' ? (mode = 'form') : showDiff()">{{ mode === 'diff' ? 'Back to form' : 'Preview diff' }}</button>
-      <button v-if="full?.can_edit !== false" class="btn primary" :disabled="!dirty || busy" @click="save">
-        {{ busy ? 'Saving…' : git ? 'Save and commit' : 'Save' }}</button>
+      <template v-if="mode === 'yamledit' || (mode === 'diff' && fromYaml)">
+        <button class="btn" :disabled="busy || (mode === 'yamledit' && !yamlDirty)" @click="mode === 'diff' ? (mode = 'yamledit') : previewYaml()">{{ mode === 'diff' ? 'Back to YAML' : 'Preview diff' }}</button>
+        <button class="btn primary" :disabled="busy || (mode === 'yamledit' && !yamlDirty)" @click="saveYaml">{{ busy ? 'Saving…' : git ? 'Save and commit' : 'Save' }}</button>
+      </template>
+      <template v-else>
+        <button class="btn" :disabled="!dirty || busy" @click="mode === 'diff' ? (mode = 'form') : showDiff()">{{ mode === 'diff' ? 'Back to form' : 'Preview diff' }}</button>
+        <button v-if="full?.can_edit !== false" class="btn primary" :disabled="!dirty || busy" @click="save">
+          {{ busy ? 'Saving…' : git ? 'Save and commit' : 'Save' }}</button>
+      </template>
     </template>
   </Drawer>
 </template>
@@ -205,6 +253,8 @@ table.mini th { padding: 6px 10px; }
 table.mini td { padding: 7px 10px; }
 .chips { gap: 6px; flex-wrap: wrap; }
 textarea { width: 100%; }
+.yedit { font-size: calc(12.5px * var(--text)); line-height: 1.55; min-height: 360px; white-space: pre; tab-size: 2; }
+.yrow { gap: 10px; align-items: center; margin-top: 10px; }
 .where { flex: 1; min-width: 0; }
 .where b { font-weight: 600; }
 </style>

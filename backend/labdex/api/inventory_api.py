@@ -454,6 +454,55 @@ def patch_host(name):
     return jsonify(_host_detail(h))
 
 
+@bp.put("/hosts/<name>/yaml")
+def put_host_yaml(name):
+    """Replace the host with its entry as YAML, the way its site file lists it: {"yaml": "- name: ...",
+    "dry_run": bool}. Left-out fields take their defaults, like a file from git. Cables stay as they
+    are (they are changed on the host page). A dry run answers {"before", "after", "site", "git"};
+    otherwise it is saved like a PUT and the answer is the host."""
+    import yaml as pyyaml
+    h = _host(name)
+    if h is None:
+        return err(404, f"no host '{name}'")
+    before = store.host_to_dict(h)
+    rbac.require("host", "edit", rbac.host_facts(before))
+    data = body()
+    try:
+        parsed = pyyaml.safe_load(str(data.get("yaml") or ""))
+    except pyyaml.YAMLError as exc:
+        mark = getattr(exc, "problem_mark", None)
+        where = f" (line {mark.line + 1})" if mark is not None else ""
+        return err(422, "validation failed", [{"field": "yaml", "message": f"not valid YAML{where}"}])
+    if isinstance(parsed, list) and len(parsed) == 1:
+        parsed = parsed[0]
+    if not isinstance(parsed, dict):
+        return err(422, "validation failed", [{"field": "yaml", "message": "one host: a mapping, or a list with one mapping"}])
+    cables = parsed.pop("cables", None)
+    if (cables or []) != (inventory.host_entry(h).get("cables") or []):
+        return err(422, "validation failed", [{"field": "yaml", "message": "cables are changed on the host page, not here"}])
+    after = {"site": h.site, **parsed}
+    rbac.require("host", "edit", _payload_facts(after))
+    if data.get("dry_run"):
+        old = inventory.host_yaml(h)
+        nested = db.session.begin_nested()
+        try:
+            store.save_host(after, existing=h)
+            db.session.flush()
+            new = inventory.host_yaml(h)
+        finally:
+            nested.rollback()
+        db.session.expire_all()
+        return jsonify({"before": old, "after": new, "site": after["site"], "git": _git_target(after["site"])})
+    store.save_host(after, existing=h)
+    db.session.flush()
+    from .. import hostmodules
+    hostmodules.rename_host(before["name"], h.name)
+    audit.record("update", "host", h.name, before, store.host_to_dict(h))
+    db.session.commit()
+    jobs.emit("host.updated")
+    return jsonify(_host_detail(h))
+
+
 @bp.delete("/hosts/<name>")
 def delete_host(name):
     h = _host(name)

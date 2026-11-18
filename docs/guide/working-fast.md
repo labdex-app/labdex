@@ -156,7 +156,9 @@ keeps the open panel (`?peek=…`), so a link or a reload brings it back.
 
 **Edit** in a host's panel turns it into a short form: name, kind, site, zone, status, fun
 name, function, features, tags and notes. **Preview diff** shows the host's lines in its
-site file before and after, and **YAML** shows the whole entry. Saving works like saving on
+site file before and after, and **YAML** shows the whole entry; *Edit YAML* lets you change
+it as text (left-out fields take their defaults, like a file from git; cables stay on the host
+page), with the same *Preview diff* before saving. Saving works like saving on
 the host page: the change is checked, recorded in Activity and, when the site has a git
 repository, written to it (*Save and commit*). Interfaces, services and cables are edited on
 the host page.
