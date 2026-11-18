@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 import { api, setUnauthorizedHandler } from './api'
 import {
   AppWindow, Cable, CircleCheck, GitFork, Github, Globe, History, Info, KeyRound, LayoutDashboard, Layers, LifeBuoy, ListTree, Menu, Network,
-  GitPullRequestDraft, PackageCheck, PanelLeftClose, PanelLeftOpen, Plug, Radar, Rows4, Search, Server, Settings, Shield, Tags, Waypoints,
+  GitPullRequestDraft, PackageCheck, PanelLeftClose, PanelLeftOpen, Plug, QrCode, Radar, Rows4, Search, Server, Settings, Shield, Tags, Unplug, Waypoints,
 } from 'lucide-vue-next'
 import mark from './assets/mark.svg'
 import CommandPalette from './components/CommandPalette.vue'
@@ -35,6 +35,7 @@ const groups = computed(() => {
       { to: '/networks', label: 'Networks', icon: Network, count: state.meta?.counts.networks },
       { to: '/racks', label: 'Racks', icon: Rows4 },
       { to: '/cables', label: 'Cables', icon: Cable },
+      { to: '/labels', label: 'Labels', icon: QrCode },
       { to: '/services', label: 'Services', icon: AppWindow },
       { to: '/patches', label: 'Patches', icon: PackageCheck },
       { to: '/dns', label: 'DNS', icon: Globe },
@@ -43,6 +44,7 @@ const groups = computed(() => {
     ]),
     G('network', 'Network', [
       { to: '/topology', label: 'Topology', icon: Waypoints },
+      { to: '/impact', label: 'Impact', icon: Unplug },
       { to: '/zones', label: 'Zones', icon: Layers },
       { to: '/policy', label: 'Policy', icon: Shield },
       { to: '/aliases', label: 'Aliases', icon: ListTree },

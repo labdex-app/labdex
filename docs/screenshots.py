@@ -40,6 +40,8 @@ SHOTS = [
     ("marketplace", "/plugins?tab=market", ".mcard", None),
     ("history", "/history", "h1", None),
     ("racks", "/racks", "h1", None),
+    ("impact", "/impact?host=net-sw-core-01", ".stats", None),
+    ("labels", "/labels?what=hosts&host=srv-pm-pve-01&host=srv-pm-pve-02&fmt=brother-62x29", ".labels-page svg, svg", None),
 ]
 
 
