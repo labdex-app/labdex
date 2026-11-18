@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Hostname patterns**: a lab with its own naming scheme lists it under Settings › General
+  (`{category}-{type}-{name}`, one pattern per line), and the linter accepts those names instead
+  of warning about every host. `{category}-{type}-{role}-{nn}` stays the default.
 - **Git source per site**: a site's file (`labdex/<site>.yaml`) can live in a GitLab or GitHub
   repository (Settings › Sites › Git source). New commits are planned and imported on a webhook or
   a timer; edits made in labdex are committed to the branch, or opened as a merge request (pull

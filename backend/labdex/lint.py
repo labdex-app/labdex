@@ -71,7 +71,7 @@ def _run() -> list[dict]:
     for h in hosts:
         if h.status != "legacy" and not name_re.match(h.name):
             out.append(_issue("warning", "hostname", "host", h.name,
-                              f"doesn't match <category>-<type>-<role>-<nn> (categories: {', '.join(naming.categories())})"))
+                              f"doesn't match {' or '.join(naming.hostname_patterns(naming.get_setting('hostname_patterns')))} (categories: {', '.join(naming.categories())})"))
         if h.status in ("active", "planned") and not h.interfaces:
             out.append(_issue("info", "no-interfaces", "host", h.name, "no interfaces yet"))
         rank = naming.trust_rank(h.zone)

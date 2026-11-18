@@ -317,6 +317,10 @@ def admin_settings():
             raise store.ValidationError([{"field": "project_url", "message": "the project's address, like https://github.com/owner/repo"}]) from None
         data["project_url"] = pu
         data["update_check_repo"] = ""  # the address replaces the old owner/repo setting
+    if "hostname_patterns" in data:
+        data["hostname_patterns"] = "\n".join(naming.hostname_patterns(str(data["hostname_patterns"] or "")))
+        if msg := naming.check_hostname_patterns(data["hostname_patterns"]):
+            raise store.ValidationError([{"field": "hostname_patterns", "message": msg}])
     if "alias_ids" in data and data["alias_ids"] not in ("uid", "readable"):
         raise store.ValidationError([{"field": "alias_ids", "message": "uid or readable"}])
     before = naming.settings_dict()
