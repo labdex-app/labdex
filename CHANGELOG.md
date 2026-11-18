@@ -116,6 +116,12 @@
 - **Quick edit as YAML**: *Edit YAML* in the host drawer changes the host's entry as text, with
   *Preview diff* first (`PUT /api/hosts/<name>/yaml`, with `dry_run`). Left-out fields take their
   defaults; cables are changed on the host page.
+- **Workloads** (Operate): every Compose stack in one list, the picked one beside it with its
+  compose file (edit, *Diff*, *Save*), services and last deploy. *Plan deploy* plans that stack;
+  it waits on Changes for an approval. `GET /api/workloads`, `GET`/`PUT
+  /api/workloads/<integration>/<host>/<name>`.
+- **What breaks? on the map**: switched on, a click on a host marks it red and what goes down
+  or is cut off with it amber, with the reasons and services in a panel beside the map.
 
 ## 1.26.0
 

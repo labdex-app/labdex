@@ -43,6 +43,8 @@ takes a host or network name (`/api/hosts/<name>`, `/api/networks/<name>`, …) 
 | GET, POST · PUT, DELETE | `/api/searches` · `/api/searches/<uid>` | Saved Hosts searches, yours and shared ones |
 | PATCH | `/api/hosts/<name>` | Change some fields (name, kind, site, zone, status, function, fun_names, tags, features, notes); `dry_run: true` returns the site-file YAML before and after |
 | GET | `/api/hosts/<name>/yaml` | The host as its site file lists it, and the git branch and path it goes to |
+| GET | `/api/workloads` | Every Compose stack of the compose integrations you may see |
+| GET, PUT | `/api/workloads/<integration>/<host>/<name>` | One stack with its compose file; PUT `{compose, dry_run}` changes it (integration admin) |
 | PUT | `/api/hosts/<name>/yaml` | Replace the host with its entry as YAML (`{yaml, dry_run}`); cables stay. A dry run answers the file's lines before and after |
 | POST | `/api/hosts/bulk` | One change to many hosts: status, runs on, tags, features, zone, integration, delete |
 | GET | `/api/hosts/<name>/label.svg` · `/api/cables/label.svg?host=&port=` | Printable labels with a QR code (`size=62x29`, `50x25`, `89x36`) |

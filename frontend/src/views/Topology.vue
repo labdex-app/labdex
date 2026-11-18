@@ -6,7 +6,7 @@
 // Drag things where you like them: each view's arrangement is shared, everyone sees the same map
 // (people who edit hosts move it; for others a drag only lasts until the page reloads).
 // People who edit hosts draw cables here too: Cable, then click both ends.
-import { Cable, Download, LocateFixed, MoreHorizontal, RefreshCw, Route, Save, Server, Trash2, X } from 'lucide-vue-next'
+import { Cable, Download, LocateFixed, MoreHorizontal, RefreshCw, Route, Save, Server, Trash2, Unplug, X } from 'lucide-vue-next'
 import CableTrace from '../components/CableTrace.vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -276,6 +276,8 @@ async function draw() {
       { selector: 'node:selected', style: { 'border-color': accent, 'border-width': 3 } },
       { selector: 'node[type = "name"]:selected, node[type = "name"].hit', style: { 'border-width': 0 } },
       { selector: '.dim', style: { opacity: 0.18 } },
+      { selector: 'node.failnode', style: { 'border-color': css('--err'), 'border-width': 3.5 } },
+      { selector: 'node.affected', style: { 'border-color': css('--warn'), 'border-width': 2.5, 'border-style': 'dashed' } },
       { selector: '.hit, .from', style: { 'border-color': accent, 'border-width': 3 } },
     ],
   })
@@ -336,6 +338,7 @@ async function draw() {
   c.on('mouseout', 'edge', (e) => e.target.removeClass('show'))
   if (camera) { c.viewport({ zoom: camera.zoom, pan: { x: camera.x, y: camera.y } }); camera = null }
   highlight()
+  paintImpact()
 }
 
 const pending = {}
@@ -459,8 +462,44 @@ const busy = ref(false)
 function startWiring() { sel.value = null; wiring.value = { a: null } }
 function stopWiring() { wiring.value = null; cy.value?.nodes().removeClass('from') }
 function endOf(n) { return n.type === 'port' ? { host: n.host, port: n.label } : n.type === 'box' ? { host: n.host, port: '' } : { host: n.name, port: '' } }
+// What breaks? on: a click on a host shows on the map what goes down with it, and the reasons beside it
+const breaks = ref(false)
+const impact = ref(null) // {host, d} for the host picked while breaks is on
+const nodeHost = (x) => (x.data('type') === 'host' || x.data('type') === 'box' ? x.data('name') || x.data('host') || '' : '')
+function paintImpact() {
+  const c = cy.value
+  if (!c) return
+  c.elements().removeClass('dim failnode affected')
+  if (!breaks.value || !impact.value?.d) return
+  const d = impact.value.d
+  const failed = new Set(d.failed || [impact.value.host])
+  const hit = new Set([...(d.down || []), ...(d.cut_off || [])].map((h) => h.host).filter((h) => !failed.has(h)))
+  const fn = c.nodes().filter((x) => failed.has(nodeHost(x)))
+  const an = c.nodes().filter((x) => hit.has(nodeHost(x)))
+  c.elements().addClass('dim')
+  const keep = fn.union(an)
+  keep.union(keep.ancestors()).union(keep.connectedEdges().filter((e) => keep.has(e.source()) && keep.has(e.target())))
+    .union(c.nodes('[type = "name"]').filter((t) => keep.has(c.getElementById(t.data('of'))))).removeClass('dim')
+  fn.addClass('failnode')
+  an.addClass('affected')
+}
+async function pickImpact(host) {
+  impact.value = { host, d: null }
+  try {
+    const d = await api.get(`/api/impact?host=${encodeURIComponent(host)}`)
+    if (impact.value?.host === host) impact.value = { host, d }
+  } catch (e) { toast(e.message, 'error'); impact.value = null }
+  paintImpact()
+}
+function toggleBreaks() {
+  breaks.value = !breaks.value
+  if (breaks.value) { stopWiring(); sel.value = null } else impact.value = null
+  paintImpact()
+}
+
 function tapNode(node) {
   const n = node.data()
+  if (breaks.value) { const h = nodeHost(node); if (h) pickImpact(h); return }
   if (!wiring.value) { sel.value = n.type === 'port' ? null : n; return }
   if (n.type === 'network') return
   if (!wiring.value.a) { wiring.value = { a: endOf(n) }; node.addClass('from'); return }
@@ -559,7 +598,9 @@ onBeforeUnmount(() => cy.value?.destroy())
       <label v-if="view === 'physical'" class="check small"><input v-model="lonely" type="checkbox"> Hosts without cables{{ stats?.lonely ? ` (${stats.lonely})` : '' }}</label>
       <label class="check small" title="A dot grid; what you drop snaps to it"><input v-model="grid" type="checkbox"> Grid</label>
       <span class="grow"></span>
-      <button v-if="view === 'physical' && canArrange" class="btn small" :class="{ primary: wiring }" title="Draw a cable: click both ends" @click="wiring ? stopWiring() : startWiring()">
+      <button class="btn small" :class="{ primary: breaks }" :aria-pressed="breaks" title="Click a host to see what goes down with it" @click="toggleBreaks">
+        <Unplug :size="14" /> What breaks?{{ breaks ? ' on' : '' }}</button>
+      <button v-if="view === 'physical' && canArrange && !breaks" class="btn small" :class="{ primary: wiring }" title="Draw a cable: click both ends" @click="wiring ? stopWiring() : startWiring()">
         <Cable :size="14" /> {{ wiring ? 'Cancel cable' : 'Cable' }}</button>
       <select class="viewpick small auto" :value="current?.uid || ''" aria-label="Saved view" @change="pickView($event.target.value)">
         <option value="">{{ views.length ? 'Saved views…' : 'No saved views' }}</option>
@@ -608,7 +649,30 @@ onBeforeUnmount(() => cy.value?.destroy())
         <div class="row small" style="gap: 6px; margin-top: 4px"><ZoneChip v-if="hover.n.zone" :zone="hover.n.zone" />
           <span class="status" :class="`s-${hover.n.status}`">{{ hover.n.status }}</span><span v-if="hover.n.address" class="mono">{{ hover.n.address }}</span></div>
       </div>
-      <aside v-if="sel && sel.type === 'edge'" class="panel">
+      <aside v-if="breaks" class="panel" aria-live="polite">
+        <div class="ph"><Unplug :size="16" /><b>{{ impact ? `If ${impact.host} goes down` : 'What breaks?' }}</b><span class="grow"></span>
+          <button class="btn icon" aria-label="Turn off" @click="toggleBreaks"><X :size="15" /></button></div>
+        <p v-if="!impact" class="small muted">Click a host on the map. It turns red; what goes down with it, or can't be reached any more, turns amber.</p>
+        <p v-else-if="!impact.d" class="small faint">Working it out…</p>
+        <template v-else>
+          <div class="ic">
+            <div><span class="label">Hosts</span><b>{{ impact.d.counts.down + impact.d.counts.cut_off - (impact.d.failed || []).length }}</b></div>
+            <div><span class="label">Services</span><b>{{ impact.d.counts.services }}</b></div>
+            <div><span class="label">Shared addresses</span><b>{{ impact.d.counts.vips_down }}</b></div>
+          </div>
+          <ul class="il">
+            <li v-for="h in [...impact.d.down, ...impact.d.cut_off].filter((x) => !(impact.d.failed || []).includes(x.host)).slice(0, 12)" :key="h.host">
+              <span class="dot warn"></span><span><RouterLink :to="`/hosts/${h.uid || h.host}`" class="mono">{{ h.host }}</RouterLink>
+                <span class="small muted d-b">{{ h.because }}</span></span></li>
+            <li v-for="v in impact.d.services.filter((x) => !(impact.d.failed || []).includes(x.host)).slice(0, 6)" :key="`${v.host}/${v.name}`">
+              <span class="dot warn"></span><span>{{ v.name }} <span class="small muted d-b">service on {{ v.host }}</span></span></li>
+          </ul>
+          <p v-if="!impact.d.down.length && !impact.d.cut_off.length" class="small muted">Nothing else depends on it.</p>
+          <p v-if="impact.d.hidden" class="small faint">{{ impact.d.hidden }} more you may not see.</p>
+          <RouterLink class="btn small mt-2" :to="{ path: '/impact', query: { host: impact.host } }">The full picture</RouterLink>
+        </template>
+      </aside>
+      <aside v-else-if="sel && sel.type === 'edge'" class="panel">
         <div class="ph"><Cable :size="16" /><b>{{ sel.kind === 'address' ? 'Address' : sel.kind === 'vip' ? 'Shared address' : sel.kind === 'internal' ? 'Internal link' : 'Cable' }}</b>
           <span class="grow"></span><button class="btn icon" aria-label="Close" @click="sel = null"><X :size="15" /></button></div>
         <div class="ends small">
@@ -736,6 +800,13 @@ onBeforeUnmount(() => cy.value?.destroy())
 .panel { position: absolute; top: 12px; right: 12px; width: 320px; max-height: calc(100% - 24px); overflow: auto; background: var(--card);
   border: 1px solid var(--line-strong); border-radius: var(--r-box); padding: 12px 14px; box-shadow: 0 12px 30px var(--shadow); }
 .ph { display: flex; align-items: center; gap: 8px; }
+.ic { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 12px 0; padding: 10px 0; border-block: 1px solid var(--line); }
+.ic > div { display: flex; flex-direction: column; gap: 2px; }
+.ic b { font: 500 calc(20px * var(--text)) var(--mono); }
+.il { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.il li { display: flex; gap: 8px; align-items: flex-start; }
+.il .dot { margin-top: 6px; }
+.d-b { display: block; }
 .links { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--line); padding-top: 8px; }
 .lk { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .sw { width: 10px; height: 4px; border-radius: 2px; display: inline-block; margin-right: 2px; }

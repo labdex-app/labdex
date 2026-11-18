@@ -2,7 +2,7 @@
 // several routes (Physical is Racks, Cables and Labels); those show as tabs under the top bar
 // until each area gets its own merged page. Routes outside the map stay one Ctrl K away.
 import {
-  Activity, Boxes, GitPullRequestArrow, Globe, Inbox, LayoutGrid, Network, PackageCheck, Plug, Server, Shield,
+  Activity, Boxes, Container, GitPullRequestArrow, Globe, Inbox, LayoutGrid, Network, PackageCheck, Plug, Server, Shield,
   SquareStack, Waypoints, Wrench,
 } from 'lucide-vue-next'
 
@@ -30,6 +30,7 @@ export const SECTIONS = [
   { id: 'operate', label: 'Operate', items: [
     { to: '/patches', label: 'Updates', icon: PackageCheck },
     { to: '/features', label: 'Automation', icon: Wrench },
+    { to: '/workloads', label: 'Workloads', icon: Container },
   ] },
   { id: 'change', label: 'Change', items: [
     { to: '/changes', label: 'Changes', icon: GitPullRequestArrow, badge: 'pending', also: ['/jobs'],

@@ -129,6 +129,11 @@ dragged somewhere stays there for everyone, and the hint says who moved it last.
 *Arrange again* starts over (after asking). People who only view can drag nodes for a
 moment, but the map goes back when they reload.
 
+**What breaks?** on the map: switch it on, then click a host. It turns red, what goes down
+with it or can't be reached any more turns amber, the rest fades, and the panel beside lists
+them with the reason and the services that go with them. *The full picture* opens the What
+breaks? page for that host.
+
 ## The sidebar, top bar and status bar
 
 The sidebar starts with the **site** switcher (when there is more than one site), then
