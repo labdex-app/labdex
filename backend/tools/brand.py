@@ -6,7 +6,7 @@
 The mark is a lantern, which the theme is built around. The wordmark is set
 in Red Hat Display 600 and written as outlines, so the SVGs look the same
 without the font installed. Output goes to docs/assets/ (docs, README, social
-preview) and frontend/src/assets/mark.svg (the app).
+preview) and frontend/src/assets/mark.svg (the app, in the flat line version).
 """
 from pathlib import Path
 
@@ -58,6 +58,23 @@ def tile(uid: str = "") -> str:
     )
 
 
+LINE_TILE = "#141413"  # Blueprint's dark card: the same tile in both themes
+
+
+def line_tile() -> str:
+    """The line version (chosen for the Blueprint UI, 2026-11-18): the same lantern, flat, no glow,
+    a solid flame. It stays crisp at 16 to 20 px, where the glow turned to mud."""
+    return (
+        f'<rect width="32" height="32" rx="7" fill="{LINE_TILE}"/>'
+        '<rect x=".5" y=".5" width="31" height="31" rx="6.5" fill="none" stroke="#fff" stroke-opacity=".1"/>'
+        f'<path d="{HANDLE}" fill="none" stroke="{BRASS}" stroke-width="1.8" stroke-linecap="round"/>'
+        f'<path d="{CAP}" fill="{BRASS}"/>'
+        f'<path d="{GLASS}" fill="none" stroke="{BRASS}" stroke-width="2"/>'
+        f'<path d="{FLAME}" fill="{BRASS}"/>'
+        f'<path d="{BASE}" stroke="{BRASS}" stroke-width="2.2" stroke-linecap="round"/>'
+    )
+
+
 def svg(view: str, body: str, size: str = "") -> str:
     return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{view}"{size}><title>labdex</title>{body}</svg>\n'
 
@@ -103,7 +120,7 @@ def social() -> str:
 
 def main() -> None:
     files = {
-        APP / "mark.svg": svg("0 0 32 32", tile()),
+        APP / "mark.svg": svg("0 0 32 32", line_tile()),
         DOCS / "labdex-mark.svg": svg("0 0 32 32", tile()),
         DOCS / "labdex-mark-white.svg": svg("0 0 32 32", lantern("#fff", "")),  # the bare lantern, for the docs header
         DOCS / "labdex-logo-light.svg": logo(INK_LIGHT),

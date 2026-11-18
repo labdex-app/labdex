@@ -1,22 +1,22 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { api, setUnauthorizedHandler } from './api'
-import {
-  AppWindow, Cable, CircleCheck, GitFork, Github, Globe, History, Info, KeyRound, LayoutDashboard, Layers, LifeBuoy, ListTree, Menu, Network,
-  GitPullRequestDraft, PackageCheck, PanelLeftClose, PanelLeftOpen, Plug, QrCode, Radar, Rows4, Search, Server, Settings, Shield, Tags, Unplug, Waypoints,
-} from 'lucide-vue-next'
+import { AlertTriangle, CheckCircle2, ChevronRight, ChevronsUpDown, Inbox, Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, X } from 'lucide-vue-next'
 import mark from './assets/mark.svg'
 import CommandPalette from './components/CommandPalette.vue'
 import Copy from './components/Copy.vue'
+import StatusBar from './components/StatusBar.vue'
 import { setTextSize, setTheme, textSize, theme } from './theme'
 import ConfirmHost from './components/ConfirmHost.vue'
 import Login from './views/Login.vue'
-import { loadAuth, loadMeta, loadNav, refreshLint, refreshPending, stamp, startEvents, state, stopEvents } from './store'
+import { SECTIONS, entryFor } from './nav'
+import { loadAuth, loadMeta, loadNav, refreshBar, refreshLint, refreshPending, setSite, stamp, startEvents, state, stopEvents } from './store'
 
 const KEEP = ['Hosts', 'Networks', 'Services', 'Patches', 'Aliases', 'Lint', 'Dns', 'Discovery', 'History'] // pages kept alive between visits
 
 const route = useRoute()
+const router = useRouter()
 const error = ref('')
 const menu = ref(false)
 const drawer = ref(false) // mobile
@@ -26,59 +26,66 @@ const small = ref(collapsed)
 watch(small, (v) => { try { localStorage.setItem('labdex-side', v ? 'small' : 'wide') } catch { /* */ } })
 watch(() => route.fullPath, () => { drawer.value = false; menu.value = false })
 
-const G = (id, label, items) => ({ id, label, items: items.filter(Boolean) })
-const groups = computed(() => {
-  const n = state.nav
-  return [
-    G('inventory', 'Inventory', [
-      { to: '/hosts', label: 'Hosts', icon: Server, count: state.meta?.counts.hosts },
-      { to: '/networks', label: 'Networks', icon: Network, count: state.meta?.counts.networks },
-      { to: '/racks', label: 'Racks', icon: Rows4 },
-      { to: '/cables', label: 'Cables', icon: Cable },
-      { to: '/labels', label: 'Labels', icon: QrCode },
-      { to: '/services', label: 'Services', icon: AppWindow },
-      { to: '/patches', label: 'Patches', icon: PackageCheck },
-      { to: '/dns', label: 'DNS', icon: Globe },
-      { to: '/naming', label: 'Naming', icon: Tags },
-      { to: '/vault', label: 'Vault', icon: KeyRound },
-    ]),
-    G('network', 'Network', [
-      { to: '/topology', label: 'Topology', icon: Waypoints },
-      { to: '/impact', label: 'Impact', icon: Unplug },
-      { to: '/zones', label: 'Zones', icon: Layers },
-      { to: '/policy', label: 'Policy', icon: Shield },
-      { to: '/aliases', label: 'Aliases', icon: ListTree },
-      n?.show.discovery && { to: '/discovery', label: 'Discovery', icon: Radar },
-    ]),
-    G('automation', 'Automation', [
-      { to: '/features', label: 'Features', icon: GitFork },
-      { to: '/changesets', label: 'Change sets', icon: GitPullRequestDraft },
-      n?.show.integrations && { to: '/plugins', label: 'Plugins', icon: Plug, pending: state.pending },
-    ]),
-    G('audit', 'Audit', [
-      { to: '/lint', label: 'Lint', icon: CircleCheck, lint: true },
-      { to: '/history', label: 'History', icon: History },
-    ]),
-  ]
+const shows = (what) => !what || Boolean(state.nav?.show[what])
+const inboxCount = computed(() => (state.lint?.error || 0) + (state.lint?.warning || 0))
+const badge = (i) => (i.badge === 'inbox' ? inboxCount.value : i.badge === 'pending' ? state.pending : 0)
+const groups = computed(() => SECTIONS.map((g) => ({ ...g, items: g.items.filter((i) => shows(i.show)) })).filter((g) => g.items.length))
+
+// the site switcher: pages that can filter by site get it in their link
+const sites = computed(() => state.meta?.sites || [])
+const siteName = computed(() => sites.value.find((x) => x.code === state.site)?.name || 'All sites')
+const SITED = ['/hosts', '/networks']
+const link = (to) => (state.site && SITED.includes(to) ? { path: to, query: { site: state.site } } : to)
+function pickSite(code) {
+  setSite(code)
+  if (SITED.includes(route.path)) router.replace({ query: { ...route.query, site: code || undefined } })
+}
+watch(sites, (list) => { if (state.site && list.length && !list.some((x) => x.code === state.site)) setSite('') })
+
+// the item's own name for the last crumb: pages put it first in the window title ("web-01 · Host · labdex"),
+// while the address holds its stable id
+const titleName = ref('')
+function readTitle() { const parts = document.title.split(' · '); titleName.value = parts.length >= 3 ? parts[0] : '' }
+onMounted(() => {
+  const el = document.querySelector('title')
+  if (el) new MutationObserver(readTitle).observe(el, { childList: true, characterData: true, subtree: true })
 })
+
+const entry = computed(() => entryFor(route.path))
+const active = (i) => entry.value === i
+const tabs = computed(() => (entry.value?.tabs || []).filter((t) => shows(t.show)))
+const tabOn = (t) => route.path === t.to || route.path.startsWith(`${t.to}/`)
+// site / area / page / item, like a path on a drawing
+const crumbs = computed(() => {
+  const out = [{ label: siteName.value }]
+  const e = entry.value
+  if (e && e.to !== '/') out.push({ label: e.label, to: link(e.to) })
+  const tab = tabs.value.find(tabOn)
+  if (tab && tab.label !== e?.label && tabs.value[0] !== tab) out.push({ label: tab.label, to: tab.to })
+  if (!e) out.push({ label: route.meta.title || '' })
+  const name = route.params.name || route.params.id
+  if (name) out.push({ label: name === 'new' ? 'New' : (titleName.value || String(name)) })
+  return out.filter((c) => c.label)
+})
+
 const palette = ref(null)
-const projectHost = computed(() => { try { return new URL(state.meta?.project_url || '').host } catch { return '' } })
-const projectName = computed(() => ({ 'github.com': 'GitHub', 'gitlab.com': 'GitLab', 'codeberg.org': 'Codeberg' }[projectHost.value] || 'Source'))
 const isMac = navigator.platform?.toLowerCase().includes('mac')
 const pages = computed(() => [
-  { to: '/', label: 'Dashboard', group: '' },
-  ...groups.value.flatMap((g) => g.items.map((i) => ({ to: i.to, label: i.label, group: g.label }))),
+  ...groups.value.flatMap((g) => g.items.flatMap((i) => [
+    { to: i.to, label: i.label, group: g.label },
+    ...(i.tabs || []).filter((t) => shows(t.show) && t.to !== i.to).map((t) => ({ to: t.to, label: t.label, group: i.label })),
+  ])),
+  { to: '/vault', label: 'Vault', group: 'Settings' },
+  { to: '/naming', label: 'Naming', group: 'Settings' },
   state.meta?.is_admin && { to: '/admin/general', label: 'Settings', group: '' },
   state.meta?.is_admin && { to: '/admin/users', label: 'Users', group: 'Settings' },
-  { to: '/plugins?tab=market', label: 'Plugin Marketplace', group: 'Automation' },
+  { to: '/plugins?tab=market', label: 'Plugin Marketplace', group: 'Integrations' },
   state.meta?.is_admin && { to: '/admin/plugins', label: 'Plugin repositories & upload', group: 'Settings' },
   state.meta?.is_admin && { to: '/admin/backup', label: 'Backup & restore', group: 'Settings' },
   { to: '/account', label: 'Password & API tokens', group: 'Account' },
   { to: '/help', label: 'Help', group: '' },
   { to: '/about', label: 'About labdex', group: '' },
 ].filter(Boolean))
-// a list page and everything under it: /hosts is active on /hosts/srv-vm-dns-01 too
-const active = (to) => route.path === to || route.path.startsWith(`${to}/`) || (to === '/plugins' && route.path.startsWith('/integrations'))
 
 // A newer labdex (administrators, when Settings › General has the release check on): a bar with the
 // command to upgrade, until it's dismissed for that release in this browser.
@@ -109,6 +116,7 @@ async function start() {
     refreshPending()
     loadNav()
     loadUpdate()
+    refreshBar()
     startEvents()
   } catch (e) {
     error.value = `Can't reach the labdex API: ${e.message}`
@@ -140,108 +148,131 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
     <a href="#main" class="skip">Skip to the page</a>
     <aside class="side">
       <div class="side-head">
-        <RouterLink to="/" class="brand" :title="state.nav?.instance_name"><img :src="mark" alt="" width="22" height="22"><span class="wm">lab<span>dex</span></span></RouterLink>
+        <RouterLink to="/" class="brand" :title="state.nav?.instance_name"><img :src="mark" alt="" width="24" height="24"><span class="wm">labdex</span></RouterLink>
         <span v-if="state.nav?.instance_name && state.nav.instance_name !== 'labdex' && !small" class="inst">{{ state.nav.instance_name }}</span>
         <span class="grow"></span>
-        <button class="icon-btn hide-m" :title="small ? 'Expand the sidebar' : 'Collapse the sidebar'" :aria-label="small ? 'Expand the sidebar' : 'Collapse the sidebar'" @click="small = !small">
+        <button class="icon-btn hide-m" :title="small ? 'Expand the sidebar (Ctrl B)' : 'Collapse the sidebar (Ctrl B)'" :aria-label="small ? 'Expand the sidebar' : 'Collapse the sidebar'" @click="small = !small">
           <PanelLeftOpen v-if="small" :size="17" /><PanelLeftClose v-else :size="17" /></button>
       </div>
-      <button class="find" :title="`Search and go (${isMac ? '⌘' : 'Ctrl'} K)`" @click="palette?.show()">
-        <Search :size="15" /><span class="lb">Search</span><span class="grow"></span><kbd v-if="!small" class="lb">{{ isMac ? '⌘' : 'Ctrl' }} K</kbd>
-      </button>
-      <nav class="side-scroll">
+      <!-- the site every page is about; a native select, styled, so keyboard and screen readers just work -->
+      <label v-if="sites.length > 1" class="siteswitch" :title="`Site: ${siteName}`">
+        <span class="dot ok" aria-hidden="true"></span>
+        <span class="sw-text"><span class="label">Site</span><span class="sw-name">{{ siteName }}</span></span>
+        <ChevronsUpDown class="sw-chev" :size="15" aria-hidden="true" />
+        <select :value="state.site" aria-label="Site" @change="pickSite($event.target.value)">
+          <option value="">All sites</option>
+          <option v-for="x in sites" :key="x.code" :value="x.code">{{ x.name }}</option>
+        </select>
+      </label>
+      <nav class="side-scroll" aria-label="Pages">
         <div class="side-links">
-          <RouterLink to="/" class="nl" title="Dashboard" exact-active-class="router-link-active" active-class="">
-            <LayoutDashboard class="ic" :size="17" /><span class="lb">Dashboard</span>
-            <span v-if="state.pending" class="pill info" :title="`${state.pending} plan(s) waiting for review`">{{ state.pending }}</span>
-          </RouterLink>
-          <!-- every page in sight under a quiet label; hosts, zones and the rest are one Ctrl K away -->
-          <section v-for="g in groups" :key="g.id" class="grp" :aria-labelledby="`grp-${g.id}`">
-            <h2 :id="`grp-${g.id}`" class="gh">{{ g.label }}</h2>
+          <section v-for="g in groups" :key="g.id" class="grp" :aria-labelledby="g.label ? `grp-${g.id}` : undefined">
+            <h2 v-if="g.label" :id="`grp-${g.id}`" class="gh label">{{ g.label }}</h2>
             <div class="gi">
-              <RouterLink v-for="n in g.items" :key="n.to" :to="n.to" class="nl" active-class="" exact-active-class=""
-                          :class="{ 'router-link-active': active(n.to) }" :aria-current="active(n.to) ? 'page' : undefined" :title="n.label">
+              <RouterLink v-for="n in g.items" :key="n.to" :to="link(n.to)" class="nl" active-class="" exact-active-class=""
+                          :class="{ on: active(n) }" :aria-current="active(n) ? 'page' : undefined" :title="n.label">
                 <component :is="n.icon" class="ic" :size="17" />
                 <span class="lb">{{ n.label }}</span>
-                <span v-if="n.count != null" class="count">{{ n.count }}</span>
-                <span v-if="n.lint && state.lint?.error" class="pill">{{ state.lint.error }}</span>
-                <span v-else-if="n.lint && state.lint?.warning" class="pill warn">{{ state.lint.warning }}</span>
-                <span v-if="n.pending" class="pill info" :title="`${n.pending} plan(s) waiting for review`">{{ n.pending }}</span>
+                <span v-if="n.count && state.meta?.counts[n.count] != null" class="count">{{ state.meta.counts[n.count] }}</span>
+                <span v-if="badge(n)" class="pill" :class="{ info: n.badge === 'pending', warn: n.badge === 'inbox' && !state.lint?.error }"
+                      :title="n.badge === 'pending' ? `${badge(n)} plan(s) waiting for review` : `${badge(n)} check(s) to look at`">{{ badge(n) }}</span>
               </RouterLink>
             </div>
           </section>
         </div>
       </nav>
+      <div class="who">
+        <button class="avbtn" :aria-expanded="menu" :aria-label="`Account: ${state.auth.user.display_name}`" @click="menu = !menu">
+          <span class="avatar">{{ state.auth.user.display_name.slice(0, 1).toUpperCase() }}</span>
+          <span class="lb">{{ state.auth.user.display_name }}</span>
+        </button>
+        <RouterLink v-if="state.meta.is_admin" to="/admin" class="icon-btn gear" :class="{ on: $route.path.startsWith('/admin') }" title="Settings" aria-label="Settings"><Settings :size="16" /></RouterLink>
+        <div v-if="menu" class="menu pop" @keydown.esc="menu = false">
+          <div class="mhead"><b>{{ state.auth.user.display_name }}</b>
+            <div class="small faint">{{ state.auth.user.username !== state.auth.user.display_name ? `${state.auth.user.username} · ` : '' }}{{ state.auth.user.is_admin ? 'administrator' : (state.auth.user.groups.join(', ') || 'user') }}</div></div>
+          <div class="themes" role="radiogroup" aria-label="Theme">
+            <span class="small faint">Theme</span>
+            <div class="seg">
+              <button v-for="t in ['system', 'light', 'dark']" :key="t" type="button" role="radio" :aria-checked="theme === t" :class="{ on: theme === t }"
+                      @click="setTheme(t)">{{ t === 'system' ? 'Auto' : t[0].toUpperCase() + t.slice(1) }}</button>
+            </div>
+          </div>
+          <div class="themes" role="radiogroup" aria-label="Text size">
+            <span class="small faint">Text</span>
+            <div class="seg">
+              <button v-for="t in ['compact', 'comfortable', 'large']" :key="t" type="button" role="radio" :aria-checked="textSize === t" :class="{ on: textSize === t }"
+                      :title="{ compact: '14 px', comfortable: '15 px', large: '16 px' }[t]" @click="setTextSize(t)">{{ t[0].toUpperCase() + t.slice(1) }}</button>
+            </div>
+          </div>
+          <RouterLink to="/account">Password &amp; API tokens</RouterLink>
+          <RouterLink to="/vault">Vault</RouterLink>
+          <RouterLink to="/naming">Naming</RouterLink>
+          <RouterLink to="/help">Help</RouterLink>
+          <RouterLink to="/about">About labdex {{ state.meta.version }}</RouterLink>
+          <button v-if="state.auth.user.via === 'session'" @click="logout">Sign out</button>
+        </div>
+      </div>
     </aside>
     <div class="scrim" @click="drawer = false"></div>
+    <div v-if="menu" class="menu-scrim" @click="menu = false"></div>
     <ConfirmHost />
     <CommandPalette ref="palette" :pages="pages" />
-    <main id="main" class="main" tabindex="-1">
+    <div class="body">
       <header class="tbar">
         <button class="icon-btn show-m" aria-label="Menu" @click="drawer = true"><Menu :size="18" /></button>
-        <RouterLink to="/" class="brand show-m"><img :src="mark" alt="" width="22" height="22"><span class="wm">lab<span>dex</span></span></RouterLink>
-        <span class="grow"></span>
-        <button class="icon-btn show-m" aria-label="Search" @click="palette?.show()"><Search :size="18" /></button>
-        <nav class="tlinks" aria-label="labdex">
-          <RouterLink to="/help" class="tl" title="Help"><LifeBuoy :size="16" /><span class="tlb">Help</span></RouterLink>
-          <a :href="state.meta.project_url" class="tl" target="_blank" rel="noopener" :title="`labdex on ${projectHost}`"><Github v-if="projectHost === 'github.com'" :size="16" /><GitFork v-else :size="16" /><span class="tlb">{{ projectName }}</span></a>
-          <RouterLink to="/about" class="tl" :title="`About labdex ${state.meta.version}`"><Info :size="16" /><span class="tlb">About</span></RouterLink>
-          <RouterLink v-if="state.meta.is_admin" to="/admin" class="tl" :class="{ on: $route.path.startsWith('/admin') }" title="Settings"><Settings :size="16" /><span class="tlb">Settings</span></RouterLink>
+        <nav class="crumbs" aria-label="You are here">
+          <template v-for="(c, n) in crumbs" :key="n">
+            <ChevronRight v-if="n" class="sep" :size="13" aria-hidden="true" />
+            <RouterLink v-if="c.to && n < crumbs.length - 1" :to="c.to">{{ c.label }}</RouterLink>
+            <span v-else :aria-current="n === crumbs.length - 1 ? 'page' : undefined" :class="{ last: n === crumbs.length - 1 }">{{ c.label }}</span>
+          </template>
         </nav>
-        <div class="who">
-          <button class="avbtn" :aria-expanded="menu" :aria-label="`Account: ${state.auth.user.display_name}`" :title="state.auth.user.display_name" @click="menu = !menu">
-            <span class="avatar">{{ state.auth.user.display_name.slice(0, 1).toUpperCase() }}</span></button>
-          <div v-if="menu" class="menu pop" @keydown.esc="menu = false">
-            <div class="mhead"><b>{{ state.auth.user.display_name }}</b>
-              <div class="small faint">{{ state.auth.user.username !== state.auth.user.display_name ? `${state.auth.user.username} · ` : '' }}{{ state.auth.user.is_admin ? 'administrator' : (state.auth.user.groups.join(', ') || 'user') }}</div></div>
-            <div class="themes" role="radiogroup" aria-label="Theme">
-              <span class="small faint">Theme</span>
-              <div class="seg">
-                <button v-for="t in ['system', 'light', 'dark']" :key="t" type="button" role="radio" :aria-checked="theme === t" :class="{ on: theme === t }"
-                        @click="setTheme(t)">{{ t === 'system' ? 'Auto' : t[0].toUpperCase() + t.slice(1) }}</button>
-              </div>
-            </div>
-            <div class="themes" role="radiogroup" aria-label="Text size">
-              <span class="small faint">Text</span>
-              <div class="seg">
-                <button v-for="t in ['compact', 'comfortable', 'large']" :key="t" type="button" role="radio" :aria-checked="textSize === t" :class="{ on: textSize === t }"
-                        :title="{ compact: '14 px', comfortable: '15 px', large: '16 px' }[t]" @click="setTextSize(t)">{{ t[0].toUpperCase() + t.slice(1) }}</button>
-              </div>
-            </div>
-            <RouterLink to="/account">Password &amp; API tokens</RouterLink>
-            <RouterLink class="show-m" to="/help">Help</RouterLink>
-            <RouterLink class="show-m" to="/about">About labdex {{ state.meta.version }}</RouterLink>
-            <RouterLink v-if="state.meta.is_admin" class="show-m" to="/admin">Settings</RouterLink>
-            <button v-if="state.auth.user.via === 'session'" @click="logout">Sign out</button>
+        <span class="grow"></span>
+        <button class="find" :title="`Search and run (${isMac ? '⌘' : 'Ctrl'} K)`" @click="palette?.show()">
+          <Search :size="15" /><span class="lb">Type a command or search</span><kbd>{{ isMac ? '⌘' : 'Ctrl' }} K</kbd>
+        </button>
+        <RouterLink to="/lint" class="icon-btn inbox" :title="inboxCount ? `Inbox: ${inboxCount} to look at` : 'Inbox'" :aria-label="inboxCount ? `Inbox, ${inboxCount} to look at` : 'Inbox'">
+          <Inbox :size="18" /><span v-if="inboxCount" class="ping" aria-hidden="true"></span>
+        </RouterLink>
+      </header>
+      <main id="main" class="main" tabindex="-1">
+        <div v-if="showUpdate" class="updatebar" role="status">
+          <span>labdex <strong>{{ update.tag }}</strong> is out (this is {{ state.meta.version }}).
+            <a :href="update.url" target="_blank" rel="noopener">Release notes ↗</a></span>
+          <span>Upgrade: <Copy :text="update.command" /> <a :href="upgradeDocs" target="_blank" rel="noopener">How to upgrade ↗</a></span>
+          <button class="btn small" @click="dismissUpdate">Dismiss</button>
+        </div>
+        <div v-if="state.meta.demo" class="demobar">Demo: a sample lab with a pretend DNS server and monitor. Resets {{ stamp(state.meta.demo.resets_at) }}.</div>
+        <div v-if="state.nav && !state.nav.zones_defined && !($route.path.startsWith('/admin') || $route.path === '/zones')" class="page" style="padding-bottom: 0">
+          <div class="warnbox">
+            No zones yet: networks and hosts need an area (and, if you like, zones inside it) first.
+            <RouterLink v-if="state.meta.is_admin" to="/zones">Set up zones →</RouterLink>
+            <span v-else>Ask an administrator.</span>
           </div>
         </div>
-      </header>
-      <div v-if="menu" class="menu-scrim" @click="menu = false"></div>
-      <div v-if="showUpdate" class="updatebar" role="status">
-        <span>labdex <strong>{{ update.tag }}</strong> is out (this is {{ state.meta.version }}).
-          <a :href="update.url" target="_blank" rel="noopener">Release notes ↗</a></span>
-        <span>Upgrade: <Copy :text="update.command" /> <a :href="upgradeDocs" target="_blank" rel="noopener">How to upgrade ↗</a></span>
-        <button class="btn small" @click="dismissUpdate">Dismiss</button>
-      </div>
-      <div v-if="state.meta.demo" class="demobar">Demo: a sample lab with a pretend DNS server and monitor. Resets {{ stamp(state.meta.demo.resets_at) }}.</div>
-      <div v-if="state.nav && !state.nav.zones_defined && !($route.path.startsWith('/admin') || $route.path === '/zones')" class="page" style="padding-bottom: 0">
-        <div class="warnbox">
-          No zones yet: networks and hosts need an area (and, if you like, zones inside it) first.
-          <RouterLink v-if="state.meta.is_admin" to="/zones">Set up zones →</RouterLink>
-          <span v-else>Ask an administrator.</span>
-        </div>
-      </div>
-      <!-- List pages stay alive: back from a host is instant and keeps scroll, filters and the cached rows.
-           They refresh from the query cache when shown again. -->
-      <RouterView v-slot="{ Component, route: r }">
-        <KeepAlive :include="KEEP" :max="6">
-          <component :is="Component" :key="r.path" />
-        </KeepAlive>
-      </RouterView>
-    </main>
+        <!-- an area made of several pages (Physical: racks, cables, labels) shows them as tabs -->
+        <nav v-if="tabs.length > 1 && !$route.params.name && !$route.params.id" class="areatabs" :aria-label="entry.label">
+          <RouterLink v-for="t in tabs" :key="t.to" :to="t.to" active-class="" exact-active-class="" :class="{ on: tabOn(t) }"
+                      :aria-current="tabOn(t) ? 'page' : undefined">{{ t.label }}</RouterLink>
+        </nav>
+        <!-- List pages stay alive: back from a host is instant and keeps scroll, filters and the cached rows.
+             They refresh from the query cache when shown again. -->
+        <RouterView v-slot="{ Component, route: r }">
+          <KeepAlive :include="KEEP" :max="6">
+            <component :is="Component" :key="r.path" />
+          </KeepAlive>
+        </RouterView>
+      </main>
+      <StatusBar />
+    </div>
   </div>
 
-  <div v-if="state.toast" class="toast" :class="state.toast.kind" role="status">{{ state.toast.text }}</div>
+  <div v-if="state.toast" class="toast" :class="state.toast.kind" role="status">
+    <AlertTriangle v-if="state.toast.kind === 'error'" :size="16" class="t-ic" /><CheckCircle2 v-else :size="16" class="t-ic" />
+    <div class="t-body"><div>{{ state.toast.text }}</div><div v-if="state.toast.sub" class="small faint">{{ state.toast.sub }}</div></div>
+    <RouterLink v-if="state.toast.to" :to="state.toast.to.path" class="t-act">{{ state.toast.to.label }}</RouterLink>
+    <button class="icon-btn" aria-label="Dismiss" @click="state.toast = null"><X :size="14" /></button>
+  </div>
 </template>
 
 <style scoped>
@@ -250,78 +281,118 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 .main:focus { outline: none; }
 .themes { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 12px 8px; }
 .themes .seg button { padding: 3px 10px; font-size: calc(12px * var(--text)); }
-.find { display: flex; align-items: center; gap: 8px; margin: 2px 10px 6px; padding: 6px 10px; border: 1px solid var(--line-strong); border-radius: var(--r-ctl);
-  background: var(--bg); color: var(--faint); font: inherit; font-size: calc(13px * var(--text)); cursor: pointer; }
-.find:hover { color: var(--ink); border-color: var(--accent); }
-.find kbd { font-family: var(--mono); font-size: calc(11px * var(--text)); color: var(--faint); }
-.small .find { justify-content: center; margin: 2px 6px 6px; }
-.small .find .lb { display: none; }
-.shell { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
+
+/* the frame: a full-height sidebar with a border, then the top bar, the page on drafting paper, the status bar */
+.shell { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 100vh; }
 .shell.small { grid-template-columns: 56px minmax(0, 1fr); }
 .side { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; background: var(--panel);
   border-right: 1px solid var(--line); z-index: 20; }
-.side-head { display: flex; align-items: center; gap: 8px; padding: 12px 12px 8px 16px; }
-.brand { display: inline-flex; align-items: center; gap: 8px; font-family: var(--disp); font-weight: 600; font-size: calc(17px * var(--text)); color: var(--ink); letter-spacing: -.01em; }
-.brand .wm span { color: var(--accent-soft); }
+.body { min-width: 0; display: flex; flex-direction: column; min-height: 100vh; }
+.main { flex: 1; min-width: 0; background-color: var(--bg);
+  /* the dot grid sits behind the content only, never behind the sidebar */
+  background-image: radial-gradient(circle, var(--dot) 1px, transparent 1.2px); background-size: 20px 20px; background-position: 10px 10px; }
+
+.side-head { display: flex; align-items: center; gap: 8px; padding: 14px 12px 10px 16px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; font-size: calc(16px * var(--text)); color: var(--ink); letter-spacing: -.01em; }
 .brand:hover { text-decoration: none; }
-.inst { font-size: calc(12px * var(--text)); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.side-scroll { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 0 8px; }
-.side-links { flex: 1; min-height: 0; overflow-y: auto; padding: 2px 8px 6px; scrollbar-width: thin; }
-.grp { margin-top: 14px; }
+.inst { font: calc(11.5px * var(--text)) var(--mono); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.siteswitch { position: relative; display: flex; align-items: center; gap: 10px; margin: 2px 10px 8px; padding: 6px 30px 6px 12px;
+  border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--card); cursor: pointer; }
+.sw-chev { position: absolute; right: 9px; color: var(--faint); }
+.siteswitch:hover { border-color: var(--line-strong); }
+.siteswitch:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-faint); }
+.sw-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.sw-text .label { font-size: calc(9.5px * var(--text)); }
+.sw-name { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* the real control covers the box, invisible: the box is only its face */
+.siteswitch select { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+
+.side-scroll { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.side-links { flex: 1; min-height: 0; overflow-y: auto; padding: 0 10px 8px; scrollbar-width: thin; }
+.grp + .grp { margin-top: 14px; }
 /* a section label, not a control: every link is always in view */
-.gh { margin: 0 0 4px; padding: 0 10px; font-family: var(--sans); font-size: calc(11px * var(--text)); font-weight: 600;
-  letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
+.gh { margin: 0 0 3px; padding: 0 8px; font-size: calc(10.5px * var(--text)); }
 .gi { display: flex; flex-direction: column; gap: 1px; }
-.nl { width: 100%; font: inherit; background: none; border: 0; cursor: pointer; display: flex; align-items: center; gap: 10px;
-  color: var(--muted); font-weight: 500; padding: 6px 8px; border-radius: var(--r-ctl); white-space: nowrap; text-align: left; }
-.nl:hover { color: var(--ink); text-decoration: none; background: var(--raise); }
-.nl.router-link-active { color: var(--ink); background: var(--accent-faint); }
-.ic { color: var(--faint); flex: none; }
-.nl.router-link-active .ic { color: var(--accent-soft); }
+.nl { position: relative; width: 100%; font: inherit; background: none; border: 0; cursor: pointer; display: flex; align-items: center; gap: 10px;
+  color: var(--ink); padding: 5px 8px; border-radius: var(--r-ctl); white-space: nowrap; text-align: left; border: 1px solid transparent; }
+.nl:hover { text-decoration: none; background: var(--raise); }
+.nl.on { background: var(--accent-faint); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+.nl.on::before { content: ''; position: absolute; left: -1px; top: 6px; bottom: 6px; width: 2px; border-radius: 2px; background: var(--accent); }
+.ic { color: var(--muted); flex: none; }
+.nl.on .ic { color: var(--accent-soft); }
 .lb { flex: 1; overflow: hidden; text-overflow: ellipsis; }
-.count { color: var(--faint); font-weight: 400; font-size: calc(12px * var(--text)); font-variant-numeric: tabular-nums; }
-.tbar { display: flex; align-items: center; gap: 6px; padding: 6px 16px 6px 20px; min-height: 46px; border-bottom: 1px solid var(--line);
-  position: sticky; top: 0; z-index: 12; background: var(--bar-bg, var(--bg)); }
-.tlinks { display: flex; align-items: center; gap: 2px; }
-.tl { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: var(--r-ctl); color: var(--muted); font-size: calc(13px * var(--text)); font-weight: 500; }
-.tl:hover { color: var(--ink); background: var(--raise); text-decoration: none; }
-.tl.router-link-active, .tl.on { color: var(--ink); background: var(--accent-faint); }
-.who { position: relative; margin-left: 6px; }
-.avbtn { background: none; border: 0; padding: 2px; border-radius: 50%; cursor: pointer; display: grid; }
-.avbtn:hover .avatar, .avbtn[aria-expanded="true"] .avatar { box-shadow: 0 0 0 3px var(--accent-faint); }
-.avbtn .avatar { width: 28px; height: 28px; font-size: calc(12.5px * var(--text)); margin: 0; }
+.count { color: var(--faint); font: calc(11.5px * var(--text)) var(--mono); font-variant-numeric: tabular-nums; }
+
+.who { position: relative; display: flex; align-items: center; gap: 4px; padding: 10px 10px 12px; border-top: 1px solid var(--line); }
+.avbtn { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; font: inherit; color: var(--ink); background: none; border: 0; padding: 4px 6px;
+  border-radius: var(--r-ctl); cursor: pointer; text-align: left; }
+.avbtn:hover, .avbtn[aria-expanded="true"] { background: var(--raise); }
+.avatar { width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: var(--bg); display: inline-grid; place-items: center;
+  font-size: calc(11px * var(--text)); font-weight: 600; flex: none; }
+.gear.on { color: var(--accent-soft); }
+.menu { position: absolute; left: 10px; bottom: 56px; z-index: 30; min-width: 250px; }
 .mhead { padding: 8px 12px 6px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
-.menu-scrim { position: fixed; inset: 0; z-index: 11; }
-.show-m { display: none !important; }
-.avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: inline-grid; place-items: center;
-  font-size: calc(11px * var(--text)); font-weight: 700; flex: none; margin-left: -2px; }
-.menu { position: absolute; right: 0; top: 38px; z-index: 30; min-width: 240px; }
-.menu a, .menu button { display: block; width: 100%; text-align: left; font: inherit; color: var(--ink); background: none; border: 0;
+.menu-scrim { position: fixed; inset: 0; z-index: 19; }
+.menu a, .menu button:not(.seg button) { display: block; width: 100%; text-align: left; font: inherit; color: var(--ink); background: none; border: 0;
   padding: 7px 12px; border-radius: var(--r-ctl); cursor: pointer; }
-.menu a:hover, .menu button:hover { background: var(--raise); text-decoration: none; }
-.icon-btn { font: inherit; background: none; border: 1px solid transparent; color: var(--faint); cursor: pointer; border-radius: var(--r-ctl); padding: 4px; display: inline-grid; place-items: center; }
-.icon-btn:hover { color: var(--ink); border-color: var(--line); }
-.small .lb, .small .count, .small .pill, .small .brand .wm { display: none; }
-.small .grp { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
-.small .gh { display: none; }
-.small .grp:first-of-type { border-top: 0; }
+.menu a:hover, .menu > button:hover { background: var(--raise); text-decoration: none; }
+
+.tbar { display: flex; align-items: center; gap: 10px; padding: 0 16px 0 22px; height: 50px; border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 12; background: var(--bar-bg); backdrop-filter: blur(6px); }
+.crumbs { display: flex; align-items: center; gap: 6px; min-width: 0; color: var(--muted); font-size: calc(13.5px * var(--text)); white-space: nowrap; overflow: hidden; }
+.crumbs a { color: var(--muted); }
+.crumbs a:hover { color: var(--ink); }
+.crumbs .last { color: var(--ink); font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+.crumbs .sep { color: var(--faint); flex: none; }
+.find { display: flex; align-items: center; gap: 8px; width: min(380px, 34vw); padding: 5px 6px 5px 10px; border: 1px solid var(--line); border-radius: var(--r-ctl);
+  background: var(--card); color: var(--faint); font: inherit; font-size: calc(13px * var(--text)); cursor: pointer; }
+.find:hover { color: var(--ink); border-color: var(--line-strong); }
+.find .lb { text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.find kbd { font: calc(11px * var(--text)) var(--mono); color: var(--faint); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 0 5px; background: var(--bg); }
+.inbox { position: relative; }
+.ping { position: absolute; top: 3px; right: 3px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bar-bg); }
+
+.areatabs { display: flex; gap: 4px; padding: 14px 28px 0; max-width: 1320px; margin: 0 auto; overflow-x: auto; scrollbar-width: none; }
+.areatabs a { padding: 4px 12px; border-radius: var(--r-chip); border: 1px solid var(--line); background: var(--card); color: var(--muted);
+  font-size: calc(13px * var(--text)); white-space: nowrap; }
+.areatabs a:hover { color: var(--ink); text-decoration: none; border-color: var(--line-strong); }
+.areatabs a.on { color: var(--ink); border-color: var(--accent); background: var(--accent-faint); }
+
+.icon-btn { font: inherit; background: none; border: 1px solid transparent; color: var(--muted); cursor: pointer; border-radius: var(--r-ctl); padding: 5px; display: inline-grid; place-items: center; }
+.icon-btn:hover { color: var(--ink); background: var(--raise); text-decoration: none; }
+.show-m { display: none !important; }
+
+.small .lb, .small .count, .small .pill, .small .wm, .small .gh, .small .gear { display: none; }
+.small .grp + .grp { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
 .small .side-head { padding: 12px 8px 8px; flex-direction: column; }
-.small .nl { justify-content: center; }
+.small .side-links { padding: 0 6px 8px; }
+.small .nl, .small .avbtn { justify-content: center; }
+.small .who { justify-content: center; padding: 10px 6px; }
+.small .siteswitch { display: none; }
 .scrim { display: none; }
-.main { min-width: 0; }
-.toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 50; background: var(--accent); color: var(--on-accent);
-  padding: 9px 16px; border-radius: var(--r-box); font-weight: 600; box-shadow: 0 8px 24px var(--shadow); max-width: min(90vw, 640px); }
-.toast.error { background: var(--err-solid); }
+
+/* toasts sit bottom right, with a coloured edge that says what happened */
+.toast { position: fixed; bottom: 40px; right: 20px; z-index: 50; display: flex; align-items: flex-start; gap: 10px; width: min(92vw, 420px);
+  background: var(--card); color: var(--ink); border: 1px solid var(--line); border-left: 3px solid var(--ok); border-radius: var(--r-box);
+  padding: 10px 10px 10px 14px; box-shadow: 0 10px 28px var(--shadow); }
+.toast.error { border-left-color: var(--err); }
+.toast.info { border-left-color: var(--info); }
+.toast .t-ic { flex: none; margin-top: 2px; color: var(--ok); }
+.toast.error .t-ic { color: var(--err); }
+.toast .t-body { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.toast .t-act { font-weight: 500; white-space: nowrap; }
 @media (max-width: 860px) {
   .shell, .shell.small { grid-template-columns: minmax(0, 1fr); }
   .side { position: fixed; left: 0; top: 0; width: 272px; transform: translateX(-100%); transition: transform .18s; }
   .drawer .side { transform: none; }
   .drawer .scrim { display: block; position: fixed; inset: 0; background: var(--scrim); z-index: 15; }
-  .small .lb, .small .count, .small .pill { display: initial; }
-
-  .tbar { padding: 8px 12px; border-top: 3px solid var(--accent); gap: 10px; }
-  .tlinks { display: none; }
+  .small .lb, .small .count, .small .pill, .small .wm, .small .gh, .small .gear { display: initial; }
+  .small .siteswitch { display: flex; }
+  .tbar { padding: 0 12px; }
+  .find { width: auto; }
+  .find .lb, .find kbd { display: none; }
   .show-m { display: revert !important; }
-  .menu a.show-m { display: block !important; }
+  .areatabs { padding: 12px 16px 0; }
 }
 </style>

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **New look (Blueprint), step one: the frame.** Geist and Geist Mono replace the Red Hat fonts; a
+  quiet light and dark palette (light and dark designed alike, following the system unless you pick
+  one in the user menu); a faint dot grid behind the page; rounder corners (cards 10 px, buttons and
+  inputs 8 px, tags 6 px, filter chips round); amber only on the buttons that plan, approve or
+  apply. The sidebar has a site switcher at the top, then Overview and Inbox, then four groups
+  (Inventory, Network, Operate, Change) with fewer entries: Inbox (checks and discovery), Physical (racks, cables, labels),
+  Firewall (zone policy, aliases) and Networks (with zones) show their pages as tabs. The top bar
+  is a breadcrumb and the Ctrl K box; a status bar at the foot shows the live connection, each
+  site's git commit and sync time, linked agents and the vault. The app icon is the flat line
+  lantern. Every old address still works.
 - **Host agents** (`labdex-agent`): a systemd service on Linux hosts that keeps one outgoing
   WebSocket connection to labdex, so hosts need no open port. Enrol it from the host's new
   **Agent** tab with a one-time token; labdex keeps only a hash of the host's key, and **Revoke**

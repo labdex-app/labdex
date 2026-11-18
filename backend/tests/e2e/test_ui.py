@@ -264,6 +264,10 @@ def test_sidebar_marks_detail_pages(page, server):
     page.wait_for_selector(".side a[aria-current=page] >> text=Topology")
     assert page.locator(".side a[aria-current=page]").count() == 1
     assert page.locator(".side .grp .nl:visible").count() == page.locator(".side .grp .nl").count()
+    page.goto(server + "/cables")  # an area of several pages: its sidebar entry is current, its pages are tabs
+    page.wait_for_selector(".side a[aria-current=page] >> text=Physical")
+    assert page.locator(".areatabs a[aria-current=page]").inner_text() == "Cables"
+    assert page.locator(".crumbs").inner_text().split() == ["All", "sites", "Physical", "Cables"]
 
 
 def test_topology_views_and_cable_button(page, server):
@@ -382,7 +386,7 @@ def test_bulk_add_interfaces(page, server):
 def test_sidebar_shows_every_section_and_search_finds_zones(page, server):
     page.goto(server + "/hosts")
     page.wait_for_selector("table tbody tr")
-    for label in ("Inventory", "Network", "Automation", "Audit"):  # labels, not toggles: all links stay in view
+    for label in ("Inventory", "Network", "Operate", "Change"):  # labels, not toggles: all links stay in view
         assert page.locator(f".side h2.gh:has-text('{label}')").count() == 1
     assert page.locator(".side a.nl:has-text('Topology')").is_visible() and page.locator(".side a.nl:has-text('Hosts')").is_visible()
     assert page.locator(".side-zones").count() == 0  # zones moved to the search

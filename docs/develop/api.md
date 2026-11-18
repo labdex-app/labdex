@@ -58,6 +58,7 @@ takes a host or network name (`/api/hosts/<name>`, `/api/networks/<name>`, …) 
 | GET, POST · PUT, DELETE · GET | `/api/naming/pools` · `/api/naming/pools/<name>` · `/api/naming/fun-suggest?category=&zone=&pool=` | Fun name pools, unused suggestions |
 | GET · POST | `/api/about` · `/api/about/update-check` · `/api/about/update` | Version, schema, database, plugins, changelog; check for a release now; the new-release bar (administrators) |
 | GET | `/api/nav` | Sidebar: zone tree with live status, which pages to show |
+| GET | `/api/statusbar` | Status bar: per site the git commit (short) and sync time, linked agents of all you may see, vault state |
 | GET | `/api/events[?job=<id>]` | Server-Sent Events: plan count, `revision` on every change, job status and output |
 | POST · POST · DELETE | `/api/plugins/upload` · `/api/plugins/stage/<token>/confirm` · `/api/plugins/<id>` | Install, confirm, remove |
 | GET · POST | `/api/plugin-repos` (`/preview`) | Signed repositories |

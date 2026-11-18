@@ -67,3 +67,28 @@ def nav():
         "tree": tree,
         "zones_defined": bool(naming.all_zones()),
     })
+
+
+@bp.get("/statusbar")
+def statusbar():
+    """What the status bar at the foot of every page shows.
+
+    Per site, the git commit it was last synced to and when; how many of the agents you may see are
+    linked now; and whether the vault is sealed. Commits are short hashes; nothing here is secret.
+    """
+    from .. import agents, gitsource, keyvault, sites
+    from ..models import Agent
+    p = g.principal
+    out_sites = []
+    for s in sites.all_sites():
+        st = (s.git_state or {}) if gitsource.config(s) is not None else None
+        out_sites.append({"code": s.code, "git": None if st is None else {
+            "commit": (st.get("commit") or "")[:7], "synced_at": st.get("synced_at"), "error": bool(st.get("error") or st.get("conflict"))}})
+    linked = total = 0
+    now = agents.utcnow()
+    for a in db.session.scalars(db.select(Agent).where(Agent.revoked_at.is_(None))):
+        h = store.find_host(a.host)
+        if h is not None and p.can("host", "view", rbac.host_facts(store.host_access(h))):
+            total += 1
+            linked += agents.linked(a, now)
+    return jsonify({"sites": out_sites, "agents": {"linked": linked, "total": total}, "vault": keyvault.status()})

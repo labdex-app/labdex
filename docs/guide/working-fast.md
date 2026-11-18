@@ -110,14 +110,22 @@ dragged somewhere stays there for everyone, and the hint says who moved it last.
 *Arrange again* starts over (after asking). People who only view can drag nodes for a
 moment, but the map goes back when they reload.
 
-## The sidebar
+## The sidebar, top bar and status bar
 
-Every page is in view, under its section (Inventory, Network, Automation, Audit), and a
-page under a list (a host) marks the list (Hosts). To go to a host, zone, network or
-alias, use the search (<kbd>Ctrl</kbd> <kbd>K</kbd>) or the Zones page. *Collapse* at the
-bottom, or <kbd>Ctrl</kbd> <kbd>B</kbd>, shrinks the sidebar to icons and back. Pages
-that plugins add live as tabs on their integration (Automation → Plugins → the
-integration), not in the sidebar.
+The sidebar starts with the **site** switcher (when there is more than one site), then
+Overview and Inbox, then four groups: Inventory, Network, Operate and Change. An entry that
+stands for several pages shows them as tabs at the top of the page: Inbox (checks,
+discovery), Networks (networks, zones), Physical (racks, cables, labels), Topology (map,
+what breaks) and Firewall (zone policy, aliases). A page under a list (a host) marks the
+list (Hosts). Vault and Naming are in the menu under your name, and every page is one
+search away (<kbd>Ctrl</kbd> <kbd>K</kbd>). The arrow at the top, or <kbd>Ctrl</kbd>
+<kbd>B</kbd>, shrinks the sidebar to icons and back. Pages that plugins add live as tabs on
+their integration (Change → Integrations → the integration), not in the sidebar.
+
+The top bar says where you are (site, area, page, item) and holds the search box. The status
+bar at the foot shows whether the page is live (changes arrive as they happen), the git
+commit and sync time of each site that has a repository, how many agents are linked, and
+whether the vault is sealed.
 
 ## Light or dark, and the text size
 
