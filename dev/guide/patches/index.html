@@ -14,7 +14,7 @@
         <link rel="prev" href="../inventory/">
       
       
-        <link rel="next" href="../working-fast/">
+        <link rel="next" href="../agent/">
       
       
         
@@ -716,6 +716,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Host agents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1913,6 +1941,8 @@ updates, whether it needs a reboot, and when it was last patched. A host's dashb
 in its <em>Patches</em> card.</p>
 <p>Something reports to labdex:</p>
 <ul>
+<li>the <a href="../agent/">host agent</a>, which reports on a schedule and on demand, and installs updates once
+  you switch that on;</li>
 <li><strong>labdex-patch-report</strong> on the host itself (Debian, Ubuntu, Proxmox VE, Fedora, RHEL and friends),
   from cron, a systemd timer or Ansible;</li>
 <li>the <a href="../../plugins/patching/">Patching</a> plugin, which runs the same report over SSH, and installs
@@ -2084,13 +2114,13 @@ lists loses its row; pass <code>replace=False</code> to add to it.</p>
         
         
           
-          <a href="../working-fast/" class="md-footer__link md-footer__link--next" aria-label="Next: Working fast">
+          <a href="../agent/" class="md-footer__link md-footer__link--next" aria-label="Next: Host agents">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Working fast
+                Host agents
               </div>
             </div>
             <div class="md-footer__button md-icon">

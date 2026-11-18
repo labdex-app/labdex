@@ -644,6 +644,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../guide/agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Host agents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../guide/working-fast/" class="md-nav__link">
         
   
@@ -7462,6 +7490,22 @@
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>Host agents</strong> (<code>labdex-agent</code>): a systemd service on Linux hosts that keeps one outgoing
+  WebSocket connection to labdex, so hosts need no open port. Enrol it from the host's new
+  <strong>Agent</strong> tab with a one-time token; labdex keeps only a hash of the host's key, and <strong>Revoke</strong>
+  cuts the connection at once. It sends metrics every half minute (exported for VictoriaMetrics
+  at <code>/api/agents/metrics</code>) and runs only jobs that labdex signs, from a fixed list, with no shell:
+  service discovery (listening ports with the process, user, command line and parent behind each,
+  systemd units, Docker and Podman containers; into Discovery and the host page), update reports,
+  and, once switched on at both ends, installing updates, rebooting and Ansible playbooks from the
+  site's git repository as signed bundles. It runs as its own user with narrow sudo rules (root is a
+  per-host opt-in) under systemd hardening, buffers results while labdex is away, and keeps an audit
+  log on both ends. See <em>Concepts › Host agents</em>.</li>
+<li>Agents also hold a client certificate from labdex's own agent CA (mTLS on top of the key),
+  made at enrolment from a key that never leaves the host and renewed over the link.
+  <code>LABDEX_AGENT_MTLS</code> (<code>optional</code> by default, or <code>required</code>, <code>off</code>); behind a reverse proxy the
+  certificate comes in <code>LABDEX_AGENT_CERT_HEADER</code> from <code>LABDEX_TRUSTED_PROXIES</code>.</li>
+<li>The image runs gunicorn with 64 threads (was 16): each connected agent holds one.</li>
 <li><strong>Kubernetes workloads &amp; Flux</strong> plugin (read-only, one per cluster): Deployments, StatefulSets
   and DaemonSets with ready against wanted replicas, Flux Kustomizations and HelmReleases with
   their Ready state, applied revision and source, and the Git, OCI and Helm sources, on a Cluster
