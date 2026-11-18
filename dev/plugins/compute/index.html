@@ -1237,6 +1237,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#netbird" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NetBird
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#unifi" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1921,6 +1932,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#netbird" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NetBird
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#unifi" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2036,6 +2058,16 @@ mixed kubelet versions.</p>
 <h2 id="tailscale">Tailscale<a class="headerlink" href="#tailscale" title="Permanent link">&para;</a></h2>
 <p>Tailscale or Headscale. Tailnet devices go into Discovery; devices that are hosts
 report online as status. Widgets for the tailnet and a host's device.</p>
+<h2 id="netbird">NetBird<a class="headerlink" href="#netbird" title="Permanent link">&para;</a></h2>
+<p>Peers of a NetBird network, on netbird.io or self-hosted, go into Discovery with their mesh
+addresses; peers that are hosts report connected or not as status, and the host page shows
+their groups, OS, version and an expired login. Read-only: it only lists peers.</p>
+<p>You need a <strong>personal access token</strong> of a service user with the read-only role (Team ›
+Service users). Self-hosted: set the management URL (<code>https://netbird.example.net</code>).
+<em>Only peers in these groups</em> limits it to, say, <code>servers</code>. A peer is matched to a host by its
+mesh address, its hostname, its name or the first label of its DNS name.</p>
+<p>The plugin lives in <code>plugins/netbird/</code> of the labdex repository until it gets a repository of
+its own and a place in the Marketplace.</p>
 <h2 id="unifi">UniFi<a class="headerlink" href="#unifi" title="Permanent link">&para;</a></h2>
 <p>Clients go into Discovery with address, MAC and name; UniFi devices (switches, access
 points, gateways) that are hosts report online or offline. Read-only. <strong>Sign in with</strong>:</p>
