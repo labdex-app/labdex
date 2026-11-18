@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.26.0
 
 - **Patching (Ansible)** plugin: *Install updates* plans from each host's patch state (what is
   waiting, security updates, reboot) without touching a host, waits for a person's approval
