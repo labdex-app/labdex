@@ -32,6 +32,7 @@ def meta():
     m["version"] = current_app.config["LABDEX_VERSION"]
     from .about_api import project_url
     m["project_url"] = project_url()  # the top bar's link to the project, and Help
+    m["public_url"] = naming.get_setting("public_url").strip().rstrip("/")  # where QR codes on labels point
     m["permissions"] = p.summary()
     m["is_admin"] = p.is_admin
     from .. import demo
@@ -341,6 +342,8 @@ def _host_detail(h: Host) -> dict:
     srcs = [x for x in health.sources().get(h.name, []) if p.can("integration", "view", rbac.named_facts(x["integration"]))]
     disc = discovery.live_status().get(h.name)
     d["health"] = {"live": health.combine(srcs, disc), "sources": srcs, "discovery": disc}
+    from .. import patches
+    d["patches"] = patches.summary(h.name)
     return d
 
 

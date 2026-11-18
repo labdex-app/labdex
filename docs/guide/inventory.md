@@ -85,12 +85,32 @@ options and where you've zoomed to ("Rack room", "Kube networks"). Everyone who 
 topology can open them from the list or by link (`/topology?v=<id>`); people who edit
 hosts save, update and delete them. **PNG** and **SVG** download the whole picture.
 
+## Impact
+
+Network › **Impact** answers *what breaks if this goes down?*, after a failure or before you
+take something down for maintenance. Pick one or more hosts (a host's **Impact** button, or
+*What breaks if X goes down?* in the search box). labdex lists:
+
+- the hosts that **go down with it**: what runs on it, VMs and containers, recursively;
+- the hosts that are **cut off**: still running, but every cable path to their network's
+  gateway runs through something that's down (patch panels are followed port by port, so two
+  runs through one panel stay apart);
+- **networks without routing**, **VIPs** that lose some or all members, **services** that become
+  unavailable and whether **DNS** stops or just has fewer servers.
+
+![What breaks if the core switch goes down](../screenshots/impact.png)
+
+Each affected host says why ("runs on srv-pm-pve-01", "only cabled through net-sw-core-01").
+Nothing is guessed: it all comes from runs-on, cables, gateways, VIPs and services in the
+inventory. Hosts with no cable on record are listed apart, as labdex can't tell. Set the
+networks' gateways and the hosts that hold them to get *cut off* answers.
+
 ## Cables
 
 Inventory › **Cables** lists every cable you may see both ends of: its **label** (what's
 printed on it), both ends, medium, speed, **length** in metres and jacket **colour**.
 *Next free* continues the labels the lab already uses (C-0042 → C-0043); a label belongs
-to one cable only. **Print labels** prints a sheet with two labels per cable, one for each
+to one cable only. **Print labels** opens [Labels](#labels) with two labels per cable, one for each
 end, each naming this end and the other one (the ticked cables, or all shown). Label,
 length and colour are also on the cable dialogs of a host and of the topology.
 
@@ -117,6 +137,26 @@ cable's label, colour and length.
 A host with four ports or more shows a **front panel** on its Dashboard and Network tab:
 its ports in order, odd ones on top, RJ45 and SFP-style cages apart, a cabled one in its
 speed's colour. Point at a port for where it goes; click it for its cable (or a new one).
+
+## Labels
+
+Inventory › **Labels** prints labels with a **QR code**: scan one with a phone and labdex opens
+that host, cable or rack. Choose *Hosts*, *Cables*, *Ports* (every cabled port of a switch or
+patch panel, naming the far end) or *Racks*, pick what to print, then the label size.
+
+![Labels with QR codes](../screenshots/labels.png)
+
+- **Roll printers** (Brother DK 62 × 29 and 54 × 17, Dymo 99012 and 11352) print one label
+  per page at the label's own size. A **cable flag** (72 × 12 mm, for 12 mm tape) wraps around
+  a cable: the same text on both halves.
+- **A4 sheets** (Avery L7651, 65 per page, and 3474, 24 per page) place the labels on the
+  grid. *Start at label* skips the ones you've already used on a part-used sheet.
+- Print at 100 % (not "fit to page"). On labels shorter than 14 mm the QR code is left out:
+  it would be too small to scan.
+- The code leads to the address under Settings › General › *Public address*, or to the address
+  you're using now. Set it if your phone reaches labdex by another name than your computer does.
+
+Every host also has a **Label** button, and Cables prints its selection here.
 
 ## Interfaces
 

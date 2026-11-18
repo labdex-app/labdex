@@ -530,9 +530,12 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
         </h1>
         <ZoneChip v-if="form.zone" :zone="form.zone" />
         <span class="grow"></span>
+        <RouterLink v-if="!isNew && derived?.name" :to="{ path: '/impact', query: { host: derived.name } }" class="btn ghost small"
+          title="What breaks if this host goes down">Impact</RouterLink>
+        <RouterLink v-if="!isNew && derived?.name" :to="{ path: '/labels', query: { what: 'hosts', host: derived.name } }" class="btn ghost small"
+          title="Print a label with a QR code for this host">Label</RouterLink>
         <span v-if="readOnly" class="lock" title="Your roles don't allow changing this host">🔒 read-only for you</span>
         <template v-else>
-          <a v-if="!isNew" class="btn" :href="`/api/hosts/${encodeURIComponent(derived?.name || name)}/label.svg`" target="_blank" rel="noopener" title="A printable label with a QR code">Label</a>
           <button v-if="!isNew" class="btn danger" @click="remove">Delete</button>
           <button class="btn primary" :disabled="busy || (!dirty && !isNew)" @click="save">
             {{ busy ? 'Saving…' : isNew ? 'Create host' : dirty ? 'Save changes' : 'Saved' }}

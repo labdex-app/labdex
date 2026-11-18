@@ -59,6 +59,8 @@ def rename_host(old: str, new: str) -> None:
         from . import health
         from .models import JobHost, JobTemplate
         health.rename(old, new)
+        from . import patches
+        patches.rename(old, new)
         for t in db.session.scalars(db.select(JobTemplate).where(JobTemplate.host == old)):
             t.host = new
         # run history follows the host (a job may already list the new name)
@@ -74,6 +76,8 @@ def delete_host(name: str) -> None:
     from . import health
     db.session.execute(db.delete(HostModule).where(HostModule.host_name == name))
     health.forget(name)
+    from . import patches
+    patches.forget(name)
 
 
 def vault():

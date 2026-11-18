@@ -967,6 +967,25 @@ class HostStatus(db.Model):
     integration: Mapped[Integration] = relationship()
 
 
+class HostPatch(db.Model):
+    """What one source (an integration, or an agent with a token) last said about a host's updates."""
+
+    __table_args__ = (UniqueConstraint("host", "source"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    host: Mapped[str] = mapped_column(String(63), index=True)
+    source: Mapped[str] = mapped_column(String(64), default="agent")  # integration name or agent
+    pending: Mapped[int] = mapped_column(default=0)  # updates waiting
+    security: Mapped[int] = mapped_column(default=0)  # of which security updates
+    packages: Mapped[list] = mapped_column(JSONList, default=list)  # [{name, from, to, security}]
+    reboot: Mapped[bool] = mapped_column(default=False)  # a reboot is needed (kernel, libc …)
+    os: Mapped[str] = mapped_column(String(64), default="")  # "Ubuntu 24.04.1 LTS", "DSM 7.2.2", "PVE 8.3.1"
+    kernel: Mapped[str] = mapped_column(String(64), default="")
+    patched_at: Mapped[datetime | None] = mapped_column()  # the last time updates were installed
+    checked_at: Mapped[datetime] = mapped_column(default=utcnow)
+    error: Mapped[str] = mapped_column(String(300), default="")
+
+
 class HostHealth(db.Model):
     """The combined state of a host, kept to notice changes (host.down / host.up)."""
 
