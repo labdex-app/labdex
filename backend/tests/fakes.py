@@ -446,6 +446,12 @@ class FakeProxmox:
         if parts[4:] == ["status", "start"]:
             g["status"] = "running"
             return js(upid(parts[1], "start"))
+        if parts[4:] == ["status", "shutdown"]:
+            g["status"] = "stopped"
+            return js(upid(parts[1], "shutdown"))
+        if parts[4] == "snapshot":
+            g.setdefault("snapshots", []).append(form["snapname"])
+            return js(upid(parts[1], "snapshot"))
         return js(None, 404)
 
 

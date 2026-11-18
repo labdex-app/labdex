@@ -36,7 +36,30 @@ bridges. Then the inventory is where a guest starts:
    step fails (the VM doesn't start, say), the guest is still linked and the host set
    **offline**, so the next plan doesn't make a second one; the job log says what to fix.
 
-Guests are never deleted or changed after creation; drift reports differences.
+Guests are never deleted; drift reports differences. Changing them is a separate switch each,
+below.
+
+### Changing guests
+
+Each kind of change has its own switch in the instance, all off by default, and each needs more
+privileges on the token (listed with the switch). Every run waits for a person's approval, even
+when an [approval policy](../guide/plans.md) would let it apply by itself, and the plan lines carry
+the host, so zone policies apply (a public site can ask for its own approvers). They only touch
+guests linked to a host (*VM / CT id* in the host's Proxmox settings).
+
+- **Start and stop guests**: *Apply guest settings* starts a guest whose host is **active** in the
+  inventory and shuts down (a clean ACPI shutdown) one whose host is **offline**. Planned hosts are
+  left alone.
+- **Change cores and memory**: *Apply guest settings* sets cores and memory to what the host's
+  Proxmox settings say; an empty field leaves the guest as it is. A VM's new memory takes effect at
+  its next restart unless memory hotplug is on; the plan says so.
+- **Take snapshots**: *Take a snapshot* on a host snapshots its guest, with a name you give or
+  `labdex-<date>-<time>`. With **Snapshot before a change** on (the default), *Apply guest
+  settings* takes one before it resizes or shuts down a guest, so there is something to roll back
+  to (rolling back stays in Proxmox).
+
+*Apply this guest's settings* does the same for one host. A switch you turn off after planning
+still counts when the plan is applied: that part is skipped and the log says so.
 
 ## k3s
 
