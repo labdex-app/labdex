@@ -35,7 +35,7 @@ takes a host or network name (`/api/hosts/<name>`, `/api/networks/<name>`, …) 
 | GET | `/api/cables` | Every cable you may see both ends of, with `label`, `length` (metres), `colour`; and `next_label` |
 | GET, POST · PUT, DELETE | `/api/topology/views` · `/api/topology/views/<uid>` | Saved topology views: `{name, config: {view, zone, hidden_nets, lonely, grid, camera: {zoom, x, y}}}` |
 | GET | `/api/zones/zones/<code or uid>` | One zone: its networks, hosts at home there, policy cells from and to it |
-| GET, PUT · POST, PUT, DELETE | `/api/topology?view=physical\|l3` · `/api/topology/layout`, `/api/topology/cables[/<id>]` | The pictures, their shared arrangement, cables drawn on the map (both ends may be one host, on different ports); `PUT …/cables/<id>` `{medium, speed, notes}` changes one |
+| GET, PUT · POST, PUT, DELETE | `/api/topology?view=physical\|l3` · `/api/topology/layout`, `/api/topology/cables[/<id>]` | The pictures (hosts carry `live`: up, down or unknown; cables an `lldp` check `{state: seen|other|unseen, sees, source, protocol}` when switches report neighbours), their shared arrangement, cables drawn on the map (both ends may be one host, on different ports); `PUT …/cables/<id>` `{medium, speed, notes}` changes one |
 | GET, POST, PUT, DELETE | `/api/aliases[/<name>]` | Aliases, generated and custom |
 | GET | `/api/services`, `/api/lint` | Services, convention checks (accepted ones carry `accepted`: the reason) |
 | POST, DELETE | `/api/lint/accept` | Accept a finding `{code, kind, ref, reason}` / count it again (administrators) |
