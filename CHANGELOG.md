@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **NetBird plugin** (`plugins/netbird`): peers of a NetBird network, netbird.io or self-hosted,
+  into Discovery with their mesh addresses; peers that are hosts report connected or not as host
+  status, with groups, OS, version and an expired login on the host page. Read-only, with a
+  service user's token. See *Compute and network*.
 - **Git source per site**: a site's file (`labdex/<site>.yaml`) can live in a GitLab or GitHub
   repository (Settings › Sites › Git source). New commits are planned and imported on a webhook or
   a timer; edits made in labdex are committed to the branch, or opened as a merge request (pull

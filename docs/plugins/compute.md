@@ -49,6 +49,20 @@ mixed kubelet versions.
 Tailscale or Headscale. Tailnet devices go into Discovery; devices that are hosts
 report online as status. Widgets for the tailnet and a host's device.
 
+## NetBird
+
+Peers of a NetBird network, on netbird.io or self-hosted, go into Discovery with their mesh
+addresses; peers that are hosts report connected or not as status, and the host page shows
+their groups, OS, version and an expired login. Read-only: it only lists peers.
+
+You need a **personal access token** of a service user with the read-only role (Team ›
+Service users). Self-hosted: set the management URL (`https://netbird.example.net`).
+*Only peers in these groups* limits it to, say, `servers`. A peer is matched to a host by its
+mesh address, its hostname, its name or the first label of its DNS name.
+
+The plugin lives in `plugins/netbird/` of the labdex repository until it gets a repository of
+its own and a place in the Marketplace.
+
 ## UniFi
 
 Clients go into Discovery with address, MAC and name; UniFi devices (switches, access
