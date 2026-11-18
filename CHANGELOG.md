@@ -45,6 +45,10 @@
   host match also offers *Edit* (quick edit) and *What breaks?*; `>` shows commands only; the
   box shows the site in use. `/api/search` returns these as `action` results with `params`
   or `host`.
+- **New sign-in and first run**: sign in beside a short description of labdex, with single
+  sign-on as a second button (or the only one with `LABDEX_OIDC_ONLY`). A new labdex opens
+  a set-up in steps: the first administrator, then links to sites, plugins, import and
+  agents.
 - **Host agents** (`labdex-agent`): a systemd service on Linux hosts that keeps one outgoing
   WebSocket connection to labdex, so hosts need no open port. Enrol it from the host's new
   **Agent** tab with a one-time token; labdex keeps only a hash of the host's key, and **Revoke**

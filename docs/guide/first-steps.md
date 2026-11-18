@@ -1,5 +1,9 @@
 # First steps
 
+On a new labdex the first page sets up the first administrator. After that it lists what
+comes next (sites and their git source, plugins, import, agents), each with a link to its
+page; *Open labdex* skips them for later.
+
 1. **Zones.** Under Zones create your areas (`DC` datacenter, `CA` campus, …); each
    gets a default zone. Add the zones you need inside them (`DC_TC`, `CA_UT`) with a
    rank and colour. "Load the example set" gives you a complete set to edit.
