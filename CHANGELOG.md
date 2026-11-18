@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Patching Kubernetes nodes:** with the new *Kubernetes nodes* settings, the Patching plugin
+  drains a host that is a cluster node before it patches it, waits until the node is Ready again
+  and uncordons it, one node at a time. A drain a PodDisruptionBudget holds back past the timeout
+  stops the run and leaves the node cordoned. See *Plugins › Patching*.
 - **Host agents** (`labdex-agent`): a systemd service on Linux hosts that keeps one outgoing
   WebSocket connection to labdex, so hosts need no open port. Enrol it from the host's new
   **Agent** tab with a one-time token; labdex keeps only a hash of the host's key, and **Revoke**

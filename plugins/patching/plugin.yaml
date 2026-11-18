@@ -21,6 +21,11 @@ settings:
   - {key: serial, label: Hosts at a time, type: int, default: 1, help: "The run stops at the first host that fails, so the rest stay as they were"}
   - {key: autoremove, label: Remove unused packages (apt autoremove), type: bool, default: false}
   - {key: include_unreported, label: Patch hosts without a report, type: bool, default: false, help: "Off: only hosts with a patch report are planned, so switches and appliances are left alone"}
+  - {key: kube_url, label: Kubernetes API server, type: string, group: Kubernetes nodes, placeholder: "https://10.10.128.10:6443", help: "Set it, and hosts that are nodes of this cluster are drained before they are patched and made schedulable again once Ready, one node at a time"}
+  - {key: kube_token, label: Bearer token, type: secret, group: Kubernetes nodes, help: "Its own service account, narrower than the read-only one: get/list/patch nodes, list pods, create pods/eviction (the docs have a ClusterRole)"}
+  - {key: kube_ca_pem, label: Cluster CA (PEM), type: text, group: Kubernetes nodes}
+  - {key: kube_verify_tls, label: Check the TLS certificate, type: bool, default: true, group: Kubernetes nodes}
+  - {key: drain_timeout, label: Wait for a drain (seconds), type: int, default: 300, group: Kubernetes nodes, help: "Pods a PodDisruptionBudget holds back are tried again until then; after it the run stops and the node stays cordoned"}
 host_settings:
   - {key: ssh_user, label: SSH user for this host, type: string}
   - {key: port, label: SSH port, type: int}
