@@ -1,0 +1,147 @@
+# Host agents
+
+The **agent** is a small service on a Linux host that keeps one outgoing connection to labdex. The
+host needs no open port. Over that connection the agent:
+
+- sends a heartbeat with metrics every half minute (CPU, load, memory, `/`, uptime, network bytes);
+- discovers services: listening ports and the process behind each one (PID, user, command line,
+  parent), running systemd units and running Docker or Podman containers;
+- reports waiting updates and whether a reboot is needed (the [Patches](patches.md) page);
+- runs jobs that labdex signs, from a fixed list. There is no way to send it a shell command.
+
+Writes are off until you switch them on, one capability at a time, in two places: on the
+host (when you install the agent) and in labdex (an administrator). Until then the agent only reads.
+
+## Install it
+
+On the host's page, open the **Agent** tab and choose **Enrol an agent**. labdex shows a command with
+a one-time token that works for an hour. Run it on the host as root:
+
+```sh
+curl -fsSLo install.sh https://lantern.example.net/api/agents/install.sh
+sudo sh install.sh --url https://lantern.example.net --token lxe_… --sha256 …
+```
+
+Read `install.sh` before you run it. It:
+
+1. installs Python 3 with `cryptography` (from the distribution) and `simple-websocket`, in a
+   virtual environment under `/opt/labdex-agent`;
+2. downloads the agent from labdex and checks it against `--sha256`;
+3. creates the system user `labdex-agent` (no shell, no home);
+4. writes `/etc/labdex-agent/agent.conf` and the sudo rules in `/etc/sudoers.d/labdex-agent`
+   (checked with `visudo` first);
+5. swaps the token for the host's own key (`/var/lib/labdex-agent/credentials.json`, mode 0600;
+   labdex keeps only a hash of it);
+6. installs and starts the systemd service `labdex-agent`.
+
+Options:
+
+| | |
+| --- | --- |
+| `--allow "patch reboot ansible"` | the writes this host accepts. Without it the agent is read-only. |
+| `--root` | run the agent as root instead of `labdex-agent`. labdex must allow root for this host too: only an administrator can tick *run it as root* when making the token. Ansible needs it. |
+| `--ca-file /path/ca.pem` | for a labdex with a certificate from your own CA. |
+
+The hub URL must be `https://`: the key travels over it.
+
+## What runs with privileges
+
+The agent runs as `labdex-agent`. Its sudo rules allow exactly these command lines and nothing else
+(see them with `labdex-agent sudoers`):
+
+| Command | Why | When |
+| --- | --- | --- |
+| `ss -Htulpn` | which process listens on a port | always (read-only) |
+| `docker ps …`, `podman ps …` | running containers | always (read-only) |
+| `systemd-run … apt-get update`, `… apt-get dist-upgrade`, `… dnf upgrade` | install updates | with `patch` |
+| `shutdown -r +1` | reboot after updates | with `reboot` |
+
+The agent's user is never put in the `docker` group, because that is as good as root. Write jobs run
+through `systemd-run`, outside the agent's sandbox, one at a time, and show up in the journal as
+`labdex-agent-patch` or `labdex-agent-ansible`.
+
+The service runs with systemd hardening: `ProtectSystem=strict`, `ProtectHome`, `PrivateTmp`,
+`PrivateDevices`, kernel and cgroup protection, a memory limit and more (see
+`backend/labdex/agent/dist/labdex-agent.service`). `NoNewPrivileges` stays off, because the sudo
+rules need it.
+
+## Jobs
+
+| Job | Writes? | What it does |
+| --- | --- | --- |
+| `ping` | no | answers, to test the link |
+| `facts` | no | OS, kernel, CPU, memory, disks |
+| `discovery.services` | no | listening ports with their processes, systemd units, containers |
+| `patch.report` | no | updates waiting, reboot needed |
+| `patch.apply` | `patch` (and `reboot` to reboot) | install the waiting updates, then report again |
+| `ansible.run` | `ansible`, and a root agent | run a playbook from the site's git repository on this host |
+
+Every job is signed with labdex's own key (`<data>/agent-signing.key`). The agent saved the public
+half when it enrolled. It runs a job only when all of these hold:
+
+- the signature is good;
+- the job is for this agent;
+- it hasn't expired (ten minutes);
+- it hasn't run before;
+- it is on the list above;
+- for a write, the capability is on in `agent.conf`.
+
+A job that fails a check is refused, and the refusal goes back to labdex.
+
+**Discovery** and **update reports** run on a schedule (every hour and every six hours by
+default, changeable on the Agent tab, `0` turns them off) and on demand. Discovered ports go to the
+**Discovery** page (source `agent`) for each of the host's addresses they listen on; ports that
+listen only on loopback stay on the host's Agent tab. Passwords, tokens and keys in command lines
+are masked before they leave the host (`--password ***`, `DB_PASS=***`, `https://user:***@…`).
+
+**Ansible** runs never carry a playbook or a command. labdex packs the folder that holds the playbook
+from the site's git working copy at its current commit (a `.tar.gz`, at most 8 MB). It sends the
+agent the bundle's SHA-256, the commit, the playbook path and the variables, all signed. The agent
+fetches the bundle over the same connection and checks the hash. It unpacks the bundle with no
+absolute paths, no `..` and no links, then runs `ansible-playbook -i localhost, -c local` through
+`systemd-run`. Tick *check only* for `--check --diff`.
+
+## Revoke
+
+**Revoke** on the Agent tab stops the key at once: labdex closes the live connection within a
+second, and the agent stops and stays stopped (`RestartPreventExitStatus=3`). Enrolling a host again
+revokes its older agent.
+
+## Offline
+
+When labdex can't be reached, the agent retries with backoff up to a minute. Job results and
+heartbeats wait in `/var/lib/labdex-agent/buffer` (at most 64 MB and seven days) and go out, oldest
+first, when the connection is back. labdex ignores a result it already has. Jobs that waited more
+than ten minutes for an agent that wasn't connected expire.
+
+## Audit
+
+labdex records enrolment tokens, enrolments, revocations, settings changes, every job you start and
+its outcome in the history of the host (object type `agent`). Scheduled read-only runs are recorded
+only when they fail. The agent writes its own log, `/var/lib/labdex-agent/audit.log`: one JSON line
+for every job it accepted, refused or finished, without the job's output.
+
+## Metrics
+
+`GET /api/agents/metrics` returns each connected agent's latest heartbeat in the Prometheus text
+format, as `labdex_agent_*` with `host` and `agent` labels. Point VictoriaMetrics at it with an API
+token. labdex itself keeps no history of these numbers.
+
+## On the host
+
+```sh
+systemctl status labdex-agent
+labdex-agent health                 # exit 0 while labdex answered in the last two minutes
+labdex-agent show discovery         # what discovery would report, printed here, nothing sent
+labdex-agent sudoers                # the sudo rules for this host's capabilities
+```
+
+`labdex-agent` is `/opt/labdex-agent/venv/bin/python /opt/labdex-agent/labdex-agent.pyz`.
+
+## Running labdex for agents
+
+Each connected agent holds one of the web server's threads. The image starts gunicorn with 64
+threads. With many agents, raise `--threads` in the container's command. Behind a reverse
+proxy, pass WebSockets through for `/api/agents/link`.
+
+The agent replaces `labdex-patch-report`, which still works for hosts without an agent.

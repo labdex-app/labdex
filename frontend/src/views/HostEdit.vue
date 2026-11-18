@@ -17,6 +17,7 @@ import HistoryList from '../components/HistoryList.vue'
 import HostModules from '../components/HostModules.vue'
 import HostPicker from '../components/HostPicker.vue'
 import RunList from '../components/RunList.vue'
+import HostAgent from '../components/HostAgent.vue'
 import HostDashboard from '../components/HostDashboard.vue'
 import SecretList from '../components/SecretList.vue'
 import { stringify as toYaml } from 'yaml'
@@ -204,7 +205,7 @@ const tabs = computed(() => [
   { id: 'services', label: 'Services', count: form.services.length, err: errIn('services') },
   { id: 'dns', label: 'DNS', count: form.records.length, err: errIn('records') || !!errors.value.fun_no_dns },
   { id: 'ansible', label: 'Ansible', count: form.features.length, err: !!(errors.value.features || errors.value.vars) },
-  ...(isNew.value ? [] : [{ id: 'integrations', label: 'Plugins' }, { id: 'secrets', label: 'Secrets' }, { id: 'runs', label: 'Runs' }, { id: 'history', label: 'History' }]),
+  ...(isNew.value ? [] : [{ id: 'integrations', label: 'Plugins' }, { id: 'agent', label: 'Agent' }, { id: 'secrets', label: 'Secrets' }, { id: 'runs', label: 'Runs' }, { id: 'history', label: 'History' }]),
 ])
 // <category>-<type>-<role>-<nn> from the lists under Naming
 const parts = ref({ category: [], type: [], role: [] })
@@ -1036,6 +1037,10 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
 
       <div v-if="!isNew && derived" v-show="tab === 'integrations'">
         <HostModules :host="derived.name" :key="`m${saved}`" />
+      </div>
+
+      <div v-if="!isNew && derived && tab === 'agent'">
+        <HostAgent :host="derived.name" />
       </div>
 
       <div v-if="!isNew && derived && tab === 'secrets'">

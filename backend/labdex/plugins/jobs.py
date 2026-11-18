@@ -638,6 +638,13 @@ def _tick(app: Flask) -> None:
             except Exception:
                 db.session.rollback()
                 app.logger.exception("checking for plugin updates failed")
+            try:
+                from .. import agents
+                agents.tick()  # host agents: expire and lose jobs, queue scheduled discovery and patch reports
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+                app.logger.exception("the agent schedule failed")
             reg = ext(app)["registry"]
             now = utcnow()
             for integ in db.session.scalars(db.select(Integration).where(Integration.enabled.is_(True))):

@@ -6,6 +6,8 @@ in its *Patches* card.
 
 Something reports to labdex:
 
+- the [host agent](agent.md), which reports on a schedule and on demand, and installs updates once
+  you switch that on;
 - **labdex-patch-report** on the host itself (Debian, Ubuntu, Proxmox VE, Fedora, RHEL and friends),
   from cron, a systemd timer or Ansible;
 - the [Patching](../plugins/patching.md) plugin, which runs the same report over SSH, and installs

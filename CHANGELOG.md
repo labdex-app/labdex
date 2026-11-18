@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- **Host agents** (`labdex-agent`): a systemd service on Linux hosts that keeps one outgoing
+  WebSocket connection to labdex, so hosts need no open port. Enrol it from the host's new
+  **Agent** tab with a one-time token; labdex keeps only a hash of the host's key, and **Revoke**
+  cuts the connection at once. It sends metrics every half minute (exported for VictoriaMetrics
+  at `/api/agents/metrics`) and runs only jobs that labdex signs, from a fixed list, with no shell:
+  service discovery (listening ports with the process, user, command line and parent behind each,
+  systemd units, Docker and Podman containers; into Discovery and the host page), update reports,
+  and, once switched on at both ends, installing updates, rebooting and Ansible playbooks from the
+  site's git repository as signed bundles. It runs as its own user with narrow sudo rules (root is a
+  per-host opt-in) under systemd hardening, buffers results while labdex is away, and keeps an audit
+  log on both ends. See *Concepts › Host agents*.
+- The image runs gunicorn with 64 threads (was 16): each connected agent holds one.
+
 ## 1.26.0
 
 - **Patching (Ansible)** plugin: *Install updates* plans from each host's patch state (what is

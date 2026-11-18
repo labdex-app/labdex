@@ -58,6 +58,6 @@ VOLUME /data
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz')" || exit 1
-# One process with threads: SQLite likes a single writer.
-CMD ["gunicorn", "--workers", "1", "--threads", "16", "--worker-tmp-dir", "/tmp", \
+# One process with threads: SQLite likes a single writer. Each connected host agent holds a thread.
+CMD ["gunicorn", "--workers", "1", "--threads", "64", "--worker-tmp-dir", "/tmp", \
      "--bind", "0.0.0.0:8080", "--access-logfile", "-", "labdex:create_app()"]

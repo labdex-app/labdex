@@ -115,6 +115,8 @@ def create_app(config: dict | None = None) -> Flask:
         "vault": Vault(app.config["SECRET_KEY"]),
     }
     app.register_blueprint(api.bp)
+    from .api import agents_api
+    agents_api.init_link(app)  # the agents' WebSocket link (an app route: agents have no session)
     cli.register(app)
 
     with app.app_context():
