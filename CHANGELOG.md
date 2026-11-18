@@ -12,6 +12,9 @@
   Kustomizations they become against labdex's folder in the Flux repository, waits for an
   approval, then pushes them to a `labdex/flux-<cluster>` branch with a merge request. labdex
   never pushes to the branch Flux reads and only touches files it wrote.
+- **Proxmox VE** plugin: start and stop linked guests to match the inventory, set their cores and
+  memory, and take snapshots (also before each change). Each is its own switch, off by default,
+  and every run waits for a person's approval. See *Plugins › Compute and network*.
 
 ## 1.26.0
 
