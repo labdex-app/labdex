@@ -14,7 +14,9 @@ categories, the DMZ area) are edited in the UI under Settings → Conventions.
 | `LABDEX_SSO_HEADER` | | e.g. `Remote-User`, trusted only from `LABDEX_TRUSTED_PROXIES` |
 | `LABDEX_SSO_GROUPS_HEADER` | | e.g. `Remote-Groups`, matched to labdex groups by name |
 | `LABDEX_SSO_AUTOCREATE` | `false` | Create users on their first SSO visit |
-| `LABDEX_TRUSTED_PROXIES` | | Proxy addresses allowed to send SSO headers |
+| `LABDEX_TRUSTED_PROXIES` | | Proxy addresses allowed to send SSO headers (and agents' client certificates) |
+| `LABDEX_AGENT_MTLS` | `optional` | Client certificates for [host agents](agent.md#client-certificates): `off`, `optional` or `required` |
+| `LABDEX_AGENT_CERT_HEADER` | | e.g. `X-Client-Cert`: the header a reverse proxy passes an agent's client certificate in, trusted only from `LABDEX_TRUSTED_PROXIES` |
 | `LABDEX_OIDC_ISSUER` | | Sign in with OpenID Connect, see below |
 | `LABDEX_COOKIE_SECURE` | `false` | `true` behind HTTPS |
 | `LABDEX_SESSION_HOURS` | `12` | Session lifetime |

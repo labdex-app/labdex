@@ -1046,3 +1046,73 @@ class DiscoveredHost(db.Model):
     source: Mapped[str] = mapped_column(String(64), default="")
     first_seen: Mapped[datetime] = mapped_column(default=utcnow)
     last_seen: Mapped[datetime] = mapped_column(default=utcnow)
+
+
+# ====================================================================== agents
+class Agent(db.Model):
+    """A host's agent (labdex/agent): enrolled once with a token, then linked over a WebSocket.
+    Only a hash of its key is kept; revoking it cuts the link at once."""
+
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)  # 8 hex, part of the key
+    host: Mapped[str] = mapped_column(String(63), index=True)
+    key_hash: Mapped[str] = mapped_column(String(64))
+    enrolled_at: Mapped[datetime] = mapped_column(default=utcnow)
+    enrolled_by: Mapped[str] = mapped_column(String(128), default="")  # who made the token
+    revoked_at: Mapped[datetime | None] = mapped_column()
+    revoked_by: Mapped[str] = mapped_column(String(128), default="")
+    # write capabilities the hub may send jobs for (patch, reboot, ansible); the host must allow them too
+    capabilities: Mapped[list] = mapped_column(JSONList, default=list)
+    allow_root: Mapped[bool] = mapped_column(default=False)  # a root agent may link (the per-host opt-in)
+    # its client certificate (agent_pki.py): the SHA-256 of the current one, and of the one before
+    # it while a renewal hasn't been used on a link yet
+    cert_sha256: Mapped[str] = mapped_column(String(64), default="")
+    cert_prev_sha256: Mapped[str] = mapped_column(String(64), default="")
+    cert_not_after: Mapped[datetime | None] = mapped_column()
+    link_cert: Mapped[bool] = mapped_column(default=False)  # the current link presented the certificate
+    discovery_every: Mapped[int] = mapped_column(default=60)  # minutes between scheduled discoveries, 0: off
+    patches_every: Mapped[int] = mapped_column(default=360)  # minutes between scheduled patch reports, 0: off
+    # what the agent said in its last hello and heartbeat
+    version: Mapped[str] = mapped_column(String(32), default="")
+    hostname: Mapped[str] = mapped_column(String(253), default="")
+    address: Mapped[str] = mapped_column(String(64), default="")
+    root: Mapped[bool] = mapped_column(default=False)
+    host_allow: Mapped[list] = mapped_column(JSONList, default=list)  # capabilities switched on on the host
+    facts: Mapped[dict] = mapped_column(JSONValue, default=dict)
+    metrics: Mapped[dict] = mapped_column(JSONValue, default=dict)
+    discovery: Mapped[dict] = mapped_column(JSONValue, default=dict)  # the last discovery.services result
+    connected: Mapped[str] = mapped_column(String(128), default="")  # the process holding the link, '' when not linked
+    linked_at: Mapped[datetime | None] = mapped_column()
+    last_seen: Mapped[datetime | None] = mapped_column()
+
+
+class AgentToken(db.Model):
+    """A one-time enrolment token for one host, valid for an hour."""
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    host: Mapped[str] = mapped_column(String(63), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    created_by: Mapped[str] = mapped_column(String(128), default="")
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column()
+    used_at: Mapped[datetime | None] = mapped_column()
+    allow_root: Mapped[bool] = mapped_column(default=False)
+
+
+class AgentJob(db.Model):
+    """One job for one agent: queued → sent → running → succeeded | failed; or refused, expired, cancelled."""
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)  # uuid4: the id the agent sees
+    agent_id: Mapped[str] = mapped_column(ForeignKey("agent.id", ondelete="CASCADE"), index=True)
+    host: Mapped[str] = mapped_column(String(63), index=True)
+    type: Mapped[str] = mapped_column(String(32))
+    params: Mapped[dict] = mapped_column(JSONValue, default=dict)
+    status: Mapped[str] = mapped_column(String(16), default="queued", index=True)
+    trigger: Mapped[str] = mapped_column(String(16), default="manual")  # manual, schedule
+    created_by: Mapped[str] = mapped_column(String(128), default="system")
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, index=True)
+    expires_at: Mapped[datetime] = mapped_column()
+    sent_at: Mapped[datetime | None] = mapped_column()
+    started_at: Mapped[datetime | None] = mapped_column()
+    finished_at: Mapped[datetime | None] = mapped_column()
+    result: Mapped[dict | None] = mapped_column(JSONValue)
+    error: Mapped[str] = mapped_column(Text, default="")

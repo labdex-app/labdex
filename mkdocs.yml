@@ -60,6 +60,7 @@ nav:
       - Inventory in git: guide/git.md
       - Hosts, networks, services: guide/inventory.md
       - Patches: guide/patches.md
+      - Host agents: guide/agent.md
       - Working fast: guide/working-fast.md
       - Coming from another tool: guide/import.md
       - Change sets: guide/change-sets.md
@@ -76,6 +77,7 @@ nav:
       - Pulumi (public site): plugins/pulumi.md
       - Patching (Ansible): plugins/patching.md
       - Kubernetes workloads & Flux: plugins/kubernetes.md
+      - Compose stacks: plugins/compose.md
       - Ansible and features: plugins/ansible.md
       - Monitoring: plugins/monitoring.md
       - Compute and network: plugins/compute.md

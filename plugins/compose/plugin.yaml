@@ -1,0 +1,34 @@
+id: compose
+name: Compose stacks
+kind: integration
+tags: [docker, compose, containers, iac]
+version: "0.1"
+labdex: ">=1.24"
+description: >-
+  Docker Compose stacks as code. You keep each stack in labdex (its compose file and environment,
+  secrets as vault references); labdex plans what would change on each Docker host, waits for an
+  approval and then writes the files and runs docker compose up with Ansible. It only changes
+  folders it wrote, and removes stacks only if you allow it. Needs Ansible in the image (ANSIBLE=1).
+settings:
+  - {key: ssh_user, label: SSH user, type: string}
+  - {key: ssh_private_key, label: SSH private key, type: secret, help: Pick a global secret to share one key with the Ansible runner}
+  - {key: connection, label: Connection, type: select, default: ssh, options: [ssh, local]}
+  - {key: host_key_checking, label: Check SSH host keys, type: bool, default: true}
+  - {key: root, label: Folder for stacks on the hosts, type: string, default: /opt/stacks}
+  - {key: stacks, label: Stacks, type: text, help: "YAML list of {name, host, compose: {services: …}, env: {NAME: value or {$secret: vault:path#field}}}"}
+  - {key: pull, label: Pull images before starting, type: bool, default: true}
+  - {key: allow_remove, label: Remove stacks taken out of labdex, type: bool, default: false, help: "Off: a stack you delete here keeps running on its host. On: the plan includes docker compose down and removing its folder"}
+host_settings:
+  - {key: ssh_user, label: SSH user for this host, type: string}
+  - {key: port, label: SSH port, type: int}
+actions:
+  - {id: test, label: Check setup, mode: run, description: "Checks ansible-playbook and the stacks"}
+  - {id: preview, label: Show compose files, mode: run, description: "The files the stacks become, without connecting to any host"}
+  - id: deploy
+    label: Deploy stacks
+    mode: plan
+    approval: always
+    schedulable: true
+    description: "Reads the stack folders on the hosts (read-only) and plans the changes; after an approval writes the files and runs docker compose up -d"
+    params:
+      - {key: stacks, label: Only these stacks, type: list, help: "Stack names; empty = all"}

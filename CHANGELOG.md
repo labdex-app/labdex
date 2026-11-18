@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- **Host agents** (`labdex-agent`): a systemd service on Linux hosts that keeps one outgoing
+  WebSocket connection to labdex, so hosts need no open port. Enrol it from the host's new
+  **Agent** tab with a one-time token; labdex keeps only a hash of the host's key, and **Revoke**
+  cuts the connection at once. It sends metrics every half minute (exported for VictoriaMetrics
+  at `/api/agents/metrics`) and runs only jobs that labdex signs, from a fixed list, with no shell:
+  service discovery (listening ports with the process, user, command line and parent behind each,
+  systemd units, Docker and Podman containers; into Discovery and the host page), update reports,
+  and, once switched on at both ends, installing updates, rebooting and Ansible playbooks from the
+  site's git repository as signed bundles. It runs as its own user with narrow sudo rules (root is a
+  per-host opt-in) under systemd hardening, buffers results while labdex is away, and keeps an audit
+  log on both ends. See *Concepts › Host agents*.
+- Agents also hold a client certificate from labdex's own agent CA (mTLS on top of the key),
+  made at enrolment from a key that never leaves the host and renewed over the link.
+  `LABDEX_AGENT_MTLS` (`optional` by default, or `required`, `off`); behind a reverse proxy the
+  certificate comes in `LABDEX_AGENT_CERT_HEADER` from `LABDEX_TRUSTED_PROXIES`.
+- The image runs gunicorn with 64 threads (was 16): each connected agent holds one.
 - **Kubernetes workloads & Flux** plugin (read-only, one per cluster): Deployments, StatefulSets
   and DaemonSets with ready against wanted replicas, Flux Kustomizations and HelmReleases with
   their Ready state, applied revision and source, and the Git, OCI and Helm sources, on a Cluster
@@ -12,6 +28,14 @@
   Kustomizations they become against labdex's folder in the Flux repository, waits for an
   approval, then pushes them to a `labdex/flux-<cluster>` branch with a merge request. labdex
   never pushes to the branch Flux reads and only touches files it wrote.
+- **Compose stacks** plugin: Docker Compose stacks as code. Keep each stack's compose file and
+  environment in labdex (secrets as vault references). *Deploy stacks* reads the stack folders on
+  the hosts, plans a diff, waits for a person's approval whatever the policy says, then writes
+  `compose.yaml` and `.env` with Ansible and runs `docker compose up -d`. Only folders labdex
+  wrote are changed; removing stacks is off by default. See *Plugins › Compose stacks*.
+- **Proxmox VE** plugin: start and stop linked guests to match the inventory, set their cores and
+  memory, and take snapshots (also before each change). Each is its own switch, off by default,
+  and every run waits for a person's approval. See *Plugins › Compute and network*.
 - **Topology shows what's live.** Each host has a dot in its corner, green when a status source
   or Discovery says it's up and red when it's down; a host or hypervisor that is down also gets a
   red dashed border. Cables say what the switches see (LLDP/CDP, UniFi): *seen as on record*,
