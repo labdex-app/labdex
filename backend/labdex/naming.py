@@ -16,6 +16,8 @@ DEFAULT_SETTINGS = {
     "alias_max_length": "32",
     "alias_ids": "uid",  # uid: ldx_<8 hex> on the firewall; readable: the name if it fits, else shortened
     "categories": "net,srv,dmz,sto,lab,pwr,cli,ext",
+    # Hostnames the linter accepts: one pattern per line; {category} {type} {role} {name} {nn}
+    "hostname_patterns": "{category}-{type}-{role}-{nn}",
     "octet_matches_vlan": "true",
     "dmz_area": "DMZ",
     "instance_name": "labdex",
@@ -89,11 +91,36 @@ def _ctx() -> dict:
         cats = [p.code for p in db.session.scalars(db.select(NamingPart).where(NamingPart.kind == "category").order_by(NamingPart.position))]
         if not cats:
             cats = [c.strip() for c in settings["categories"].split(",") if c.strip()]
-        alt = "|".join(re.escape(c) for c in cats) or "[a-z]+"
         return {"settings": settings, "areas": dict(areas), "area_order": [a[0] for a in areas],
                 "zones": zones,
-                "categories": cats, "hostname_re": re.compile(rf"^({alt})-[a-z0-9]+-[a-z0-9]+-\d{{2}}$")}
+                "categories": cats, "hostname_re": compile_hostname_patterns(settings.get("hostname_patterns") or "", cats)}
     return memo("naming", load)
+
+
+HOSTNAME_TOKENS = {"type": "[a-z0-9]+", "role": "[a-z0-9]+", "name": "[a-z0-9]+(?:-[a-z0-9]+)*", "nn": r"\d{2}"}
+HOSTNAME_PATTERN_RE = re.compile(r"^(?:\{(?:category|type|role|name|nn)\}|[a-z0-9-])+$")
+
+
+def hostname_patterns(text: str) -> list[str]:
+    return [p.strip() for p in re.split(r"[\n,]+", text or "") if p.strip()]
+
+
+def check_hostname_patterns(text: str) -> str:
+    """An error message for the setting, or '' when every pattern is usable."""
+    pats = hostname_patterns(text)
+    if not pats:
+        return "at least one pattern, e.g. {category}-{type}-{role}-{nn}"
+    bad = [p for p in pats if not HOSTNAME_PATTERN_RE.match(p) or "{" not in p]
+    return f"not a pattern: {', '.join(bad)} (tokens: {{category}} {{type}} {{role}} {{name}} {{nn}}, plus letters, digits and dashes)" if bad else ""
+
+
+def compile_hostname_patterns(text: str, cats: list[str]) -> re.Pattern:
+    """One regex for every pattern; {category} only matches the categories under Naming."""
+    tokens = {**HOSTNAME_TOKENS, "category": "(?:" + ("|".join(re.escape(c) for c in cats) or "[a-z0-9]+") + ")"}
+    pats = hostname_patterns(text) if not check_hostname_patterns(text) else hostname_patterns(DEFAULT_SETTINGS["hostname_patterns"])
+    alts = ["".join(tokens[t[1:-1]] if t.startswith("{") else re.escape(t) for t in re.findall(r"\{[a-z]+\}|[^{]+", p))
+            for p in pats]
+    return re.compile("^(?:" + "|".join(alts) + ")$")
 
 
 def get_setting(key: str) -> str:

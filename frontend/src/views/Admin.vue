@@ -461,6 +461,9 @@ const me = computed(() => state.auth.user.username)
               <option value="readable">readable: the name if it fits, else shortened</option>
             </select>
           </Field>
+          <Field label="Hostname patterns" :error="errors.hostname_patterns" hint="One per line; the linter warns about other names. Tokens: {category} {type} {role} {name} {nn}">
+            <textarea v-model="settings.hostname_patterns" rows="2" class="mono" placeholder="{category}-{type}-{role}-{nn}"></textarea>
+          </Field>
           <Field label="DMZ area code" :error="errors.dmz_area" hint="Hosts here count as internet-facing (red prompt)">
             <input v-model.trim="settings.dmz_area" type="text" class="mono">
           </Field>
