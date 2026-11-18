@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **Kubernetes workloads & Flux** plugin (read-only, one per cluster): Deployments, StatefulSets
+  and DaemonSets with ready against wanted replicas, Flux Kustomizations and HelmReleases with
+  their Ready state, applied revision and source, and the Git, OCI and Helm sources, on a Cluster
+  page and a dashboard widget. Notifies when a Flux object starts failing or a workload loses
+  replicas. See *Plugins › Kubernetes workloads & Flux*.
+
 ## 1.26.0
 
 - **Patching (Ansible)** plugin: *Install updates* plans from each host's patch state (what is

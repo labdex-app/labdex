@@ -1,0 +1,26 @@
+id: kubernetes
+name: Kubernetes workloads & Flux
+kind: integration
+tags: [kubernetes, flux, gitops, status]
+version: "0.1"
+labdex: ">=1.24"
+description: >-
+  Read-only. What runs in one cluster and how Flux is doing: Deployments, StatefulSets and
+  DaemonSets with ready against wanted replicas, Flux Kustomizations and HelmReleases with their
+  Ready state and applied revision, and the Git, OCI and Helm sources they come from. Tells you
+  when a Flux object fails or a workload loses replicas. Add one per cluster. labdex never changes
+  the cluster.
+pages:
+  - {id: cluster, label: Cluster}
+settings:
+  - {key: url, label: API server, type: string, required: true, placeholder: "https://10.10.128.10:6443"}
+  - {key: token, label: Bearer token, type: secret, required: true, help: "A service account token that may get/list nodes, apps workloads and the Flux objects (read-only; the docs have a ClusterRole)"}
+  - {key: ca_pem, label: Cluster CA (PEM), type: text, help: "certificate-authority-data from the kubeconfig, decoded; empty = the system CAs"}
+  - {key: verify_tls, label: Check the TLS certificate, type: bool, default: true}
+  - {key: cluster, label: Cluster name, type: string, help: "Shown on pages and in notifications, e.g. oak"}
+  - {key: ignore_namespaces, label: Leave out namespaces, type: string, default: "kube-system kube-public kube-node-lease", help: "Space separated; their workloads aren't listed (Flux objects always are)"}
+actions:
+  - {id: test, label: Check connection, mode: run}
+  - {id: poll, label: Read workloads and Flux, mode: run, schedulable: true, schedule_default: 5, description: "Workload replicas and Flux objects; notifies when one starts failing"}
+widgets:
+  - {id: cluster, label: Kubernetes cluster, where: dashboard}
