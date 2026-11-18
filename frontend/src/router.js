@@ -16,6 +16,7 @@ export const router = createRouter({
     { path: '/networks/:name', component: () => import('./views/NetworkEdit.vue'), props: true, meta: { title: 'Network' } },
     { path: '/aliases', component: () => import('./views/Aliases.vue'), meta: { title: 'Aliases' } },
     { path: '/services', component: () => import('./views/Services.vue'), meta: { title: 'Services' } },
+    { path: '/patches', component: () => import('./views/Patches.vue'), meta: { title: 'Patches' } },
     { path: '/dns', component: () => import('./views/Dns.vue'), meta: { title: 'DNS' } },
     { path: '/discovery', component: () => import('./views/Discovery.vue'), meta: { title: 'Discovery' } },
     { path: '/plugins', component: () => import('./views/Plugins.vue'), meta: { title: 'Plugins' } },

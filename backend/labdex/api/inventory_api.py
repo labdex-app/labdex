@@ -341,6 +341,8 @@ def _host_detail(h: Host) -> dict:
     srcs = [x for x in health.sources().get(h.name, []) if p.can("integration", "view", rbac.named_facts(x["integration"]))]
     disc = discovery.live_status().get(h.name)
     d["health"] = {"live": health.combine(srcs, disc), "sources": srcs, "discovery": disc}
+    from .. import patches
+    d["patches"] = patches.summary(h.name)
     return d
 
 

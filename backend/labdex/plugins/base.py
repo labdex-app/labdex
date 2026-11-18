@@ -256,6 +256,16 @@ class Context:
             self.log(f"{name}: {old} → {new}")
         return out
 
+    def report_patches(self, results: dict, replace: bool = True) -> dict:
+        """What this source knows about updates now: {host: {"pending": 3, "security": 1, "reboot": False,
+        "packages": [{"name", "from", "to", "security"}], "os": "…", "kernel": "…", "patched_at": iso}}.
+        With `replace` (the default), hosts left out are no longer reported by this source."""
+        from .. import patches
+        out = patches.report(self.integration.name, results, replace=replace, site=self.integration.site or None)
+        if out["skipped"]:
+            self.log(f"not in the inventory: {', '.join(out['skipped'][:10])}")
+        return out
+
     # --------------------------------------------------------- notifications
     def notify(self, event: str, title: str, body: str = "", link: str = "", data: dict | None = None) -> int:
         """Send a notification to the channels that subscribed to it. host.down and host.up keep
