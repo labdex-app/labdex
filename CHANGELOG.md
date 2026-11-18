@@ -99,6 +99,19 @@
   the hosts, plans a diff, waits for a person's approval whatever the policy says, then writes
   `compose.yaml` and `.env` with Ansible and runs `docker compose up -d`. Only folders labdex
   wrote are changed; removing stacks is off by default. See *Plugins › Compose stacks*.
+- **CPU, memory and disk** from the host's agent (its last heartbeat, while it is linked): a row of
+  numbers on the host page (CPU, memory, disk, updates, reachable), columns on the hosts list,
+  CPU and memory in the Guests table, and the Sites table's *Capacity* view (each site's average).
+  The Sites table switches between Health, Drift and Capacity. `usage` on `/api/hosts` and
+  `/api/hosts/<name>`, `sites[].usage` on `/api/dashboard`.
+- **48 h health strip** on the host page: one cell per hour, the worst combined state in it, and
+  *Reachable* as the share of known time it was up. Changes of the combined state are kept for a
+  week (migration `0042_host_health_events`); the strip starts when a monitoring plugin reports.
+- **Host tabs**: *Guests* (what runs on it, with state, address, use and updates), *Updates* (the
+  packages waiting, security first), and *Config* (was Ansible: features and vars). *Shell* opens
+  the host's address in your own SSH app (`ssh://`); labdex runs no shell.
+- **Overview**: *Plan changes* opens the search box on the plans you may make (type `plan` in
+  Ctrl K for the same); Needs attention orders by impact or newest.
 
 ## 1.26.0
 

@@ -2,7 +2,7 @@
 // Dashboards: cards on a 12-column grid. "Overview" is the shared start page; anyone can make
 // dashboards of their own (a page of links, a wall for the rack room), administrators shared ones.
 // Edit: drag a card by its handle, resize it from the corner, add and remove cards; Done saves.
-import { GripVertical, LayoutGrid, Pencil, Plus, RefreshCw, Settings2, Trash2, X } from 'lucide-vue-next'
+import { GripVertical, LayoutGrid, Pencil, Play, Plus, RefreshCw, Settings2, Trash2, X } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
@@ -12,7 +12,7 @@ import OverviewTop from '../components/OverviewTop.vue'
 import Field from '../components/Field.vue'
 import Modal from '../components/Modal.vue'
 import { useQuery } from '../query'
-import { state, toast } from '../store'
+import { can, state, toast } from '../store'
 import Loading from '../components/Loading.vue'
 
 const route = useRoute()
@@ -38,6 +38,8 @@ const work = ref([]) // the cards while editing
 const isStart = computed(() => Boolean(current.value && current.value.uid === list.value[0]?.uid))
 const items = computed(() => (editing.value ? work.value : (dash.value?.items || []).filter((it) => !(isStart.value && it.type === 'counts'))))
 const busy = ref(false)
+// the plans you may make, in the search box; picking one plans it and opens it on Changes
+const planChanges = () => window.dispatchEvent(new CustomEvent('labdex:palette', { detail: '> plan' }))
 function startEdit() { work.value = JSON.parse(JSON.stringify(dash.value.items)); editing.value = true }
 function cancelEdit() { editing.value = false; work.value = [] }
 async function saveEdit() {
@@ -188,6 +190,8 @@ watch(() => route.query.d, () => { editing.value = false })
       <span class="h-tag">site {{ state.site || 'all' }}</span>
       <span class="grow"></span>
       <button v-if="!editing" class="btn" :disabled="dataQ.loading.value" @click="dataQ.refresh(); widgetsQ.refresh()"><RefreshCw :size="14" /> Refresh</button>
+      <button v-if="!editing && can('integration', 'apply')" class="btn primary" title="Pick a plan to make; it waits on Changes for approval"
+        @click="planChanges"><Play :size="14" /> Plan changes</button>
       <template v-if="dash?.can_edit">
         <template v-if="editing">
           <button class="btn" @click="addOpen = true"><Plus :size="15" /> Card</button>

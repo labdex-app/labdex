@@ -95,9 +95,9 @@ watch(term, (v) => {
   }, 120)
 })
 
-function show() {
+function show(text = '') {
   open.value = true
-  q.value = ''
+  q.value = typeof text === 'string' ? text : ''
   found.value = []
   active.value = 0
   nextTick(() => input.value?.focus())
@@ -139,8 +139,10 @@ function global(e) {
   if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); open.value ? hide() : show() }
   else if (e.key === '/' && !typing && !open.value && !document.querySelector('.dlg-back')) { e.preventDefault(); show() }
 }
-onMounted(() => window.addEventListener('keydown', global))
-onBeforeUnmount(() => window.removeEventListener('keydown', global))
+// other pages open it with a query: window.dispatchEvent(new CustomEvent('labdex:palette', { detail: '> plan' }))
+const fromPage = (e) => show(e.detail || '')
+onMounted(() => { window.addEventListener('keydown', global); window.addEventListener('labdex:palette', fromPage) })
+onBeforeUnmount(() => { window.removeEventListener('keydown', global); window.removeEventListener('labdex:palette', fromPage) })
 defineExpose({ show })
 const mac = navigator.platform?.toLowerCase().includes('mac')
 </script>

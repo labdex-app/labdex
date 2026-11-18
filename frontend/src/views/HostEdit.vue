@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { getCached, setQueryData, useQuery } from '../query'
 import { api, ApiError } from '../api'
 import {
-  AppWindow, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Box, Cable, EthernetPort, ListPlus, Lock, MapPin, Merge, PackageCheck, Pencil, Plus, QrCode, RotateCcw, Route, Tag, Trash2, Unplug, Waypoints, Wifi,
+  AppWindow, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Box, Cable, EthernetPort, ListPlus, Lock, MapPin, Merge, PackageCheck, Pencil, Plus, QrCode, RotateCcw, Route, SquareTerminal, Tag, Trash2, Unplug, Waypoints, Wifi,
 } from 'lucide-vue-next'
 import { confirm } from '../confirm'
 import ChipInput from '../components/ChipInput.vue'
@@ -19,6 +19,8 @@ import HostPicker from '../components/HostPicker.vue'
 import RunList from '../components/RunList.vue'
 import HostAgent from '../components/HostAgent.vue'
 import HostDashboard from '../components/HostDashboard.vue'
+import HostGuests from '../components/HostGuests.vue'
+import HostUpdates from '../components/HostUpdates.vue'
 import SecretList from '../components/SecretList.vue'
 import { stringify as toYaml } from 'yaml'
 import ZoneChip from '../components/ZoneChip.vue'
@@ -59,6 +61,14 @@ const primaryAddr = computed(() => {
   const ifs = (derived.value?.interfaces || []).filter((i) => i.ip4 || i.ip6)
   const i = ifs.find((x) => x.primary) || ifs[0]
   return i ? i.ip4 || i.ip6 : ''
+})
+
+// Shell opens the address in the person's own SSH app; labdex never runs a shell itself
+const sshUrl = computed(() => {
+  if (isNew.value || !primaryAddr.value || derived.value?.kind === 'vip') return ''
+  const svc = (derived.value.services || []).find((x) => /ssh/i.test(`${x.name} ${x.scheme || ''}`))
+  const a = primaryAddr.value.includes(':') ? `[${primaryAddr.value}]` : primaryAddr.value
+  return `ssh://${a}${svc?.port && Number(svc.port) !== 22 ? `:${svc.port}` : ''}`
 })
 
 const blank = () => ({
@@ -230,7 +240,10 @@ const tabs = computed(() => [
   { id: 'network', label: 'Network', count: form.interfaces.length, err: errIn('interfaces') },
   { id: 'services', label: 'Services', count: form.services.length, err: errIn('services') },
   { id: 'dns', label: 'DNS', count: form.records.length, err: errIn('records') || !!errors.value.fun_no_dns },
-  { id: 'ansible', label: 'Ansible', count: form.features.length, err: !!(errors.value.features || errors.value.vars) },
+  ...(isNew.value || !derived.value?.guests?.length ? [] : [{ id: 'guests', label: 'Guests', count: derived.value.guests.length }]),
+  ...(isNew.value ? [] : [{ id: 'updates', label: 'Updates', count: derived.value?.patches?.pending || 0 }]),
+  // features and vars: what Ansible and the generators get for this host
+  { id: 'ansible', label: 'Config', count: form.features.length, err: !!(errors.value.features || errors.value.vars) },
   ...(isNew.value ? [] : [{ id: 'integrations', label: 'Plugins' }, { id: 'agent', label: 'Agent' }, { id: 'secrets', label: 'Secrets' }, { id: 'runs', label: 'Runs' }, { id: 'history', label: 'History' }]),
 ])
 // <category>-<type>-<role>-<nn> from the lists under Naming
@@ -570,6 +583,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
           </div>
         </div>
         <div class="oh-acts">
+          <a v-if="sshUrl" :href="sshUrl" class="btn" :title="`Opens ${sshUrl} in your SSH app; labdex itself has no shell`"><SquareTerminal :size="15" /> Shell</a>
           <RouterLink v-if="!isNew && derived?.name" :to="{ path: '/impact', query: { host: derived.name } }" class="btn"
             title="What breaks if this host goes down"><Unplug :size="15" /> What breaks?</RouterLink>
           <RouterLink v-if="!isNew && derived?.name" :to="{ path: '/labels', query: { what: 'hosts', host: derived.name } }" class="btn"
@@ -1077,6 +1091,11 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
           </div>
       </div>
 
+      <section v-if="!isNew && derived && tab === 'guests'" class="card flush">
+        <div class="sect-head pad-h"><h2>Guests</h2><span class="small faint">what runs on {{ derived.name }}</span></div>
+        <HostGuests :host="derived.name" />
+      </section>
+      <HostUpdates v-if="!isNew && derived && tab === 'updates'" :host="derived" />
       <div v-if="!isNew && derived" v-show="tab === 'integrations'">
         <HostModules :host="derived.name" :key="`m${saved}`" />
       </div>
@@ -1274,6 +1293,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
 </template>
 
 <style scoped>
+.pad-h { padding: 14px 18px; margin: 0; }
 .objhead { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
 .oh-icon { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--card); color: var(--muted); }
 .oh-main { flex: 1; min-width: 0; }

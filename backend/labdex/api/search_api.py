@@ -266,6 +266,8 @@ def search():
             if a.get("scope") == "host" or a.get("mode") == "export" or any(x.get("required") for x in a.get("params") or []):
                 continue
             s = _score(q, a.get("label") or a["id"], a["id"])
+            if s is None and a.get("mode") == "plan" and q.lower() in ("plan", "plans"):
+                s = 1  # "plan": every plan you may make (Plan changes on the Overview)
             if s is None and _score(q, i.name, label) is None:
                 continue
             hits.append(((s if s is not None else 2) + 1, {"kind": "action", "title": a.get("label") or a["id"],

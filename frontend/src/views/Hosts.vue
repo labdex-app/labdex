@@ -17,6 +17,7 @@ import HostPeek from '../components/HostPeek.vue'
 import HostQuickEdit from '../components/HostQuickEdit.vue'
 import TagChip from '../components/TagChip.vue'
 import ZoneChip from '../components/ZoneChip.vue'
+import Usage from '../components/Usage.vue'
 import { can, changed, state, tagColour, toast } from '../store'
 import Loading from '../components/Loading.vue'
 
@@ -72,6 +73,8 @@ const cat = (h) => (h.name_ok ? h.name.split('-')[0] : 'unnamed')
 const uniq = (arr) => [...new Set(arr.filter(Boolean))]
 
 // monitoring sources that report on any host get a column each
+// CPU, memory and disk columns appear once any host's agent reports them
+const hasUsage = computed(() => hosts.value.some((h) => h.usage))
 const sources = computed(() => [...new Set(hosts.value.flatMap((h) => Object.keys(h.live_sources || {})))].sort())
 const LIVE = { up: 'up', down: 'down', unknown: 'no data' }
 
@@ -314,13 +317,14 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
               <th class="sortable" @click="sortBy('zone')">Zone</th>
               <th class="hide-s">Addresses</th>
               <th class="sortable hide-p" @click="sortBy('status')">Status</th>
+              <template v-if="hasUsage"><th class="hide-s use">CPU</th><th class="hide-s use">Memory</th><th class="hide-s use">Disk</th></template>
               <th v-for="src in sources" :key="src" class="srccol hide-s" :title="`Status from ${src}`">{{ src }}</th>
               <th class="hide-s">Links</th>
             </tr>
           </thead>
           <tbody>
             <template v-for="r in rows" :key="r.key">
-            <tr v-if="r.head" class="grph"><td :colspan="(editable ? 7 : 6) + sources.length">
+            <tr v-if="r.head" class="grph"><td :colspan="(editable ? 7 : 6) + sources.length + (hasUsage ? 3 : 0)">
               <b :class="{ mono: groupBy !== 'status' }">{{ r.label || NOGROUP[groupBy] }}</b> <span class="faint small">{{ r.n }}</span>
               <a v-if="r.label && groupBy === 'tag'" href="#" class="small ml-2" @click.prevent="addTerm('tag', r.label)">only these</a></td></tr>
             <tr v-else v-rowlink class="click" :class="{ sel: picked.has(r.h.name), peek: peeked && peeked.name === r.h.name }" @mouseenter="hover(r.h)"
@@ -362,6 +366,9 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
               </td>
               <td class="nowrap hide-p"><span class="ldot" :class="r.h.live" :title="`${LIVE[r.h.live] || r.h.live}${Object.keys(r.h.live_sources || {}).length ? '' : ' (from Discovery)'}`"></span>
                 <span class="status" :class="`s-${r.h.status}`">{{ r.h.status }}</span></td>
+              <template v-if="hasUsage"><td class="hide-s"><Usage :value="r.h.usage?.cpu ?? null" label="CPU" /></td>
+                <td class="hide-s"><Usage :value="r.h.usage?.mem ?? null" label="memory" /></td>
+                <td class="hide-s"><Usage :value="r.h.usage?.disk ?? null" label="disk" /></td></template>
               <td v-for="src in sources" :key="src" class="srccol hide-s"><span v-if="r.h.live_sources?.[src]" class="ldot" :class="r.h.live_sources[src]" :title="`${src}: ${r.h.live_sources[src]}`"></span></td>
               <td class="nowrap hide-s">
                 <a v-for="l in r.h.links" :key="l.url" :href="l.url" target="_blank" rel="noopener" class="small mr-2"
@@ -370,7 +377,7 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
             </tr>
             </template>
             <tr v-if="!loading && !visible.length">
-              <td :colspan="(editable ? 7 : 6) + sources.length" class="empty">
+              <td :colspan="(editable ? 7 : 6) + sources.length + (hasUsage ? 3 : 0)" class="empty">
                 <template v-if="hosts.length">Nothing here matches<template v-if="elsewhere.length">, but
                   <template v-for="(t, n) in elsewhere" :key="t">{{ n ? ' and ' : '' }}<a href="#" @click.prevent="setTab(t)">{{ counts[t] }} in {{ TAB_LABEL[t] }}</a></template> do</template>.</template>
                 <template v-else>
@@ -460,4 +467,5 @@ tr.peek td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 .ldot.up { background: var(--ok); opacity: 1; }
 .ldot.down { background: var(--err); opacity: 1; }
 .srccol { text-align: center; font-size: calc(11px * var(--text)); white-space: nowrap; }
+th.use { width: 120px; }
 </style>

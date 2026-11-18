@@ -113,15 +113,16 @@ def dashboard():
 
     # ------------------------------------------------------------------ sites
     # one row per site for the Overview: health, updates, git source, open plans, last apply
-    from .. import gitsource, patches, sites as sitemod
+    from .. import agents, gitsource, patches, sites as sitemod
     pstate = patches.overview()
+    use = agents.usage()
     upd = {"hosts": 0, "security": 0, "reboot": 0}
     per: dict[str, dict] = {}
     for st in sitemod.all_sites():
         cfg = gitsource.config(st)
         gs = st.git_state or {}
         per[st.code] = {"code": st.code, "name": st.name or st.code, "hosts": 0, "down": 0, "monitored": 0, "updates": 0,
-                        "open_plans": 0, "last_apply": None,
+                        "open_plans": 0, "last_apply": None, "usage": {"cpu": [], "mem": [], "disk": []},
                         "git": {"branch": cfg.get("branch") or "main", "commit": (gs.get("commit") or "")[:7], "synced_at": gs.get("synced_at"),
                                 "error": bool(gs.get("error") or gs.get("conflict"))} if cfg else None}
     for e in hosts:
@@ -136,6 +137,9 @@ def dashboard():
         if row is None:
             continue
         row["hosts"] += 1
+        for k, v in (use.get(d["name"]) or {}).items():
+            if k in row["usage"] and isinstance(v, (int, float)):
+                row["usage"][k].append(v)
         if ps and ps["pending"]:
             row["updates"] += 1
         if d["status"] == "active" and d.get("kind") != "vip" and (hst.get(d["name"]) or {}).get("by") == "sources":
@@ -145,6 +149,8 @@ def dashboard():
         if j.get("site") in per:
             per[j["site"]]["open_plans"] += 1
     for code, row in per.items():
+        # the average over the hosts whose agent reported; None without one
+        row["usage"] = {k: round(sum(v) / len(v), 1) if v else None for k, v in row["usage"].items()} | {"hosts": len(row["usage"]["cpu"])}
         last = db.session.scalar(db.select(Job).join(Job.integration).where(Job.status == "applied", Integration.site == code)
                                  .order_by(Job.id.desc()).limit(1))
         if last is not None and can_view(last):

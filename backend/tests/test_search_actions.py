@@ -38,3 +38,8 @@ def test_host_detail_lists_its_plan_actions(patching, make_user):  # noqa: F811
             "params": {"hosts": [DNS]}} in acts
     viewer = make_user("vic", role="viewer")
     assert viewer.get(f"/api/hosts/{DNS}").get_json()["plan_actions"] == []
+
+
+def test_plan_lists_the_plans_you_may_make(patching):  # noqa: F811
+    r = [x for x in results(patching, "plan") if x["kind"] == "action"]
+    assert r and all(x["mode"] == "plan" for x in r)

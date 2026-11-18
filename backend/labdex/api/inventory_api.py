@@ -264,6 +264,8 @@ def list_hosts():
     out = []
     from .. import health
     live = health.states() if want("live") else {}
+    from .. import agents
+    use = agents.usage() if want("usage") else {}
     zone, status, site = args.get("zone", "").upper(), args.get("status", ""), args.get("site", "").lower()
     for e in store.host_index():
         src = e["host"]
@@ -282,6 +284,8 @@ def list_hosts():
             st = live.get(src["name"]) or {}
             d["live"] = st.get("live", "unknown")
             d["live_sources"] = st.get("sources", {})
+        if want("usage"):
+            d["usage"] = use.get(src["name"])
         if want("zone_long"):
             d["zone_long"] = e["zone_long"]
         if want("name_ok"):
@@ -341,7 +345,11 @@ def _host_detail(h: Host) -> dict:
     from .. import discovery, health
     srcs = [x for x in health.sources().get(h.name, []) if p.can("integration", "view", rbac.named_facts(x["integration"]))]
     disc = discovery.live_status().get(h.name)
-    d["health"] = {"live": health.combine(srcs, disc), "sources": srcs, "discovery": disc}
+    d["health"] = {"live": health.combine(srcs, disc), "sources": srcs, "discovery": disc} | health.strip(h.name)
+    from .. import agents
+    d["usage"] = agents.usage().get(h.name)
+    a = agents.current(h.name)
+    d["agent"] = {"linked": agents.linked(a), "version": a.version, "mtls": bool(a.link_cert and agents.linked(a))} if a else None
     from .. import patches
     d["patches"] = patches.summary(h.name)
     if p.can("host", "apply", rbac.host_facts(d)):

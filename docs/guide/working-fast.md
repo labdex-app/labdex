@@ -63,6 +63,19 @@ a host with two tags shows under both. *Only these* narrows the list to one grou
 search …*: it keeps the search text, filters, tab and grouping under a name, and picking it
 later sets them all again. Searches are yours; an administrator can share one with everyone.
 
+## A host's page
+
+A host opens on its **Overview**: CPU, memory and disk (from its agent, while it is linked),
+updates waiting, how reachable it was, and a strip of the last 48 hours, one cell per hour (red
+when it was down). Below that its guests, then status, addresses, where it sits, patches, details
+and the latest activity. The tabs: *Details* (the form), *Network*, *Services*, *DNS*, *Guests*
+(what runs on it), *Updates* (the packages waiting), *Config* (features and vars for Ansible),
+*Plugins*, *Agent*, *Secrets*, *Runs* and *History*.
+
+The header holds *Shell* (opens `ssh://` and the host's address in your own SSH app; labdex
+runs no shell), *What breaks?*, *Label*, and the plans you may make for this host, like *Plan
+patch run*. A plan waits on Changes for approval.
+
 ## Many hosts at once
 
 On the hosts list, tick the hosts (<kbd>Shift</kbd>-click ticks a range; the box in

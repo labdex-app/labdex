@@ -995,6 +995,15 @@ class HostHealth(db.Model):
     since: Mapped[datetime] = mapped_column(default=utcnow)
 
 
+class HostHealthEvent(db.Model):
+    """A change of a host's combined state, kept for a week for the 48 h strip on the host page."""
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    host: Mapped[str] = mapped_column(String(63), index=True)
+    state: Mapped[str] = mapped_column(String(8))
+    at: Mapped[datetime] = mapped_column(default=utcnow, index=True)
+
+
 class ZonePolicy(db.Model):
     """One cell of the zone matrix: hosts in `src` may reach hosts in `dst` on these ports.
     No cell = no access (deny unless listed). Ports: "any", port aliases (SG_…) or tcp/443, udp/53."""

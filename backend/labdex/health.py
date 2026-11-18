@@ -13,7 +13,7 @@ import ipaddress
 import re
 from datetime import timedelta
 
-from .models import Host, HostHealth, HostStatus, Integration, db, utcnow
+from .models import Host, HostHealth, HostHealthEvent, HostStatus, Integration, db, utcnow
 
 STATES = ("up", "down", "unknown")
 
@@ -140,19 +140,61 @@ def reconcile() -> list[tuple]:
         row = seen.get(name)
         if row is None:
             db.session.add(HostHealth(host=name, state=new, since=now))
+            db.session.add(HostHealthEvent(host=name, state=new, at=now))
             continue
         if row.state == new:
             continue
         old = row.state
         row.state, row.since = new, now
+        db.session.add(HostHealthEvent(host=name, state=new, at=now))
         changes.append((name, old, new))
         h = hosts.get(name)
         if h is not None and h.status == "active" and {old, new} == {"up", "down"}:
             srcs = ", ".join(f"{k}: {v}" for k, v in sorted(st["sources"].items()))
             notify.emit(f"host.{new}", f"{h.fun or name} is {new}", f"{name} ({srcs})", f"/hosts/{name}",
                         {"host": name, "state": new, "sources": st["sources"]}, commit=False)
+    db.session.execute(db.delete(HostHealthEvent).where(HostHealthEvent.at < now - KEEP))
     db.session.commit()
     return changes
+
+
+KEEP = timedelta(days=7)
+WORSE = {"down": 3, "unknown": 2, "up": 1}
+
+
+def strip(name: str, hours: int = 48, now=None) -> dict:
+    """The host's combined state per hour over the last `hours`, oldest first: the worst state
+    seen in each hour ("none" before anything was recorded), and the share of known time it was up."""
+    now = now or utcnow()
+    start = now - timedelta(hours=hours)
+    evs = list(db.session.scalars(db.select(HostHealthEvent).where(HostHealthEvent.host == name).order_by(HostHealthEvent.at, HostHealthEvent.id)))
+    if not evs:
+        return {"hours": [], "up_pct": None}
+    before = [e for e in evs if e.at <= start]
+    cur = before[-1].state if before else None
+    inside = [e for e in evs if e.at > start]
+    out, up, known, i = [], 0.0, 0.0, 0
+    for n in range(hours):
+        a, b = start + timedelta(hours=n), start + timedelta(hours=n + 1)
+        while i < len(inside) and inside[i].at <= a:  # a change right on the hour belongs to the new hour
+            cur = inside[i].state
+            i += 1
+        seen = {cur} if cur else set()
+        t = a
+        while i < len(inside) and inside[i].at < b:
+            if cur:
+                span = (inside[i].at - t).total_seconds()
+                known += span if cur != "unknown" else 0
+                up += span if cur == "up" else 0
+            cur, t = inside[i].state, inside[i].at
+            seen.add(cur)
+            i += 1
+        if cur:
+            span = (b - t).total_seconds()
+            known += span if cur != "unknown" else 0
+            up += span if cur == "up" else 0
+        out.append(max(seen, key=lambda s: WORSE.get(s, 0)) if seen else "none")
+    return {"hours": out, "up_pct": round(100 * up / known, 1) if known else None}
 
 
 def rename(old: str, new: str) -> None:
@@ -161,8 +203,11 @@ def rename(old: str, new: str) -> None:
     hh = db.session.get(HostHealth, old)
     if hh is not None:
         db.session.delete(hh)
+    for e in db.session.scalars(db.select(HostHealthEvent).where(HostHealthEvent.host == old)):
+        e.host = new
 
 
 def forget(name: str) -> None:
     db.session.execute(db.delete(HostStatus).where(HostStatus.host == name))
     db.session.execute(db.delete(HostHealth).where(HostHealth.host == name))
+    db.session.execute(db.delete(HostHealthEvent).where(HostHealthEvent.host == name))

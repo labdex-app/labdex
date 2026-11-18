@@ -206,6 +206,10 @@ for every job it accepted, refused or finished, without the job's output.
 format, as `labdex_agent_*` with `host` and `agent` labels. Point VictoriaMetrics at it with an API
 token. labdex itself keeps no history of these numbers.
 
+The latest values also show in labdex while the agent is linked: CPU, memory and disk use (`/`)
+on the host page, as columns on the hosts list and in a host's Guests table, and as each site's
+average under *Capacity* in the Overview's Sites table. Hosts without a linked agent show a dash.
+
 ## On the host
 
 ```sh

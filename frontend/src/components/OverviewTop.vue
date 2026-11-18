@@ -4,6 +4,7 @@
 // Every action opens the page where it's done (plans are approved on Changes, never here).
 import { computed, ref } from 'vue'
 import { ago, state } from '../store'
+import Usage from './Usage.vue'
 
 const props = defineProps({ d: { type: Object, required: true } })
 const c = computed(() => props.d.counts)
@@ -12,16 +13,19 @@ const sites = computed(() => (props.d.sites || []).filter((s) => inSite(s.code))
 const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0)
 
 const monitored = computed(() => c.value.up + c.value.down)
+const order = ref('impact')
 const attention = computed(() => {
   const out = []
-  for (const j of props.d.failing || []) out.push({ sev: 'err', title: `${j.action} failed`, sub: `${j.integration}${j.hosts?.length ? ` · ${j.hosts.join(', ')}` : ''}`, act: 'Open log', to: `/jobs/${j.id}` })
+  for (const j of props.d.failing || []) out.push({ sev: 'err', title: `${j.action} failed`, sub: `${j.integration}${j.hosts?.length ? ` · ${j.hosts.join(', ')}` : ''}`, act: 'Open log', to: `/jobs/${j.id}`, ts: j.finished_at || j.created_at })
   if (c.value.down) out.push({ sev: 'err', title: `${c.value.down} host${c.value.down === 1 ? ' is' : 's are'} down`, sub: 'monitoring says not reachable', act: 'Show them', to: '/hosts' })
   for (const i of props.d.lint_top || []) out.push({ sev: 'warn', title: i.message, sub: `${i.kind} ${i.ref} · ${i.code}`, act: 'Open check', to: '/lint' })
   const u = c.value.discovery?.unknown_hosts
   if (u) out.push({ sev: 'info', title: `${u} unknown host${u === 1 ? '' : 's'} on the network`, sub: 'seen by discovery', act: 'Add to inventory', to: '/discovery' })
   if (c.value.updates?.security) out.push({ sev: 'warn', title: `${c.value.updates.security} security update${c.value.updates.security === 1 ? '' : 's'} waiting`, sub: `${c.value.updates.hosts} host(s)${c.value.updates.reboot ? `, ${c.value.updates.reboot} need a reboot` : ''}`, act: 'Plan patch run', to: '/patches' })
   const rank = { err: 0, warn: 1, info: 2 }
-  return out.sort((a, b) => rank[a.sev] - rank[b.sev]).slice(0, 6) // the worst first
+  // Impact: the worst first. Newest: what has a time first, the latest on top.
+  if (order.value === 'newest') return out.sort((a, b) => String(b.ts || '').localeCompare(String(a.ts || '')) || rank[a.sev] - rank[b.sev]).slice(0, 6)
+  return out.sort((a, b) => rank[a.sev] - rank[b.sev]).slice(0, 6)
 })
 // Activity: everything, only applies, or only what failed
 const feed = ref('all')
@@ -33,6 +37,8 @@ const activity = computed(() => {
   return rows.slice(0, 5).map((e) => ({ key: e.id, dot: e.action === 'delete' ? 'err' : e.action === 'apply' || /^applied\b/.test(e.summary || '') ? 'ok' : 'info',
     title: e.summary || `${e.action} ${e.object_type} ${e.object_name}`, sub: e.actor, to: `/history/${e.id}`, ts: e.ts }))
 })
+// the Sites table: health, drift (git and open plans) or capacity (the agents' average use)
+const view = ref('health')
 const mine = computed(() => (props.d.waiting || []).filter((j) => j.can_approve).length)
 const SEV = { err: 'err', warn: 'warn', info: 'info' }
 </script>
@@ -67,21 +73,33 @@ const SEV = { err: 'err', warn: 'warn', info: 'info' }
     </div>
 
     <section class="card flush mt-4">
-      <div class="sect-head pad"><h2>Sites</h2></div>
+      <div class="sect-head pad"><h2>Sites</h2><span class="grow"></span>
+        <div class="seg sm" role="group" aria-label="Show">
+          <button v-for="f in [['health', 'Health'], ['drift', 'Drift'], ['capacity', 'Capacity']]" :key="f[0]" :class="{ on: view === f[0] }" :aria-pressed="view === f[0]" @click="view = f[0]">{{ f[1] }}</button>
+        </div></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Site</th><th>Source</th><th>Hosts</th><th>Status</th><th>Updates</th><th>Drift</th><th>Last apply</th></tr></thead>
+          <thead><tr><th>Site</th><th>Source</th><th>Hosts</th>
+            <template v-if="view === 'health'"><th>Status</th><th>Updates</th></template>
+            <template v-if="view !== 'capacity'"><th>Drift</th><th>Last apply</th></template>
+            <template v-if="view !== 'drift'"><th class="use">CPU</th><th class="use">Memory</th><th class="use">Disk</th></template></tr></thead>
           <tbody>
             <tr v-for="s in sites" :key="s.code">
               <td><b>{{ s.code }}</b></td>
               <td><span v-if="s.git" class="h-tag" :class="{ bad: s.git.error }" :title="s.git.error ? 'the last sync failed' : `synced ${ago(s.git.synced_at)}`">{{ s.git.branch }} · {{ s.git.commit || '—' }}</span>
                 <span v-else class="faint small">no git source</span></td>
-              <td class="mono">{{ s.hosts }}</td>
-              <td><span class="dot" :class="!s.monitored ? 'unknown' : s.down ? 'warn' : 'ok'"></span>
-                {{ !s.monitored ? 'not monitored' : s.down ? `${s.down} offline` : 'all online' }}</td>
-              <td class="mono">{{ s.updates }}</td>
-              <td><span class="dot" :class="s.open_plans ? 'drift' : 'ok'"></span> {{ s.open_plans ? `${s.open_plans} planned` : 'in sync' }}</td>
-              <td class="mono small">{{ s.last_apply ? ago(s.last_apply) : '—' }}</td>
+              <td class="mono">{{ s.hosts }}<span v-if="view === 'capacity' && s.usage" class="faint small"> ({{ s.usage.hosts }} with an agent)</span></td>
+              <template v-if="view === 'health'">
+                <td><span class="dot" :class="!s.monitored ? 'unknown' : s.down ? 'warn' : 'ok'"></span>
+                  {{ !s.monitored ? 'not monitored' : s.down ? `${s.down} offline` : 'all online' }}</td>
+                <td class="mono">{{ s.updates }}</td></template>
+              <template v-if="view !== 'capacity'">
+                <td><span class="dot" :class="s.open_plans ? 'drift' : 'ok'"></span> {{ s.open_plans ? `${s.open_plans} planned` : 'in sync' }}</td>
+                <td class="mono small">{{ s.last_apply ? ago(s.last_apply) : '—' }}</td></template>
+              <template v-if="view !== 'drift'">
+                <td><Usage :value="s.usage?.cpu ?? null" label="CPU" /></td>
+                <td><Usage :value="s.usage?.mem ?? null" label="memory" /></td>
+                <td><Usage :value="s.usage?.disk ?? null" label="disk" /></td></template>
             </tr>
           </tbody>
         </table>
@@ -90,7 +108,10 @@ const SEV = { err: 'err', warn: 'warn', info: 'info' }
 
     <div class="two mt-4">
       <section class="card flush">
-        <div class="sect-head pad"><h2>Needs attention</h2></div>
+        <div class="sect-head pad"><h2>Needs attention</h2><span class="grow"></span>
+          <div class="seg sm" role="group" aria-label="Order">
+            <button v-for="f in [['impact', 'Impact'], ['newest', 'Newest']]" :key="f[0]" :class="{ on: order === f[0] }" :aria-pressed="order === f[0]" @click="order = f[0]">{{ f[1] }}</button>
+          </div></div>
         <ul v-if="attention.length" class="att">
           <li v-for="(a, n) in attention" :key="n" :class="SEV[a.sev]">
             <div class="grow"><div>{{ a.title }}</div><div class="small muted">{{ a.sub }}</div></div>
@@ -128,6 +149,7 @@ const SEV = { err: 'err', warn: 'warn', info: 'info' }
 .kpi b.amber { color: var(--accent-soft); }
 .kpi .bar { min-width: 0; height: 4px; }
 .pad { padding: 14px 18px; margin: 0; }
+th.use { width: 130px; }
 .h-tag.bad { color: var(--err); border-color: var(--err); }
 .two { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 14px; align-items: start; }
 .two > .card { margin-top: 0; }
