@@ -24,15 +24,21 @@ outside a text field, opens one search box for everything:
 - **Networks** by name, by VLAN (`vlan 100`), or by an address inside them: type
   `10.10.100.53` and the network it belongs to shows up too.
 - **Services**, **aliases** (by name or firewall id) and **integrations**.
-- **Actions** of integrations you may run, like *Check drift* or *Sync aliases*: Enter
-  starts it and opens the job.
+- **Actions** of integrations you may run, like *Check drift* or *Sync aliases*. They come
+  first. A plan opens on the Changes page, where it waits for review and approval; a run
+  starts right away and opens the job.
+- **A verb and a host**: `patch web-01` offers *Plan install updates on web-01* (with the
+  host's waiting updates), `deploy web-01` the host actions that match. End the host with
+  `*` to plan for every host that starts with it: `patch web*`.
+- For the best host match, **Edit** (the quick edit beside the Hosts list) and **What
+  breaks if it goes down?**
 - **Pages** and **New host / New VIP / New network**.
 
 - **Tags**: `tag:backup` (or just a word that is a tag) offers the hosts list filtered
   to it.
 
-<kbd>↑</kbd> <kbd>↓</kbd> choose, <kbd>Enter</kbd> opens, <kbd>Esc</kbd> closes. You
-only find what you're allowed to see.
+<kbd>↑</kbd> <kbd>↓</kbd> choose, <kbd>Enter</kbd> opens or runs, <kbd>Esc</kbd> closes.
+Start with `>` to see commands only. You only find what you're allowed to see.
 
 ## Physical, virtual, tags
 

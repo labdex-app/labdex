@@ -45,6 +45,68 @@ def _score(q: str, *values) -> int | None:
     return best
 
 
+def _host_actions(q: str, p) -> list[dict]:
+    """"patch web-02", "deploy motd to web*": a verb, then a host (a trailing * matches a prefix).
+    Offers each host action, and each action that takes a host list, for the hosts that match,
+    as plans to review on Changes. Nothing runs from here without the Changes page's approval."""
+    words = q.split()
+    if len(words) < 2:
+        return []
+    verb, target = words[0], words[-1]
+    prefix = target.endswith("*")
+    target = target.rstrip("*")
+    if len(target) < 2:
+        return []
+    hosts = []
+    for e in store.host_index():
+        h = e["host"]
+        if not p.can("host", "view", e["facts"]):
+            continue
+        names = [h["name"], *h.get("fun_names", [])]
+        s = _score(target, *names)
+        if s is not None and (not prefix or any(n.startswith(target) for n in names)):
+            hosts.append((s, h))
+    if not hosts:
+        return []
+    hosts = [h for _, h in sorted(hosts, key=lambda x: (x[0], x[1]["name"]))]
+    from .. import hostmodules, patches
+    reg = current_app.extensions["labdex"]["registry"]
+    out = []
+    for i in db.session.scalars(db.select(Integration).where(Integration.enabled.is_(True)).order_by(Integration.name)):
+        spec = reg.get(i.plugin_id)
+        if spec is None or spec.error or not p.can("integration", "apply", rbac.named_facts(i.name)):
+            continue
+        for a in spec.actions:
+            per_host = a.get("scope") == "host"
+            takes_list = any(x.get("key") == "hosts" and x.get("type") == "list" for x in a.get("params") or [])
+            if not (per_host or takes_list) or a.get("mode") == "export":
+                continue
+            if _score(verb, a.get("label") or "", a["id"], *(w for w in (a.get("label") or "").lower().split())) is None:
+                continue
+            on = [h for h in hosts if hostmodules.state(i, h)[0]]
+            label = a.get("label") or a["id"]
+            verb_t = ("Plan " + label[0].lower() + label[1:]) if a.get("mode") == "plan" else label
+            for h in on[:5]:
+                sub = i.name
+                if i.plugin_id == "patching":
+                    st = patches.summary(h["name"])
+                    bits = [f"{st['security']} security update{'s' if st['security'] != 1 else ''}" if st["security"] else
+                            f"{st['pending']} update{'s' if st['pending'] != 1 else ''}" if st["pending"] else
+                            "no updates reported" if st["state"] != "unknown" else "patch state not read yet",
+                            "reboot needed" if st["reboot"] else ""]
+                    sub = " · ".join(b for b in [*bits, i.name] if b)
+                r = {"kind": "action", "title": f"{verb_t} on {h['name']}", "sub": sub, "integration": i.name, "action": a["id"],
+                     "mode": a.get("mode"), "danger": bool(a.get("danger")), "target": h["name"]}
+                r |= {"host": h["name"]} if per_host else {"params": {"hosts": [h["name"]]}}
+                out.append(r)
+            if takes_list and len(on) > 1:
+                out.append({"kind": "action", "title": f"{verb_t} on all {len(on)} hosts matching {target}{'*' if prefix else ''}",
+                            "sub": f"{', '.join(h['name'] for h in on[:4])}{' …' if len(on) > 4 else ''} · {i.name}",
+                            "integration": i.name, "action": a["id"], "mode": a.get("mode"), "danger": bool(a.get("danger")),
+                            "params": {"hosts": [h["name"] for h in on]}})
+    return out[:PER_KIND]
+
+
 @bp.get("/search")
 def search():
     q = request.args.get("q", "").strip().lower()
@@ -53,6 +115,8 @@ def search():
     p = g.principal
     mac, ip = _mac(q), _ip(q)
     out: list[tuple[int, int, dict]] = []  # (score, kind order, result)
+    # "verb host": actions on those hosts come before everything else
+    out += [(-2, -2, r) for r in _host_actions(q, p)]
 
     # tags: "tag:backup", or a word that is a tag, offers the host list filtered to it
     from ..models import Tag
@@ -180,7 +244,7 @@ def search():
                 continue
             hits.append(((s if s is not None else 2) + 1, {"kind": "action", "title": a.get("label") or a["id"],
                                                           "sub": f"{i.name} · {'plan' if a.get('mode') == 'plan' else 'run'}",
-                                                          "integration": i.name, "action": a["id"], "danger": bool(a.get("danger"))}))
+                                                          "integration": i.name, "action": a["id"], "mode": a.get("mode"), "danger": bool(a.get("danger"))}))
     out += [(s, 4, r) for s, r in sorted(hits, key=lambda x: (x[0], x[1]["title"]))[:PER_KIND]]
 
     out.sort(key=lambda x: (x[0], x[1]))

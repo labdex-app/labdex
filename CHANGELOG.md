@@ -39,6 +39,12 @@
 - **Inbox › Checks** is a list and detail: findings on the left (All, Errors, Warnings, Info,
   Accepted), the picked one beside them with its object, the other findings on that object,
   *Open* and *Accept…*.
+- **Ctrl K, actions first**: actions lead the results, and "a verb and a host" (`patch web-01`,
+  `patch web*`) offers that host action, or a plan limited to those hosts, with the host's
+  patch state. Plans open on Changes for review; nothing is applied from the box. The best
+  host match also offers *Edit* (quick edit) and *What breaks?*; `>` shows commands only; the
+  box shows the site in use. `/api/search` returns these as `action` results with `params`
+  or `host`.
 - **Host agents** (`labdex-agent`): a systemd service on Linux hosts that keeps one outgoing
   WebSocket connection to labdex, so hosts need no open port. Enrol it from the host's new
   **Agent** tab with a one-time token; labdex keeps only a hash of the host's key, and **Revoke**

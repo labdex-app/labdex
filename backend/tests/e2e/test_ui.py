@@ -121,6 +121,34 @@ def test_checks_list_beside_the_finding(page, server):
     assert page.locator(".detail-pane >> text=Open").count() >= 1
 
 
+def test_palette_verb_and_host_plans_and_opens_changes(page, server):
+    """Ctrl K "patch <host>": the action comes first; Enter plans it and opens it on Changes."""
+    st = page.evaluate("""async () => {
+        const h = {'Content-Type': 'application/json', 'X-Requested-With': 'labdex'}
+        let r = await fetch('/api/marketplace/install', {method: 'POST', headers: h, body: JSON.stringify({id: 'patching'})})
+        if (r.status >= 300) return 'install ' + r.status
+        r = await fetch('/api/integrations', {method: 'POST', headers: h, body: JSON.stringify({plugin_id: 'patching', name: 'e2e-patching'})})
+        if (r.status !== 201) return 'create ' + r.status + ' ' + await r.text()
+        r = await fetch('/api/integrations/e2e-patching', {method: 'PUT', headers: h, body: JSON.stringify({enabled: true, settings: {ssh_user: 'ansible'}})})
+        return r.status }""")
+    assert st == 200, st
+    page.keyboard.press("Control+k")
+    page.keyboard.type("patch srv-vm-dns")
+    page.wait_for_selector(".pal-g:text-is('Actions') + .pal-r.on >> text=Plan install updates on")
+    page.keyboard.press("Enter")
+    page.wait_for_url(lambda u: "/changes?job=" in u)
+    page.wait_for_selector(".detail-pane >> text=e2e-patching")
+    job = page.url.split("job=")[1].split("&")[0]  # leave Changes empty for the tests after this one
+    page.evaluate(f"""async () => {{
+        for (let n = 0; n < 50; n++) {{
+          const j = await (await fetch('/api/jobs/{job}')).json()
+          if (!['queued', 'running'].includes(j.status)) {{
+            if (j.status === 'planned') await fetch('/api/jobs/{job}/discard', {{method: 'POST', headers: {{'X-Requested-With': 'labdex'}}}})
+            return j.status }}
+          await new Promise((r) => setTimeout(r, 200))
+        }} }}""")
+
+
 def test_change_elsewhere_arrives_live(page, server):
     """Another tab changes a host; the open list updates through the event stream, without reload."""
     page.fill("input[aria-label=\"Search hosts\"]", "sonos")
