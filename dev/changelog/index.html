@@ -560,6 +560,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../guide/git/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inventory in git
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../guide/inventory/" class="md-nav__link">
         
   
@@ -7250,6 +7278,17 @@
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>Git source per site</strong>: a site's file (<code>labdex/&lt;site&gt;.yaml</code>) can live in a GitLab or GitHub
+  repository (Settings › Sites › Git source). New commits are planned and imported on a webhook or
+  a timer; edits made in labdex are committed to the branch, or opened as a merge request (pull
+  request on GitHub) per site. When both sides changed, nothing moves until someone keeps git or
+  keeps labdex. The token is a vault reference. See <em>Inventory in git</em>.</li>
+<li><strong><code>labdex plan FILE</code></strong>: what importing an inventory file (or one site's file) would change,
+  without keeping anything: the hosts, networks and other objects that change, field by field, and
+  the DNS records, firewall aliases and DHCP reservations labdex would generate differently. With
+  <code>--base</code> (or <code>--base-ref origin/main</code>) it plans over the target branch's files instead of the
+  database, so CI can comment the plan on a merge request; <code>--format json|markdown</code>,
+  <code>--detailed-exitcode</code>. Admins get the same from <code>POST /api/admin/plan</code>. See <em>Inventory in git</em>.</li>
 <li><strong>Sites</strong>: one labdex for more than one part of your infrastructure, such as <code>home</code> behind your
   firewall and <code>public</code> at a cloud provider (Settings › Sites). Each site has its own hosts,
   networks and integrations; zones, naming, features and people are shared. An integration works

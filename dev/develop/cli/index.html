@@ -562,6 +562,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guide/git/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inventory in git
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guide/inventory/" class="md-nav__link">
         
   
@@ -1691,6 +1719,7 @@ labdex<span class="w"> </span>sites<span class="w">                       </span
 labdex<span class="w"> </span><span class="nb">export</span><span class="w"> </span>--site<span class="w"> </span>public<span class="w"> </span>-o<span class="w"> </span>labdex/public.yaml<span class="w">   </span><span class="c1"># one site's networks and hosts</span>
 labdex<span class="w"> </span>import<span class="w"> </span>labdex/public.yaml<span class="w">   </span><span class="c1"># a site file (top-level site:) replaces only that site</span>
 labdex<span class="w"> </span>lint<span class="w">                        </span><span class="c1"># exit 1 on errors; --warnings-as-errors for strict CI</span>
+labdex<span class="w"> </span>plan<span class="w"> </span>FILE<span class="w"> </span><span class="o">[</span>--base<span class="w"> </span>FILE<span class="o">]</span><span class="w">     </span><span class="c1"># what importing FILE would change; --format markdown for a merge request</span>
 labdex<span class="w"> </span>import-from<span class="w"> </span>netbox<span class="p">|</span>phpipam<span class="p">|</span>csv<span class="w"> </span>--zone<span class="w"> </span>DC_TC<span class="w">   </span><span class="c1"># add from another tool; preview first, --apply keeps it</span>
 labdex<span class="w"> </span>changeset<span class="w"> </span>FILE<span class="w"> </span><span class="o">[</span>--apply<span class="o">]</span><span class="w">    </span><span class="c1"># preview (or apply) a file of changes as one unit</span>
 labdex<span class="w"> </span>openapi<span class="w"> </span>-o<span class="w"> </span>api.json<span class="w">        </span><span class="c1"># the OpenAPI description of the REST API</span>
