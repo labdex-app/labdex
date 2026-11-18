@@ -41,6 +41,8 @@ takes a host or network name (`/api/hosts/<name>`, `/api/networks/<name>`, …) 
 | POST, DELETE | `/api/lint/accept` | Accept a finding `{code, kind, ref, reason}` / count it again (administrators) |
 | GET · GET · POST | `/api/history` · `/api/history/<id>` · `/api/history/<id>/revert` | Audit log with diffs |
 | GET, POST · PUT, DELETE | `/api/searches` · `/api/searches/<uid>` | Saved Hosts searches, yours and shared ones |
+| PATCH | `/api/hosts/<name>` | Change some fields (name, kind, site, zone, status, function, fun_names, tags, features, notes); `dry_run: true` returns the site-file YAML before and after |
+| GET | `/api/hosts/<name>/yaml` | The host as its site file lists it, and the git branch and path it goes to |
 | POST | `/api/hosts/bulk` | One change to many hosts: status, runs on, tags, features, zone, integration, delete |
 | GET | `/api/hosts/<name>/label.svg` · `/api/cables/label.svg?host=&port=` | Printable labels with a QR code (`size=62x29`, `50x25`, `89x36`) |
 | POST | `/api/admin/import/external` | Add networks and hosts from NetBox, phpIPAM or CSV (`apply: false` previews) |

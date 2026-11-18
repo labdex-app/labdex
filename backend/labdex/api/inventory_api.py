@@ -374,6 +374,73 @@ def update_host(name):
     return jsonify(_host_detail(h))
 
 
+# what the quick edit beside the Hosts list may change; everything else stays as it is
+QUICK_FIELDS = ("name", "kind", "site", "zone", "status", "function", "fun_names", "tags", "features", "notes")
+
+
+def _git_target(code: str) -> dict | None:
+    from .. import gitsource
+    from ..models import Site
+    site = db.session.scalar(db.select(Site).where(Site.code == code))
+    cfg = gitsource.config(site) if site is not None else None
+    return None if cfg is None else {"branch": cfg["branch"], "path": cfg["path"], "mode": cfg["mode"]}
+
+
+@bp.get("/hosts/<name>/yaml")
+def host_yaml(name):
+    """The host as its site's file lists it, and where that file lives in git (null: no git source).
+    {"yaml": "- name: ...", "site": "home", "git": {"branch", "path", "mode"} | null}"""
+    h = _host(name)
+    if h is None or not g.principal.can("host", "view", rbac.host_facts(store.host_access(h))):
+        return err(404, f"no host '{name}'")
+    return jsonify({"yaml": inventory.host_yaml(h), "site": h.site, "git": _git_target(h.site)})
+
+
+@bp.patch("/hosts/<name>")
+def patch_host(name):
+    """Change some of a host's fields and keep the rest: name, kind, site, zone ("" follows the
+    primary interface's network again), status, function, fun_names, tags, features, notes.
+    With "dry_run": true nothing is saved; the answer is the host's entry in its site file before
+    and after, {"before": yaml, "after": yaml, "site", "git"}, for a diff to look at first.
+    Otherwise it's saved like a PUT (checked, recorded, and written to the site's git source) and
+    the answer is the host."""
+    h = _host(name)
+    if h is None:
+        return err(404, f"no host '{name}'")
+    before = store.host_to_dict(h)
+    rbac.require("host", "edit", rbac.host_facts(before))
+    data = body()
+    unknown = sorted(k for k in data if k not in (*QUICK_FIELDS, "dry_run"))
+    if unknown:
+        return err(422, "validation failed", [{"field": k, "message": "can't be changed here; use PUT"} for k in unknown])
+    changes = {k: data[k] for k in QUICK_FIELDS if k in data}
+    if "zone" in changes:
+        changes["zone_pinned"] = bool(changes["zone"])
+    if "fun_names" in changes:
+        changes["fun"] = (changes["fun_names"] or [""])[0] if isinstance(changes["fun_names"], list) else ""
+    after = {**before, **changes}
+    rbac.require("host", "edit", _payload_facts(after))
+    if data.get("dry_run"):
+        old = inventory.host_yaml(h)
+        nested = db.session.begin_nested()
+        try:
+            store.save_host(after, existing=h)
+            db.session.flush()
+            new = inventory.host_yaml(h)
+        finally:
+            nested.rollback()
+        db.session.expire_all()
+        return jsonify({"before": old, "after": new, "site": after["site"], "git": _git_target(after["site"])})
+    store.save_host(after, existing=h)
+    db.session.flush()
+    from .. import hostmodules
+    hostmodules.rename_host(before["name"], h.name)
+    audit.record("update", "host", h.name, before, store.host_to_dict(h))
+    db.session.commit()
+    jobs.emit("host.updated")
+    return jsonify(_host_detail(h))
+
+
 @bp.delete("/hosts/<name>")
 def delete_host(name):
     h = _host(name)

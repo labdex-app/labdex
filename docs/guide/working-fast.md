@@ -133,6 +133,13 @@ right, beside the list, with what you need most often and a button to its full p
 double click goes straight to the page, and <kbd>Esc</kbd> closes the panel. The address
 keeps the open panel (`?peek=…`), so a link or a reload brings it back.
 
+**Edit** in a host's panel turns it into a short form: name, kind, site, zone, status, fun
+name, function, features, tags and notes. **Preview diff** shows the host's lines in its
+site file before and after, and **YAML** shows the whole entry. Saving works like saving on
+the host page: the change is checked, recorded in Activity and, when the site has a git
+repository, written to it (*Save and commit*). Interfaces, services and cables are edited on
+the host page.
+
 The top bar says where you are (site, area, page, item) and holds the search box. The status
 bar at the foot shows whether the page is live (changes arrive as they happen), the git
 commit and sync time of each site that has a repository, how many agents are linked, and

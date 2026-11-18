@@ -14,6 +14,7 @@ import Copy from '../components/Copy.vue'
 import FilterSelect from '../components/FilterSelect.vue'
 import HostIcon from '../components/HostIcon.vue'
 import HostPeek from '../components/HostPeek.vue'
+import HostQuickEdit from '../components/HostQuickEdit.vue'
 import TagChip from '../components/TagChip.vue'
 import ZoneChip from '../components/ZoneChip.vue'
 import { can, changed, state, tagColour, toast } from '../store'
@@ -25,8 +26,14 @@ const query = useQuery('/api/hosts', { onError: (e) => toast(e.message, 'error')
 // list-detail: a click shows the host in a drawer beside the list (?peek=<uid>); a double click,
 // or "Open host" in the drawer, opens its page
 const peeked = computed(() => route.query.peek ? (query.data.value || []).find((h) => h.uid === route.query.peek || h.name === route.query.peek) : null)
-function peek(h) { router.replace({ query: { ...route.query, peek: h.uid || h.name } }) }
-function unpeek() { const { peek: _, ...rest } = route.query; router.replace({ query: rest }) }
+// ?edit=1 turns the drawer into the quick edit form
+function peek(h) { const { edit: _, ...rest } = route.query; router.replace({ query: { ...rest, peek: h.uid || h.name } }) }
+function unpeek() { const { peek: _, edit: __, ...rest } = route.query; router.replace({ query: rest }) }
+function quickEdit(on) { const { edit: _, ...rest } = route.query; router.replace({ query: on ? { ...rest, edit: '1' } : rest }) }
+async function quickSaved(h) {
+  await query.refresh()
+  if (route.query.peek !== h.uid) router.replace({ query: { ...route.query, peek: h.uid } })
+}
 const hosts = computed(() => query.data.value || [])
 const loading = computed(() => query.loading.value && !query.data.value)
 const q = ref(String(route.query.q || ''))
@@ -418,7 +425,8 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
         <button class="btn primary" :disabled="busy || (bulk.runs === 'set' && !bulk.runs_on)" @click="saveBulk">Change {{ picked.size }} host{{ picked.size === 1 ? '' : 's' }}</button>
       </template>
     </Modal>
-    <HostPeek v-if="peeked" :key="peeked.name" :host="peeked" @close="unpeek" />
+    <HostQuickEdit v-if="peeked && route.query.edit" :key="`e${peeked.uid}`" :host="peeked" @close="quickEdit(false)" @saved="quickSaved" />
+    <HostPeek v-else-if="peeked" :key="peeked.name" :host="peeked" @close="unpeek" @edit="quickEdit(true)" />
   </div>
 </template>
 

@@ -93,6 +93,22 @@ def test_edit_host_and_see_it_in_the_list(page, server):
     page.wait_for_selector("text=Resolver (e2e) >> visible=true")
 
 
+def test_quick_edit_in_the_drawer_shows_a_diff_and_saves(page, server):
+    page.goto(server + "/hosts?kind=virtual")
+    page.click("td >> text=srv-vm-ha-01")
+    page.click(".drawer >> button:has-text('Edit')")
+    page.wait_for_selector(".drawer >> text=Edit host")
+    page.locator(".drawer").get_by_label("Function").fill("Home automation (e2e)")
+    page.wait_for_selector(".drawer >> text=1 change: function")
+    page.click(".drawer >> text=Preview diff")
+    page.wait_for_selector(".cb-line.add >> text=Home automation (e2e)")
+    assert page.locator(".cb-line.del").count() == 1
+    page.click(".drawer >> button.primary")
+    page.wait_for_selector("td >> text=Home automation (e2e) >> visible=true")
+    page.wait_for_selector(".drawer >> text=No changes yet")
+    assert "edit=1" in page.url  # still editing the same host, with the list updated beside it
+
+
 def test_change_elsewhere_arrives_live(page, server):
     """Another tab changes a host; the open list updates through the event stream, without reload."""
     page.fill("input[aria-label=\"Search hosts\"]", "sonos")

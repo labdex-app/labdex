@@ -35,6 +35,42 @@ def _clean(d: dict) -> dict:
     return {k: v for k, v in d.items() if v not in ("", None, [], False) or k in ("name",)}
 
 
+def host_entry(h: Host, keep_site: bool = False) -> dict:
+    """A host as its site's file lists it: empty and default values left out."""
+    d = store.host_to_dict(h)
+    if not keep_site:  # the file's site, or the first one: not repeated per host
+        d.pop("site")
+    d["interfaces"] = [_clean({k: v for k, v in i.items() if k not in ("zone", "ip6_all")}) | ({"in_dns": i["in_dns"]} if i["in_dns"] is not None else {})
+                       for i in d["interfaces"]]
+    d.pop("vips", None)  # derived from the VIPs' member lists
+    # each cable once, at the end that sorts first
+    d["cables"] = [_clean(lk) for lk in d["cables"] if (h.name, lk["port"]) <= (lk["peer"], lk["peer_port"])]
+    if not d["cables"]:
+        d.pop("cables")
+    if d.get("kind") == "device":
+        d.pop("kind")
+    d["services"] = [_clean(s) for s in d["services"]]
+    d["records"] = [_clean(r) | {"type": r["type"]} for r in d["records"]]
+    if not d["vars"]:
+        d.pop("vars")
+    names = d.pop("fun_names")
+    if len(names) > 1:
+        d.pop("fun", None)
+        d["fun_names"] = names
+    if d["status"] == "active":
+        d.pop("status")
+    if not d["rack"]:  # not in a rack: none of the rack fields
+        for k in ("rack", "rack_unit", "rack_height", "rack_face"):
+            d.pop(k)
+    elif d["rack_face"] == "front":
+        d.pop("rack_face")
+    return _clean(d)
+
+
+def host_yaml(h: Host) -> str:
+    return yaml.dump([host_entry(h)], Dumper=_Dumper, sort_keys=False, allow_unicode=True, width=120)
+
+
 def export_dict(site: str | None = None) -> dict:
     """The whole inventory, or with `site` only that site's networks and hosts (the file a site
     keeps in git: labdex/<site>.yaml; zones, naming and the rest are shared and live elsewhere)."""
@@ -47,34 +83,7 @@ def export_dict(site: str | None = None) -> dict:
     groups = db.session.scalars(db.select(AliasGroup).order_by(AliasGroup.name)).all()
     out_hosts = []
     for h in hosts:
-        d = store.host_to_dict(h)
-        if site or d["site"] == default_site:  # the file's site, or the first one: not repeated per host
-            d.pop("site")
-        d["interfaces"] = [_clean({k: v for k, v in i.items() if k not in ("zone", "ip6_all")}) | ({"in_dns": i["in_dns"]} if i["in_dns"] is not None else {})
-                           for i in d["interfaces"]]
-        d.pop("vips", None)  # derived from the VIPs' member lists
-        # each cable once, at the end that sorts first
-        d["cables"] = [_clean(lk) for lk in d["cables"] if (h.name, lk["port"]) <= (lk["peer"], lk["peer_port"])]
-        if not d["cables"]:
-            d.pop("cables")
-        if d.get("kind") == "device":
-            d.pop("kind")
-        d["services"] = [_clean(s) for s in d["services"]]
-        d["records"] = [_clean(r) | {"type": r["type"]} for r in d["records"]]
-        if not d["vars"]:
-            d.pop("vars")
-        names = d.pop("fun_names")
-        if len(names) > 1:
-            d.pop("fun", None)
-            d["fun_names"] = names
-        if d["status"] == "active":
-            d.pop("status")
-        if not d["rack"]:  # not in a rack: none of the rack fields
-            for k in ("rack", "rack_unit", "rack_height", "rack_face"):
-                d.pop(k)
-        elif d["rack_face"] == "front":
-            d.pop("rack_face")
-        out_hosts.append(_clean(d))
+        out_hosts.append(host_entry(h, keep_site=not site and h.site != default_site))
     meta = store.meta()
     out_nets = []
     for n in nets:

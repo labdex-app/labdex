@@ -1,7 +1,7 @@
 <script setup>
 // The brief view of a host beside the Hosts list: what it is, where it sits, its addresses,
-// services and links. Editing happens on the host's own page, where every change is checked
-// and recorded (and committed to the site's git repository when it has one).
+// services and links. Edit turns it into the quick edit form (HostQuickEdit); the rest is on
+// the host's own page.
 import { computed } from 'vue'
 import { ArrowUpRight, Pencil, Unplug } from 'lucide-vue-next'
 import Drawer from './Drawer.vue'
@@ -10,7 +10,7 @@ import TagChip from './TagChip.vue'
 import { state } from '../store'
 
 const props = defineProps({ host: { type: Object, required: true } })
-defineEmits(['close'])
+defineEmits(['close', 'edit'])
 const h = computed(() => props.host)
 const to = computed(() => `/hosts/${h.value.uid || h.value.name}`)
 const LIVE = { up: 'ok', down: 'err', degraded: 'warn' }
@@ -67,7 +67,7 @@ const multiSite = computed(() => (state.meta?.sites || []).length > 1)
     <template #foot>
       <RouterLink :to="`/impact?host=${encodeURIComponent(h.name)}`" class="btn"><Unplug :size="15" /> What breaks?</RouterLink>
       <span class="grow"></span>
-      <RouterLink v-if="h.can_edit" :to="`${to}?tab=overview`" class="btn"><Pencil :size="14" /> Edit</RouterLink>
+      <button v-if="h.can_edit" class="btn" @click="$emit('edit')"><Pencil :size="14" /> Edit</button>
       <RouterLink :to="to" class="btn primary">Open host</RouterLink>
     </template>
   </Drawer>
