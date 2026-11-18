@@ -53,6 +53,11 @@
   height both show the state) and `meter` (used of total). Sparklines are a thin blue line;
   widget labels are mono capitals and values mono. The demo adds made-up *Reachable* and
   *Memory* host widgets. A stale health source says when it last reported in plain time.
+- **States, phones and text size**: running and failed plans get their own shapes (a half
+  moon, a cross) besides their colours; lists that are loading show grey bars where the
+  rows will be; an empty Hosts list says what to do next. On a phone, Changes and Checks
+  show the list, then the picked item with a way back. Text sizes are 13, 14 (the new
+  default) and 16 px.
 - **Host agents** (`labdex-agent`): a systemd service on Linux hosts that keeps one outgoing
   WebSocket connection to labdex, so hosts need no open port. Enrol it from the host's new
   **Agent** tab with a one-time token; labdex keeps only a hash of the host's key, and **Revoke**

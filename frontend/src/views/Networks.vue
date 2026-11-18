@@ -85,7 +85,7 @@ const dhcp = (n) => (n.dhcp_start ? `${n.dhcp_start.split('.').pop()}–${n.dhcp
               <template v-else>No networks yet. <RouterLink v-if="can('network', 'edit')" to="/networks/new">Add the first one</RouterLink>: a name, a VLAN and a prefix are enough.</template></td></tr>
           </tbody>
         </table>
-        <Loading v-if="loading" />
+        <Loading v-if="loading" :rows="5" label="Loading networks" />
       </div>
     </div>
     <NetworkPeek v-if="peeked" :key="peeked.name" :net="peeked" @close="unpeek" />

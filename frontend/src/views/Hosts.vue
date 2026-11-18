@@ -1,5 +1,5 @@
 <script setup>
-import { Bookmark, Pencil, Plus, Tag, Trash2, X } from 'lucide-vue-next'
+import { Bookmark, Pencil, Plus, Server, Tag, Trash2, X } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, ApiError } from '../api'
@@ -373,12 +373,20 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
               <td :colspan="(editable ? 7 : 6) + sources.length" class="empty">
                 <template v-if="hosts.length">Nothing here matches<template v-if="elsewhere.length">, but
                   <template v-for="(t, n) in elsewhere" :key="t">{{ n ? ' and ' : '' }}<a href="#" @click.prevent="setTab(t)">{{ counts[t] }} in {{ TAB_LABEL[t] }}</a></template> do</template>.</template>
-                <template v-else>No hosts yet. <RouterLink to="/hosts/new">Add one</RouterLink> or import an inventory under Settings.</template>
+                <template v-else>
+                  <div class="e-ic"><Server :size="18" /></div>
+                  <div class="e-t">No hosts{{ state.site ? ' on this site' : '' }} yet</div>
+                  <p>Import them from another tool or a file, or add the first one by hand.</p>
+                  <div v-if="can('host', 'edit')" class="e-acts">
+                    <RouterLink to="/hosts/new" class="btn primary">Add host</RouterLink>
+                    <RouterLink to="/admin/import" class="btn">Import</RouterLink>
+                  </div>
+                </template>
               </td>
             </tr>
           </tbody>
         </table>
-        <Loading v-if="loading && !visible.length" />
+        <Loading v-if="loading && !visible.length" :rows="6" label="Loading hosts" />
       </div>
       <div v-if="visible.length > shown" class="more">
         <button class="btn" @click="shown += PAGE">Show {{ Math.min(PAGE, visible.length - shown) }} more</button>

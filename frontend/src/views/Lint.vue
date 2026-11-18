@@ -35,6 +35,7 @@ const selected = computed(() => rows.value.find((i) => idOf(i) === route.query.i
 const sameObject = computed(() => selected.value ? all.value.filter((i) => i !== selected.value && i.kind === selected.value.kind && i.ref === selected.value.ref) : [])
 
 function show(key) { router.replace({ query: { ...route.query, show: key === 'all' ? undefined : key, item: undefined } }) }
+function back() { const { item: _, ...rest } = route.query; router.replace({ query: rest }) }
 function pick(i) { router.replace({ query: { ...route.query, item: idOf(i) } }) }
 
 const DOT = { error: 'err', warning: 'warn', info: 'info' }
@@ -68,7 +69,7 @@ async function unaccept(i) {
 </script>
 
 <template>
-  <div class="page ld">
+  <div class="page ld" :class="{ picked: !!route.query.item }">
     <section class="card flush list-pane" aria-label="Findings">
       <div class="lp-head">
         <h1>Checks</h1>
@@ -100,6 +101,7 @@ async function unaccept(i) {
     </section>
 
     <section class="card detail-pane" aria-label="The selected finding">
+      <button class="btn small ld-back" @click="back">‹ Checks</button>
       <template v-if="selected">
         <div class="label">{{ KIND[selected.kind] || selected.kind }} · {{ selected.code }}</div>
         <h2 class="d-title"><span class="mono">{{ selected.ref }}</span>

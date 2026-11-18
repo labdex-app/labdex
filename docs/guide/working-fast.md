@@ -154,7 +154,7 @@ whether the vault is sealed.
 ## Light or dark, and the text size
 
 The menu under your name has **Theme**: Auto (follows your system), Light or Dark, and
-**Text**: Compact (14 px, the old size), Comfortable (15 px, the default) or Large
+**Text**: Compact (13 px), Comfortable (14 px, the default) or Large
 (16 px). Both are kept in this browser. The search box knows them too: type `light`, `dark`
 or `large text`.
 

@@ -28,9 +28,10 @@ const rows = computed(() => plans.value.filter(filter.value.test))
 const selected = computed(() => route.query.job || rows.value[0]?.id || null)
 
 function show(key) { router.replace({ query: { ...route.query, show: key === 'open' ? undefined : key, job: undefined } }) }
+function back() { const { job: _, ...rest } = route.query; router.replace({ query: rest }) }
 function pick(id) { router.replace({ query: { ...route.query, job: String(id) } }); refresh() }
 
-const DOT = { planned: 'pending', approved: 'pending', queued: 'info', running: 'info', applying: 'info', applied: 'ok', succeeded: 'ok', failed: 'err' }
+const DOT = { planned: 'pending', approved: 'pending', queued: 'run', running: 'run', applying: 'run', applied: 'ok', succeeded: 'ok', failed: 'fail' }
 function sub(j) {
   const o = j.ops || {}
   const parts = [o.create && `${o.create} to add`, o.update && `${o.update} to change`, o.delete && `${o.delete} to remove`].filter(Boolean)
@@ -44,7 +45,7 @@ function sub(j) {
 </script>
 
 <template>
-  <div class="page ld">
+  <div class="page ld" :class="{ picked: !!route.query.job }">
     <section class="card flush list-pane" aria-label="Plans">
       <div class="lp-head">
         <h1>Changes</h1>
@@ -73,6 +74,7 @@ function sub(j) {
       </ul>
     </section>
     <section class="card detail-pane" aria-label="The selected plan">
+      <button class="btn small ld-back" @click="back">‹ Plans</button>
       <JobDetail v-if="selected" :id="selected" :key="selected" embedded @go="pick" @changed="refresh" />
       <p v-else class="empty">Pick a plan on the left.</p>
     </section>

@@ -12,7 +12,7 @@
   --sans: "Geist", -apple-system, "Segoe UI", Roboto, sans-serif;
   --disp: var(--sans);  /* page titles: Geist 600, no second family */
   --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --text: 1.0714;    /* every font size is a 14px-base size times this: Comfortable (15px); see theme.js */
+  --text: 1;    /* every font size is a 14px-base size times this: Comfortable (14px); see theme.js */
   --r-box: 10px;     /* cards, dialogs, the diff box */
   --r-ctl: 8px;      /* buttons, inputs */
   --r-tag: 6px;      /* tags, zone chips, badges */
@@ -156,6 +156,23 @@ h1 { font-family: var(--disp); font-size: calc(21px * var(--text)); font-weight:
 .dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.err { background: var(--err); } .dot.info { background: var(--info); }
 .dot.pending { background: transparent; border: 1.5px solid var(--accent); } .dot.unknown { background: transparent; border: 1.5px solid var(--faint); }
 .dot.drift { border-radius: 1px; transform: rotate(45deg); background: var(--accent); }
+/* each state has a shape too, for colour-blind eyes: running is a half moon, failed a cross */
+.dot.run { background: linear-gradient(90deg, var(--info) 50%, transparent 50%); border: 1.5px solid var(--info); }
+.dot.fail { position: relative; width: 9px; height: 9px; border-radius: 0; background: none; }
+.dot.fail::before, .dot.fail::after { content: ""; position: absolute; left: 50%; top: -1px; width: 2px; height: 11px; margin-left: -1px; background: var(--err); border-radius: 1px; transform: rotate(45deg); }
+.dot.fail::after { transform: rotate(-45deg); }
+/* the empty state's icon sits in a small tile */
+.empty .e-ic { width: 42px; height: 42px; margin: 0 auto 12px; display: grid; place-items: center; border: 1px dashed var(--line-strong);
+  border-radius: var(--r-box); color: var(--muted); }
+.empty .e-t { color: var(--ink); font-weight: 600; margin-bottom: 4px; }
+.empty .e-acts { display: flex; gap: 8px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+/* loading lists show grey bars where the rows will be */
+.skel { display: flex; flex-direction: column; }
+.skel-row { display: flex; gap: 14px; padding: 13px 16px; border-bottom: 1px solid var(--line); }
+.skel-row:last-child { border-bottom: 0; }
+.skel-row span { height: 9px; border-radius: 99px; background: color-mix(in srgb, var(--ink) 8%, transparent); animation: skel 1.4s ease-in-out infinite; }
+@keyframes skel { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .skel-row span { animation: none; } }
 h2 { font-size: calc(15px * var(--text)); font-weight: 600; margin: 0 0 10px; }
 h3 { font-size: calc(14px * var(--text)); font-weight: 600; color: var(--ink); margin: 0 0 10px; }
 b, strong { font-weight: 600; }
@@ -467,7 +484,11 @@ ul.pop { margin: 0; list-style: none; }
 .rb-title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rb-side { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font: calc(11.5px * var(--text)) var(--mono); color: var(--faint); white-space: nowrap; }
 .detail-pane { padding: 22px 24px; min-height: 320px; margin-top: 0 !important; }
+/* narrow screens: the list, then the picked item on its own with a way back */
+.ld-back { display: none; }
 @media (max-width: 1000px) {
   .ld { grid-template-columns: minmax(0, 1fr); }
-  .list-pane { position: static; max-height: 46vh; }
+  .list-pane { position: static; max-height: none; }
+  .ld.picked .list-pane, .ld:not(.picked) .detail-pane { display: none; }
+  .ld-back { display: inline-flex; align-items: center; gap: 4px; margin-bottom: 12px; }
 }
