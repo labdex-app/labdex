@@ -424,10 +424,11 @@ ul.pop { margin: 0; list-style: none; }
 .btn.danger-solid { background: var(--err-solid); border-color: var(--err-solid); color: #fff; }
 .btn.danger-solid:hover { background: var(--err-solid-hover); border-color: var(--err-solid-hover); }
 ::placeholder { color: var(--faint); opacity: .75; }
-.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--r-ctl); overflow: hidden; align-self: flex-start; }
-.seg button { font: inherit; font-size: calc(13px * var(--text)); padding: 5px 14px; background: none; border: 0; color: var(--muted); cursor: pointer; }
-.seg button + button { border-left: 1px solid var(--line-strong); }
-.seg button.on { background: var(--raise); color: var(--ink); font-weight: 500; }
+.seg { display: inline-flex; gap: 2px; border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 2px; background: var(--panel); align-self: flex-start; }
+.seg button { font: inherit; font-size: calc(13px * var(--text)); padding: 4px 12px; background: none; border: 0; border-radius: calc(var(--r-ctl) - 2px); color: var(--muted); cursor: pointer; }
+.seg button:hover { color: var(--ink); }
+.seg button.on { background: var(--card); color: var(--ink); font-weight: 500; box-shadow: 0 0 0 1px var(--line), 0 1px 2px var(--shadow); }
+.seg.sm button { font-size: calc(12px * var(--text)); padding: 2px 9px; }
 .seg button:disabled { opacity: .45; cursor: not-allowed; }
 .chipx { border: 0; background: none; color: inherit; opacity: .7; cursor: pointer; padding: 0 2px; margin-left: 4px; font-size: calc(11px * var(--text)); line-height: 1; }
 .chipx:hover { opacity: 1; }

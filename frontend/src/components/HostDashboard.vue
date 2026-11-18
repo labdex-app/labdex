@@ -7,6 +7,7 @@ import { ago, stamp } from '../store'
 import PortMap from './PortMap.vue'
 import WidgetGrid from './WidgetGrid.vue'
 import ZoneChip from './ZoneChip.vue'
+import HistoryList from './HistoryList.vue'
 
 defineProps({ host: { type: Object, required: true } })
 const emit = defineEmits(['tab'])
@@ -61,6 +62,18 @@ const emit = defineEmits(['tab'])
         </dl>
         <p v-else class="small faint m-0 mt-2">Nothing reports updates for this host. <RouterLink to="/patches">How</RouterLink></p>
       </div>
+      <div class="card">
+        <h3>Details</h3>
+        <dl class="kv small">
+          <template v-if="host.function"><dt>function</dt><dd>{{ host.function }}</dd></template>
+          <template v-if="host.vendor || host.model"><dt>model</dt><dd>{{ [host.vendor, host.model].filter(Boolean).join(' ') }}</dd></template>
+          <template v-if="host.patches?.os"><dt>os</dt><dd>{{ host.patches.os }}</dd></template>
+          <template v-if="host.features?.length"><dt>features</dt><dd class="mono">{{ host.features.join(', ') }}</dd></template>
+          <template v-if="host.tags?.length"><dt>tags</dt><dd>{{ host.tags.join(', ') }}</dd></template>
+          <dt>status</dt><dd>{{ host.status }}</dd>
+        </dl>
+      </div>
+      <HistoryList type="host" :name="host.name" :limit="4" title="Activity" />
       <div v-if="host.links?.length" class="card">
         <h3>Open</h3>
         <div class="links"><a v-for="l in host.links" :key="l.url" :href="l.url" target="_blank" rel="noopener" class="btn small">{{ l.name }}</a></div>

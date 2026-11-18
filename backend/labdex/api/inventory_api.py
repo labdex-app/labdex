@@ -344,6 +344,11 @@ def _host_detail(h: Host) -> dict:
     d["health"] = {"live": health.combine(srcs, disc), "sources": srcs, "discovery": disc}
     from .. import patches
     d["patches"] = patches.summary(h.name)
+    if p.can("host", "apply", rbac.host_facts(d)):
+        from .search_api import plan_actions
+        d["plan_actions"] = plan_actions(d, p)
+    else:
+        d["plan_actions"] = []
     return d
 
 

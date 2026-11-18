@@ -15,7 +15,7 @@ def test_statusbar_shows_short_commit(admin):
     s.git_state = {"commit": "a41c9e2f00d1b2c3", "synced_at": "2026-11-18T10:00:00Z", "error": None}
     db.session.commit()
     git = admin.get("/api/statusbar").get_json()["sites"][0]["git"]
-    assert git == {"commit": "a41c9e2", "synced_at": "2026-11-18T10:00:00Z", "error": False}
+    assert git == {"commit": "a41c9e2", "synced_at": "2026-11-18T10:00:00Z", "error": False, "branch": "main", "path": "labdex/home.yaml"}
 
 
 def test_statusbar_needs_sign_in(loaded):

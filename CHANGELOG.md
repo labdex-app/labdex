@@ -58,6 +58,13 @@
   rows will be; an empty Hosts list says what to do next. On a phone, Changes and Checks
   show the list, then the picked item with a way back. Text sizes are 13, 14 (the new
   default) and 16 px.
+- **Overview and host page, more of the mockups**: Overview gets *Refresh*, Needs attention
+  sorted worst first, and Activity filtered to All, Applies or Failures. A host's header shows
+  the site's git branch and file, and **Plan patch run** (amber) when a Patching integration
+  applies to it, plus a *Plan* menu for its other plan actions; each opens the plan on Changes
+  for approval. The host's Overview tab adds Details and Activity cards. Host details carry
+  `plan_actions`; the status bar's git entry carries `branch` and `path`. Segmented controls
+  share one style.
 - **Host agents** (`labdex-agent`): a systemd service on Linux hosts that keeps one outgoing
   WebSocket connection to labdex, so hosts need no open port. Enrol it from the host's new
   **Agent** tab with a one-time token; labdex keeps only a hash of the host's key, and **Revoke**

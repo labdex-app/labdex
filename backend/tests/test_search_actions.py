@@ -30,3 +30,11 @@ def test_no_actions_without_a_matching_host_or_verb(patching):  # noqa: F811
 def test_viewers_get_no_actions(patching, make_user):  # noqa: F811
     viewer = make_user("vic", role="viewer")
     assert not [x for x in results(viewer, f"patch {DNS}") if x["kind"] == "action"]
+
+
+def test_host_detail_lists_its_plan_actions(patching, make_user):  # noqa: F811
+    acts = patching.get(f"/api/hosts/{DNS}").get_json()["plan_actions"]
+    assert {"integration": "home-patching", "plugin": "patching", "action": "patch", "label": "Install updates",
+            "params": {"hosts": [DNS]}} in acts
+    viewer = make_user("vic", role="viewer")
+    assert viewer.get(f"/api/hosts/{DNS}").get_json()["plan_actions"] == []

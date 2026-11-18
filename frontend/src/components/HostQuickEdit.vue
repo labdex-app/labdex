@@ -105,7 +105,7 @@ function addFeature(e) {
 <template>
   <Drawer label="Edit host" :title="full?.name || host.name" @close="emit('close')">
     <template #head>
-      <div class="seg" role="tablist" aria-label="View">
+      <div class="seg sm" role="tablist" aria-label="View">
         <button role="tab" :aria-selected="mode === 'form'" :class="{ on: mode === 'form' }" @click="mode = 'form'">Form</button>
         <button role="tab" :aria-selected="mode !== 'form'" :class="{ on: mode !== 'form' }" @click="showYaml">YAML</button>
       </div>
@@ -195,9 +195,6 @@ function addFeature(e) {
 </template>
 
 <style scoped>
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 2px; background: var(--panel); margin-top: 4px; }
-.seg button { border: 0; background: none; color: var(--muted); font: inherit; font-size: calc(12.5px * var(--text)); padding: 3px 10px; border-radius: calc(var(--r-ctl) - 2px); cursor: pointer; }
-.seg button.on { background: var(--card); color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
 .sect { margin: 20px 0 8px; }
 .sect.first { margin-top: 2px; }
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; margin-bottom: 10px; }

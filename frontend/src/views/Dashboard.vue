@@ -2,7 +2,7 @@
 // Dashboards: cards on a 12-column grid. "Overview" is the shared start page; anyone can make
 // dashboards of their own (a page of links, a wall for the rack room), administrators shared ones.
 // Edit: drag a card by its handle, resize it from the corner, add and remove cards; Done saves.
-import { GripVertical, LayoutGrid, Pencil, Plus, Settings2, Trash2, X } from 'lucide-vue-next'
+import { GripVertical, LayoutGrid, Pencil, Plus, RefreshCw, Settings2, Trash2, X } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
@@ -187,6 +187,7 @@ watch(() => route.query.d, () => { editing.value = false })
       <h1>{{ state.nav?.instance_name && state.nav.instance_name !== 'labdex' ? state.nav.instance_name : 'Overview' }}</h1>
       <span class="h-tag">site {{ state.site || 'all' }}</span>
       <span class="grow"></span>
+      <button v-if="!editing" class="btn" :disabled="dataQ.loading.value" @click="dataQ.refresh(); widgetsQ.refresh()"><RefreshCw :size="14" /> Refresh</button>
       <template v-if="dash?.can_edit">
         <template v-if="editing">
           <button class="btn" @click="addOpen = true"><Plus :size="15" /> Card</button>

@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { getCached, setQueryData, useQuery } from '../query'
 import { api, ApiError } from '../api'
 import {
-  AppWindow, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Box, Cable, EthernetPort, ListPlus, Lock, MapPin, Merge, Pencil, Plus, QrCode, RotateCcw, Route, Tag, Trash2, Unplug, Waypoints, Wifi,
+  AppWindow, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Box, Cable, EthernetPort, ListPlus, Lock, MapPin, Merge, PackageCheck, Pencil, Plus, QrCode, RotateCcw, Route, Tag, Trash2, Unplug, Waypoints, Wifi,
 } from 'lucide-vue-next'
 import { confirm } from '../confirm'
 import ChipInput from '../components/ChipInput.vue'
@@ -28,6 +28,7 @@ import PortMap from '../components/PortMap.vue'
 import CableTrace from '../components/CableTrace.vue'
 import ColourPicker from '../components/ColourPicker.vue'
 import HostIcon from '../components/HostIcon.vue'
+import MenuButton from '../components/MenuButton.vue'
 import { ICONS } from '../icons'
 
 const props = defineProps({ name: { type: String, required: true } })
@@ -37,6 +38,22 @@ const isNew = computed(() => props.name === 'new')
 const LIVE_CLASS = { up: 'ok', down: 'err', degraded: 'warn' }
 const live = computed(() => derived.value?.health?.live)
 const pinnedHere = computed(() => isPinned(route.path))
+const gitOf = computed(() => (state.bar?.sites || []).find((x) => x.code === derived.value?.site)?.git || null)
+// plans for this host (a patch run first): they open on Changes, where they wait for approval
+const planning = ref(false)
+const plans = computed(() => (derived.value?.plan_actions || []).map((a) => ({ ...a, title: a.plugin === 'patching' && a.action === 'patch' ? 'Plan patch run' : `Plan: ${a.label}` })))
+const mainPlan = computed(() => plans.value.find((a) => a.plugin === 'patching' && a.action === 'patch') || null)
+const otherPlans = computed(() => plans.value.filter((a) => a !== mainPlan.value).map((a) => ({ label: `${a.label} (${a.integration})`, run: () => plan(a) })))
+async function plan(a) {
+  planning.value = true
+  try {
+    const enc = encodeURIComponent
+    const job = a.host
+      ? await api.post(`/api/hosts/${enc(a.host)}/modules/${enc(a.integration)}/actions/${enc(a.action)}`, {})
+      : await api.post(`/api/integrations/${enc(a.integration)}/actions/${enc(a.action)}`, { params: a.params })
+    router.push(`/changes?job=${job.id}`)
+  } catch (e) { toast(e.message, 'error') } finally { planning.value = false }
+}
 // the address people know the host by: the primary interface's, else the first one
 const primaryAddr = computed(() => {
   const ifs = (derived.value?.interfaces || []).filter((i) => i.ip4 || i.ip6)
@@ -549,6 +566,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
             <span v-if="primaryAddr" class="h-tag"><b>{{ primaryAddr }}</b></span>
             <span v-if="derived.runs_on" class="h-tag">on <b>{{ derived.runs_on }}</b></span>
             <span v-if="derived.rack" class="h-tag">rack <b>{{ derived.rack }}<template v-if="derived.rack_unit"> U{{ derived.rack_unit }}</template></b></span>
+            <span v-if="gitOf" class="h-tag" :title="`Saving writes to ${gitOf.path} on ${gitOf.branch}`">git <b>{{ gitOf.branch }} · {{ gitOf.path }}</b></span>
           </div>
         </div>
         <div class="oh-acts">
@@ -556,6 +574,8 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
             title="What breaks if this host goes down"><Unplug :size="15" /> What breaks?</RouterLink>
           <RouterLink v-if="!isNew && derived?.name" :to="{ path: '/labels', query: { what: 'hosts', host: derived.name } }" class="btn"
             title="Print a label with a QR code for this host"><QrCode :size="15" /> Label</RouterLink>
+          <MenuButton v-if="!isNew && otherPlans.length" :items="otherPlans" label="Plan" :small="false" title="Plan an action for this host" />
+          <button v-if="!isNew && mainPlan" class="btn primary" :disabled="planning" @click="plan(mainPlan)"><PackageCheck :size="15" /> {{ planning ? 'Planning…' : mainPlan.title }}</button>
           <span v-if="readOnly" class="lock" title="Your roles don't allow changing this host">🔒 read-only for you</span>
           <template v-else>
             <button v-if="!isNew" class="btn danger" @click="remove">Delete</button>

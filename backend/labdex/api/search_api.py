@@ -45,6 +45,32 @@ def _score(q: str, *values) -> int | None:
     return best
 
 
+def plan_actions(host: dict, p) -> list[dict]:
+    """The plan actions that can run for this one host: host actions, and actions that take a
+    host list, of enabled integrations that apply to it and that you may run. Each comes back as
+    what to post: {integration, plugin, action, label, host | params}. Plans only: they wait on
+    Changes for review and approval."""
+    from .. import hostmodules
+    reg = current_app.extensions["labdex"]["registry"]
+    out = []
+    for i in db.session.scalars(db.select(Integration).where(Integration.enabled.is_(True)).order_by(Integration.name)):
+        spec = reg.get(i.plugin_id)
+        if spec is None or spec.error or not p.can("integration", "apply", rbac.named_facts(i.name)):
+            continue
+        if not hostmodules.state(i, host)[0]:
+            continue
+        for a in spec.actions:
+            if a.get("mode") != "plan":
+                continue
+            per_host = a.get("scope") == "host"
+            takes_list = any(x.get("key") == "hosts" and x.get("type") == "list" for x in a.get("params") or [])
+            if not (per_host or takes_list):
+                continue
+            r = {"integration": i.name, "plugin": i.plugin_id, "action": a["id"], "label": a.get("label") or a["id"]}
+            out.append(r | ({"host": host["name"]} if per_host else {"params": {"hosts": [host["name"]]}}))
+    return out
+
+
 def _host_actions(q: str, p) -> list[dict]:
     """"patch web-02", "deploy motd to web*": a verb, then a host (a trailing * matches a prefix).
     Offers each host action, and each action that takes a host list, for the hosts that match,

@@ -2,7 +2,7 @@
 // The top of the Overview: four numbers that say whether the lab is fine, one row per site,
 // and a short list of what needs attention, each with the one thing to do about it.
 // Every action opens the page where it's done (plans are approved on Changes, never here).
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { ago, state } from '../store'
 
 const props = defineProps({ d: { type: Object, required: true } })
@@ -20,7 +20,18 @@ const attention = computed(() => {
   const u = c.value.discovery?.unknown_hosts
   if (u) out.push({ sev: 'info', title: `${u} unknown host${u === 1 ? '' : 's'} on the network`, sub: 'seen by discovery', act: 'Add to inventory', to: '/discovery' })
   if (c.value.updates?.security) out.push({ sev: 'warn', title: `${c.value.updates.security} security update${c.value.updates.security === 1 ? '' : 's'} waiting`, sub: `${c.value.updates.hosts} host(s)${c.value.updates.reboot ? `, ${c.value.updates.reboot} need a reboot` : ''}`, act: 'Plan patch run', to: '/patches' })
-  return out.slice(0, 6)
+  const rank = { err: 0, warn: 1, info: 2 }
+  return out.sort((a, b) => rank[a.sev] - rank[b.sev]).slice(0, 6) // the worst first
+})
+// Activity: everything, only applies, or only what failed
+const feed = ref('all')
+const activity = computed(() => {
+  if (feed.value === 'failures') {
+    return (props.d.failing || []).map((j) => ({ key: `j${j.id}`, dot: 'fail', title: `${j.action} failed`, sub: j.integration, to: `/jobs/${j.id}`, ts: j.finished_at || j.created_at }))
+  }
+  const rows = (props.d.changes || []).filter((e) => feed.value === 'all' || e.action === 'apply' || /^applied\b/.test(e.summary || ''))
+  return rows.slice(0, 5).map((e) => ({ key: e.id, dot: e.action === 'delete' ? 'err' : e.action === 'apply' || /^applied\b/.test(e.summary || '') ? 'ok' : 'info',
+    title: e.summary || `${e.action} ${e.object_type} ${e.object_name}`, sub: e.actor, to: `/history/${e.id}`, ts: e.ts }))
 })
 const mine = computed(() => (props.d.waiting || []).filter((j) => j.can_approve).length)
 const SEV = { err: 'err', warn: 'warn', info: 'info' }
@@ -89,16 +100,20 @@ const SEV = { err: 'err', warn: 'warn', info: 'info' }
         <p v-else class="empty-line pad">Nothing needs you. ✓</p>
       </section>
       <section class="card flush">
-        <div class="sect-head pad"><h2>Activity</h2><span class="grow"></span><RouterLink to="/history" class="small">All</RouterLink></div>
-        <ul v-if="d.changes.length" class="att">
-          <li v-for="e in d.changes.slice(0, 5)" :key="e.id">
-            <span class="dot" :class="e.action === 'delete' ? 'err' : e.action === 'apply' ? 'ok' : 'info'" style="margin-top: 7px"></span>
-            <div class="grow"><RouterLink :to="`/history/${e.id}`" class="plain">{{ e.summary || `${e.action} ${e.object_type} ${e.object_name}` }}</RouterLink>
-              <div class="small muted">{{ e.actor }}</div></div>
-            <span class="mono small faint">{{ ago(e.ts).replace(' ago', '') }}</span>
+        <div class="sect-head pad"><h2>Activity</h2><span class="grow"></span>
+          <div class="seg sm" role="group" aria-label="Show">
+            <button v-for="f in [['all', 'All'], ['applies', 'Applies'], ['failures', 'Failures']]" :key="f[0]" :class="{ on: feed === f[0] }" :aria-pressed="feed === f[0]" @click="feed = f[0]">{{ f[1] }}</button>
+          </div>
+          <RouterLink to="/history" class="small">All activity</RouterLink></div>
+        <ul v-if="activity.length" class="att">
+          <li v-for="e in activity" :key="e.key">
+            <span class="dot" :class="e.dot" style="margin-top: 7px"></span>
+            <div class="grow"><RouterLink :to="e.to" class="plain">{{ e.title }}</RouterLink>
+              <div class="small muted">{{ e.sub }}</div></div>
+            <span v-if="e.ts" class="mono small faint">{{ ago(e.ts).replace(' ago', '') }}</span>
           </li>
         </ul>
-        <p v-else class="empty-line pad">No changes yet.</p>
+        <p v-else class="empty-line pad">{{ feed === 'failures' ? 'Nothing failed.' : feed === 'applies' ? 'Nothing applied yet.' : 'No changes yet.' }}</p>
       </section>
     </div>
   </div>

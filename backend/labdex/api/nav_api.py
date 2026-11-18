@@ -73,7 +73,7 @@ def nav():
 def statusbar():
     """What the status bar at the foot of every page shows.
 
-    Per site, the git commit it was last synced to and when; how many of the agents you may see are
+    Per site, the git commit it was last synced to and when, and the branch and file it uses; how many of the agents you may see are
     linked now; and whether the vault is sealed. Commits are short hashes; nothing here is secret.
     """
     from .. import agents, gitsource, keyvault, sites
@@ -81,9 +81,11 @@ def statusbar():
     p = g.principal
     out_sites = []
     for s in sites.all_sites():
-        st = (s.git_state or {}) if gitsource.config(s) is not None else None
+        cfg = gitsource.config(s)
+        st = (s.git_state or {}) if cfg is not None else None
         out_sites.append({"code": s.code, "git": None if st is None else {
-            "commit": (st.get("commit") or "")[:7], "synced_at": st.get("synced_at"), "error": bool(st.get("error") or st.get("conflict"))}})
+            "commit": (st.get("commit") or "")[:7], "synced_at": st.get("synced_at"), "error": bool(st.get("error") or st.get("conflict")),
+            "branch": cfg.get("branch") or "main", "path": cfg.get("path") or f"labdex/{s.code}.yaml"}})
     linked = total = 0
     now = agents.utcnow()
     for a in db.session.scalars(db.select(Agent).where(Agent.revoked_at.is_(None))):
