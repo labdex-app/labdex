@@ -7549,6 +7549,9 @@
   the hosts, plans a diff, waits for a person's approval whatever the policy says, then writes
   <code>compose.yaml</code> and <code>.env</code> with Ansible and runs <code>docker compose up -d</code>. Only folders labdex
   wrote are changed; removing stacks is off by default. See <em>Plugins › Compose stacks</em>.</li>
+<li><strong>Proxmox VE</strong> plugin: start and stop linked guests to match the inventory, set their cores and
+  memory, and take snapshots (also before each change). Each is its own switch, off by default,
+  and every run waits for a person's approval. See <em>Plugins › Compute and network</em>.</li>
 </ul>
 <h2 id="1260">1.26.0<a class="headerlink" href="#1260" title="Permanent link">&para;</a></h2>
 <ul>

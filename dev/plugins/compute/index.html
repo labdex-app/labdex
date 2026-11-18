@@ -1321,6 +1321,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#changing-guests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changing guests
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2016,6 +2027,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#changing-guests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changing guests
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2162,7 +2184,28 @@ bridges. Then the inventory is where a guest starts:</p>
    step fails (the VM doesn't start, say), the guest is still linked and the host set
    <strong>offline</strong>, so the next plan doesn't make a second one; the job log says what to fix.</li>
 </ol>
-<p>Guests are never deleted or changed after creation; drift reports differences.</p>
+<p>Guests are never deleted; drift reports differences. Changing them is a separate switch each,
+below.</p>
+<h3 id="changing-guests">Changing guests<a class="headerlink" href="#changing-guests" title="Permanent link">&para;</a></h3>
+<p>Each kind of change has its own switch in the instance, all off by default, and each needs more
+privileges on the token (listed with the switch). Every run waits for a person's approval, even
+when an <a href="../../guide/plans/">approval policy</a> would let it apply by itself, and the plan lines carry
+the host, so zone policies apply (a public site can ask for its own approvers). They only touch
+guests linked to a host (<em>VM / CT id</em> in the host's Proxmox settings).</p>
+<ul>
+<li><strong>Start and stop guests</strong>: <em>Apply guest settings</em> starts a guest whose host is <strong>active</strong> in the
+  inventory and shuts down (a clean ACPI shutdown) one whose host is <strong>offline</strong>. Planned hosts are
+  left alone.</li>
+<li><strong>Change cores and memory</strong>: <em>Apply guest settings</em> sets cores and memory to what the host's
+  Proxmox settings say; an empty field leaves the guest as it is. A VM's new memory takes effect at
+  its next restart unless memory hotplug is on; the plan says so.</li>
+<li><strong>Take snapshots</strong>: <em>Take a snapshot</em> on a host snapshots its guest, with a name you give or
+  <code>labdex-&lt;date&gt;-&lt;time&gt;</code>. With <strong>Snapshot before a change</strong> on (the default), <em>Apply guest
+  settings</em> takes one before it resizes or shuts down a guest, so there is something to roll back
+  to (rolling back stays in Proxmox).</li>
+</ul>
+<p><em>Apply this guest's settings</em> does the same for one host. A switch you turn off after planning
+still counts when the plan is applied: that part is skipped and the log says so.</p>
 <h2 id="k3s">k3s<a class="headerlink" href="#k3s" title="Permanent link">&para;</a></h2>
 <p>A service account token with get/list on nodes and pods. Matches nodes to hosts,
 reports Ready/NotReady as host status, lists drift against the cluster's feature and
