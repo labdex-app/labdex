@@ -12,6 +12,10 @@
   is a breadcrumb and the Ctrl K box; a status bar at the foot shows the live connection, each
   site's git commit and sync time, linked agents and the vault. The app icon is the flat line
   lantern. Every old address still works.
+- **Changes page**: every plan in a list with what it adds, changes and removes, and the
+  selected one beside it with a Plan, Review, Apply, Verify stepper, add/change/destroy counts
+  and the approvals still missing. **Plan again to verify** re-plans an applied action; an empty
+  plan means the target matches. Plans in `/api/jobs` now carry `ops` and `site`.
 - **Host agents** (`labdex-agent`): a systemd service on Linux hosts that keeps one outgoing
   WebSocket connection to labdex, so hosts need no open port. Enrol it from the host's new
   **Agent** tab with a one-time token; labdex keeps only a hash of the host's key, and **Revoke**

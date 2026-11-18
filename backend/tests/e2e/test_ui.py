@@ -263,6 +263,7 @@ def test_sidebar_marks_detail_pages(page, server):
     page.goto(server + "/topology")  # another section: every section stays in view, one link is current
     page.wait_for_selector(".side a[aria-current=page] >> text=Topology")
     assert page.locator(".side a[aria-current=page]").count() == 1
+    page.wait_for_selector(".side a.nl >> text=Integrations")  # shown once /api/nav has answered
     assert page.locator(".side .grp .nl:visible").count() == page.locator(".side .grp .nl").count()
     page.goto(server + "/cables")  # an area of several pages: its sidebar entry is current, its pages are tabs
     page.wait_for_selector(".side a[aria-current=page] >> text=Physical")
@@ -518,3 +519,14 @@ def test_patches_page_and_host_card(page, server, tmp_path):
     open_host(page, server, "srv-vm-dns-01")
     page.wait_for_selector(".glance >> text=1 security")
     page.screenshot(path=str(tmp_path / "host-patches.png"))
+
+
+def test_changes_page_lists_plans_beside_the_detail(page, server):
+    page.goto(server + "/changes")
+    page.wait_for_selector(".side a[aria-current=page] >> text=Changes")
+    assert page.locator(".list-pane .chip.on").inner_text().startswith("Open")
+    page.wait_for_selector(".lp-empty >> text=Nothing waiting")  # the example inventory has no integrations
+    page.click(".areatabs >> text=Change sets")
+    page.wait_for_url("**/changesets")
+    assert page.locator(".side a[aria-current=page]").inner_text().startswith("Changes")
+    assert not page.errors

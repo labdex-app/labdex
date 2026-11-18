@@ -32,9 +32,10 @@ export const SECTIONS = [
     { to: '/features', label: 'Automation', icon: Wrench },
   ] },
   { id: 'change', label: 'Change', items: [
-    { to: '/changesets', label: 'Changes', icon: GitPullRequestArrow },
+    { to: '/changes', label: 'Changes', icon: GitPullRequestArrow, badge: 'pending', also: ['/jobs'],
+      tabs: [{ to: '/changes', label: 'Plans' }, { to: '/changesets', label: 'Change sets' }] },
     { to: '/history', label: 'Activity', icon: Activity },
-    { to: '/plugins', label: 'Integrations', icon: Plug, show: 'integrations', badge: 'pending', also: ['/integrations', '/jobs'] },
+    { to: '/plugins', label: 'Integrations', icon: Plug, show: 'integrations', also: ['/integrations'] },
   ] },
 ]
 
