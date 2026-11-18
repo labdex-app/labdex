@@ -24,9 +24,11 @@ sudo sh install.sh --url https://lantern.example.net --token lxe_â€¦ --sha256 â€
 
 Read `install.sh` before you run it. It:
 
-1. installs Python 3 with `cryptography` (from the distribution) and `simple-websocket`, in a
-   virtual environment under `/opt/labdex-agent`;
-2. downloads the agent from labdex and checks it against `--sha256`;
+1. installs Python 3 (3.11 or newer), its `cryptography` package and `sudo` from the distribution,
+   but only what is missing. The agent brings its other libraries along, so nothing comes from
+   PyPI;
+2. downloads the agent (`/opt/labdex-agent/labdex-agent.pyz`) from labdex and checks it against
+   `--sha256`;
 3. creates the system user `labdex-agent` (no shell, no home);
 4. writes `/etc/labdex-agent/agent.conf` and the sudo rules in `/etc/sudoers.d/labdex-agent`
    (checked with `visudo` first);
@@ -42,6 +44,14 @@ Options:
 | `--allow "patch reboot ansible"` | the writes this host accepts. Without it the agent is read-only. |
 | `--root` | run the agent as root instead of `labdex-agent`. labdex must allow root for this host too: only an administrator can tick *run it as root* when making the token. Ansible needs it. |
 | `--ca-file /path/ca.pem` | for a labdex with a certificate from your own CA. |
+| `--uninstall` | stop and remove the agent again: its service, sudo rules, config and program. The key, certificate and audit log stay in `/var/lib/labdex-agent`; add `--purge` to remove them and the `labdex-agent` user too. Revoke the agent on the Agent tab as well. |
+
+Running it again installs the agent anew with a new token, and revokes the older one.
+Without `curl` on the host, it downloads with Python instead; fetch `install.sh` itself the same way:
+
+```sh
+python3 -c "import urllib.request as u; open('install.sh','wb').write(u.urlopen('https://lantern.example.net/api/agents/install.sh').read())"
+```
 
 The hub URL must be `https://`: the key travels over it.
 
@@ -61,10 +71,18 @@ The agent's user is never put in the `docker` group, because that is as good as 
 through `systemd-run`, outside the agent's sandbox, one at a time, and show up in the journal as
 `labdex-agent-patch` or `labdex-agent-ansible`.
 
-The service runs with systemd hardening: `ProtectSystem=strict`, `ProtectHome`, `PrivateTmp`,
-`PrivateDevices`, kernel and cgroup protection, a memory limit and more (see
-`backend/labdex/agent/dist/labdex-agent.service`). `NoNewPrivileges` stays off, because the sudo
-rules need it.
+The service runs in a systemd sandbox: `ProtectSystem=strict` (the only folder it can write is
+`/var/lib/labdex-agent`), `ProtectHome`, `PrivateTmp`, `ProtectControlGroups`, a capability bounding
+set that holds only what sudo needs to become root and what `ss` needs to see a socket's process,
+and limits on memory and tasks (see `backend/labdex/agent/dist/labdex-agent.service`).
+
+Some hardening is left off on purpose. With a user of its own, systemd turns on
+`NoNewPrivileges` by itself as soon as a service has any of `PrivateDevices`,
+`ProtectKernelTunables`, `ProtectKernelModules`, `ProtectKernelLogs`, `ProtectClock`,
+`ProtectHostname`, `RestrictNamespaces`, `RestrictRealtime`, `RestrictAddressFamilies`,
+`LockPersonality`, `MemoryDenyWriteExecute` or `SystemCallArchitectures`. Under
+`NoNewPrivileges`, sudo can't run, so every sudo rule above would fail. This was checked on
+Debian 12 with systemd 252.
 
 ## Jobs
 
@@ -215,7 +233,9 @@ labdex-agent show discovery         # what discovery would report, printed here,
 labdex-agent sudoers                # the sudo rules for this host's capabilities
 ```
 
-`labdex-agent` is `/opt/labdex-agent/venv/bin/python /opt/labdex-agent/labdex-agent.pyz`.
+`labdex-agent` (in `/usr/local/bin`) runs `/usr/bin/python3 -I /opt/labdex-agent/labdex-agent.pyz`.
+Its log is in the journal: `journalctl -u labdex-agent`. Write jobs log there too, as
+`labdex-agent-patch` and `labdex-agent-ansible`.
 
 ## Running labdex for agents
 

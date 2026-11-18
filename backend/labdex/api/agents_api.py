@@ -34,9 +34,29 @@ def _host_or_404(name: str, action: str):
 
 
 # ----------------------------------------------------------------------------- what hosts download
+# Pure-Python libraries the agent needs, taken from this labdex's own install into the zipapp,
+# so hosts need nothing from PyPI (only python3 and its cryptography package). All MIT licensed;
+# their licence files go along.
+BUNDLED = (("simple_websocket", "simple-websocket"), ("wsproto", "wsproto"), ("h11", "h11"))
+
+
+def _bundled_files():
+    import importlib
+    import importlib.metadata
+    for module, dist in BUNDLED:
+        root = Path(importlib.import_module(module).__file__).parent
+        for path in sorted(root.rglob("*")):
+            if path.is_file() and path.suffix in (".py", ".typed") and "__pycache__" not in path.parts:
+                yield f"{module}/{path.relative_to(root).as_posix()}", path.read_bytes()
+        d = importlib.metadata.distribution(dist)
+        for f in d.files or []:
+            if "LICEN" in f.name.upper():
+                yield f"licenses/{dist}-{d.version}/{f.name}", Path(d.locate_file(f)).read_bytes()
+
+
 def agent_package() -> tuple[bytes, str]:
-    """labdex-agent.pyz: the agent as one zipapp (package labdex_agent), built from labdex/agent.
-    Fixed timestamps, so the same code always gives the same SHA-256."""
+    """labdex-agent.pyz: the agent as one zipapp (package labdex_agent, built from labdex/agent,
+    with its libraries). Fixed timestamps, so the same code always gives the same SHA-256."""
     cache = current_app.extensions["labdex"].get("agent_pyz")
     if cache:
         return cache
@@ -50,6 +70,8 @@ def agent_package() -> tuple[bytes, str]:
         add("__main__.py", b"import sys\nfrom labdex_agent.cli import main\nsys.exit(main())\n")
         for path in sorted(AGENT_DIR.glob("*.py")):
             add(f"labdex_agent/{path.name}", path.read_bytes())
+        for name, data in _bundled_files():
+            add(name, data)
     data = buf.getvalue()
     out = (data, hashlib.sha256(data).hexdigest())
     current_app.extensions["labdex"]["agent_pyz"] = out
