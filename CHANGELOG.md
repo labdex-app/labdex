@@ -12,6 +12,11 @@
   Kustomizations they become against labdex's folder in the Flux repository, waits for an
   approval, then pushes them to a `labdex/flux-<cluster>` branch with a merge request. labdex
   never pushes to the branch Flux reads and only touches files it wrote.
+- **Compose stacks** plugin: Docker Compose stacks as code. Keep each stack's compose file and
+  environment in labdex (secrets as vault references). *Deploy stacks* reads the stack folders on
+  the hosts, plans a diff, waits for a person's approval whatever the policy says, then writes
+  `compose.yaml` and `.env` with Ansible and runs `docker compose up -d`. Only folders labdex
+  wrote are changed; removing stacks is off by default. See *Plugins › Compose stacks*.
 
 ## 1.26.0
 

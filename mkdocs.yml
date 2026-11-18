@@ -76,6 +76,7 @@ nav:
       - Pulumi (public site): plugins/pulumi.md
       - Patching (Ansible): plugins/patching.md
       - Kubernetes workloads & Flux: plugins/kubernetes.md
+      - Compose stacks: plugins/compose.md
       - Ansible and features: plugins/ansible.md
       - Monitoring: plugins/monitoring.md
       - Compute and network: plugins/compute.md
