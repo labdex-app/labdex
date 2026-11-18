@@ -47,8 +47,9 @@
   or `host`.
 - **New sign-in and first run**: sign in beside a short description of labdex, with single
   sign-on as a second button (or the only one with `LABDEX_OIDC_ONLY`). A new labdex opens
-  a set-up in steps: the first administrator, then links to sites, plugins, import and
-  agents.
+  a set-up in five steps: the first administrator, the first site with its git source (saved
+  and synced once), plugins from the Marketplace, import, and how to enrol agents. Every step
+  after the first can be skipped.
 - **Charts**: two new widget kinds for plugins, `heartbeat` (one bar per check; colour and
   height both show the state) and `meter` (used of total). Sparklines are a thin blue line;
   widget labels are mono capitals and values mono. The demo adds made-up *Reachable* and

@@ -1,8 +1,19 @@
 # First steps
 
-On a new labdex the first page sets up the first administrator. After that it lists what
-comes next (sites and their git source, plugins, import, agents), each with a link to its
-page; *Open labdex* skips them for later.
+On a new labdex the first page is a set-up in five steps. Only the first must happen there:
+
+1. **Administrator**: the first account.
+2. **Sites**: the site labdex started with, its name and optionally its git repository, branch
+   and how changes go there (a merge request for every change, or a commit). *Save site*
+   syncs once: an empty labdex reads the file from git; if the file isn't there yet, labdex
+   writes it. A token for a private repository goes in the vault, then on the Sites page.
+3. **Plugins**: the Marketplace; each plugin says what it may do before it's installed.
+4. **Import**: networks and hosts from NetBox, phpIPAM or CSV files, with a preview first.
+5. **Agents**: how a host enrols its agent from its Agent tab.
+
+*Skip for now* and *Next* move on; each step has its own page for later.
+
+Then:
 
 1. **Zones.** Under Zones create your areas (`DC` datacenter, `CA` campus, …); each
    gets a default zone. Add the zones you need inside them (`DC_TC`, `CA_UT`) with a

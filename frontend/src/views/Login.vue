@@ -2,13 +2,15 @@
 // Sign in, and the first run. Signing in: what this is on the left, the form on the right.
 // The first run is a short set-up in steps: the administrator first (the only step that must
 // happen here), then where to go next: sites and their git source, plugins, import, agents.
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Check } from 'lucide-vue-next'
 import { api, ApiError } from '../api'
 import mark from '../assets/mark.svg'
 import Field from '../components/Field.vue'
-import { state } from '../store'
+import AdminImport from '../components/AdminImport.vue'
+import Marketplace from '../components/Marketplace.vue'
+import { loadMeta, state } from '../store'
 
 const emit = defineEmits(['done'])
 const router = useRouter()
@@ -26,6 +28,12 @@ const ssoHref = computed(() => `/api/auth/oidc/login?next=${encodeURIComponent(w
 const busy = ref(false)
 const host = window.location.host
 const created = ref('') // the first administrator, once made: the set-up moves on to what's next
+const step = ref(0)
+const site = reactive({ existing: false, code: '', name: '', url: '', branch: 'main', mode: 'mr', path: '' })
+const savedSite = ref(false)
+const synced = ref(null)
+watch(() => [site.name, site.url, site.branch, site.mode, site.path], () => { savedSite.value = false; synced.value = null })
+const SYNC = { pulled: 'Connected · read the site from git', pushed: 'Connected · wrote the site to git', none: 'Connected · nothing to do', conflict: 'Both sides have changes', error: "Couldn't sync" }
 
 const STEPS = [
   { title: 'Administrator', sub: 'the first account' },
@@ -45,11 +53,55 @@ async function submit() {
   busy.value = true
   try {
     await api.post(setup.value ? '/api/auth/setup' : '/api/auth/login', { username: form.username, password: form.password })
-    if (setup.value) created.value = form.username.toLowerCase()
-    else emit('done')
+    if (setup.value) {
+      created.value = form.username.toLowerCase()
+      await afterAdmin()
+    } else emit('done')
   } catch (e) {
     if (e instanceof ApiError && e.errors.length) errors.value = e.fields
     else message.value = e.message
+  } finally {
+    busy.value = false
+  }
+}
+
+// signed in now: the meta the embedded pages need, and the site labdex started with
+async function afterAdmin() {
+  await loadMeta().catch(() => {})
+  const r = await api.get('/api/sites').catch(() => null)
+  const first = r?.sites?.[0]
+  if (first) Object.assign(site, { existing: true, code: first.code, name: first.name || '', url: first.git?.url || '',
+    branch: first.git?.branch || 'main', mode: first.git?.mode || 'mr', path: first.git?.path || '' })
+  step.value = 1
+}
+
+async function saveSite() {
+  errors.value = {}
+  message.value = ''
+  busy.value = true
+  const data = { code: site.code, name: site.name, git: site.url ? { url: site.url, branch: site.branch, mode: site.mode, path: site.path } : {} }
+  try {
+    if (site.existing) await api.put(`/api/sites/${encodeURIComponent(site.code)}`, data)
+    else await api.post('/api/sites', data)
+    site.existing = true
+    savedSite.value = true
+    await loadMeta().catch(() => {})
+    if (site.url) await syncSite()
+  } catch (e) {
+    if (e instanceof ApiError && e.errors.length) errors.value = e.fields
+    else message.value = e.message
+  } finally {
+    busy.value = false
+  }
+}
+
+// the first sync takes whichever side has something: an empty labdex reads the file from git
+async function syncSite() {
+  busy.value = true
+  try {
+    synced.value = await api.post(`/api/sites/${encodeURIComponent(site.code)}/git/sync`, {})
+  } catch (e) {
+    synced.value = { action: 'error', error: e.message }
   } finally {
     busy.value = false
   }
@@ -64,17 +116,17 @@ function go(to) {
 <template>
   <!-- first run: the set-up steps -->
   <main v-if="setup" class="first">
-    <form class="card setup" @submit.prevent="submit">
+    <div class="card setup">
       <aside class="steps">
         <div class="s-brand"><img :src="mark" alt="" width="22" height="22"><span>Set up labdex</span></div>
         <ol>
-          <li v-for="(s, i) in STEPS" :key="s.title" :class="{ done: i === 0 && created, now: (i === 0 && !created) || (i > 0 && created) }">
-            <span class="s-n" aria-hidden="true"><Check v-if="i === 0 && created" :size="13" /><template v-else>{{ i + 1 }}</template></span>
+          <li v-for="(s, i) in STEPS" :key="s.title" :class="{ done: i < step, now: i === step }" :aria-current="i === step ? 'step' : undefined">
+            <span class="s-n" aria-hidden="true"><Check v-if="i < step" :size="13" /><template v-else>{{ i + 1 }}</template></span>
             <span><b>{{ s.title }}</b><span class="small muted">{{ i === 0 && created ? `${created}, created` : s.sub }}</span></span>
           </li>
         </ol>
       </aside>
-      <section v-if="!created" class="s-body">
+      <form v-if="step === 0" class="s-body" @submit.prevent="submit">
         <div class="label">Step 1 of {{ STEPS.length }}</div>
         <h1>The first administrator</h1>
         <p class="muted m-0">Nobody has signed in yet. You can add more people, groups and single sign-on afterwards.</p>
@@ -93,22 +145,67 @@ function go(to) {
         </div>
         <div class="s-foot"><span class="grow"></span>
           <button class="btn primary" :disabled="busy">{{ busy ? 'Creating…' : 'Create administrator' }}</button></div>
+      </form>
+      <!-- steps 2 to 5: each can be skipped and done later on its own page -->
+      <form v-else-if="step === 1" class="s-body" @submit.prevent="savedSite ? (step = 2) : saveSite()">
+        <div class="label">Step 2 of {{ STEPS.length }}</div>
+        <h1>{{ site.existing ? 'Your first site' : 'A site' }}</h1>
+        <p class="muted m-0">A site is one place you run things, like home or public. Its inventory can live in a git repository.</p>
+        <div class="grid2">
+          <Field label="Code" :error="errors.code" :hint="site.existing ? 'Set when labdex started' : 'Lowercase, used in names'">
+            <input v-model.trim="site.code" :readonly="site.existing" class="mono" spellcheck="false"></Field>
+          <Field label="Name" :error="errors.name"><input v-model.trim="site.name" placeholder="Home"></Field>
+        </div>
+        <Field label="Git repository" :error="errors['git.url']" hint="Optional. An https:// address; a token for a private repository goes in the vault, on the Sites page.">
+          <input v-model.trim="site.url" type="text" inputmode="url" placeholder="https://git.example.com/lab/infra.git" spellcheck="false"></Field>
+        <div v-if="site.url" class="grid2">
+          <Field label="Branch" :error="errors['git.branch']"><input v-model.trim="site.branch" class="mono" spellcheck="false"></Field>
+          <Field label="Changes" :error="errors['git.mode']">
+            <select v-model="site.mode"><option value="mr">Merge request for every change</option><option value="commit">Commit to the branch</option></select></Field>
+          <Field label="File" :error="errors['git.path']"><input v-model.trim="site.path" class="mono" :placeholder="`labdex/${site.code || 'home'}.yaml`" spellcheck="false"></Field>
+        </div>
+        <div v-if="synced" class="conn small" :class="synced.action === 'error' || synced.action === 'conflict' ? 'bad' : ''">
+          <span class="dot" :class="synced.action === 'error' || synced.action === 'conflict' ? 'err' : 'ok'"></span>
+          <span>{{ SYNC[synced.action] || synced.action }}<template v-if="synced.commit"> · <span class="mono">{{ synced.commit.slice(0, 7) }}</span></template>
+            <template v-if="synced.error">: {{ synced.error }}</template></span>
+        </div>
+        <div v-if="message" class="errbox mt-3 mb-0">{{ message }}</div>
+        <div class="s-foot"><span class="grow"></span>
+          <button type="button" class="btn ghost" @click="step = 2">Skip for now</button>
+          <button v-if="savedSite && site.url" type="button" class="btn" :disabled="busy" @click="syncSite">{{ busy ? 'Syncing…' : 'Sync now' }}</button>
+          <button v-if="savedSite" type="button" class="btn primary" @click="step = 2">Next</button>
+          <button v-else class="btn primary" :disabled="busy || !site.code">{{ busy ? 'Saving…' : 'Save site' }}</button></div>
+      </form>
+      <section v-else-if="step === 2" class="s-body">
+        <div class="label">Step 3 of {{ STEPS.length }}</div>
+        <h1>Plugins</h1>
+        <p class="muted m-0">Install the plugins for what you run. Each asks what it may do before it's installed; you add an integration for each system afterwards.</p>
+        <div class="embed"><Marketplace /></div>
+        <div class="s-foot"><button type="button" class="btn" @click="step = 1">Back</button><span class="grow"></span>
+          <button type="button" class="btn primary" @click="step = 3">Next</button></div>
+      </section>
+      <section v-else-if="step === 3" class="s-body">
+        <div class="label">Step 4 of {{ STEPS.length }}</div>
+        <h1>Import</h1>
+        <p class="muted m-0">Bring in the networks and hosts you already have. A preview first; nothing that exists is changed.</p>
+        <div class="embed"><AdminImport /></div>
+        <div class="s-foot"><button type="button" class="btn" @click="step = 2">Back</button><span class="grow"></span>
+          <button type="button" class="btn primary" @click="step = 4">Next</button></div>
       </section>
       <section v-else class="s-body">
-        <div class="label">Steps 2 to {{ STEPS.length }}</div>
-        <h1>What next</h1>
-        <p class="muted m-0">You're signed in as <b class="mono">{{ created }}</b>. Each of these has its own page; do them now or later.</p>
-        <ul class="next">
-          <li v-for="(s, i) in STEPS.slice(1)" :key="s.title">
-            <span class="s-n" aria-hidden="true">{{ i + 2 }}</span>
-            <span class="nx-t"><b>{{ s.title }}</b><span class="small muted">{{ s.what }}</span></span>
-            <button type="button" class="btn small" @click="go(s.to)">Open</button>
-          </li>
-        </ul>
-        <div class="s-foot"><span class="grow"></span>
+        <div class="label">Step 5 of {{ STEPS.length }}</div>
+        <h1>Agents</h1>
+        <p class="muted m-0">An agent on a Linux host reports what runs there, its updates, and its CPU, memory and disk. It only reads until you allow more, on both ends.</p>
+        <ol class="howto">
+          <li>Open a host and its <b>Agent</b> tab.</li>
+          <li><b>Make an enrol token</b>: it works once and expires.</li>
+          <li>Run the install line it shows on the host. The agent dials out to labdex; the host needs no open port.</li>
+        </ol>
+        <div class="s-foot"><button type="button" class="btn" @click="step = 3">Back</button><span class="grow"></span>
+          <button type="button" class="btn" @click="go('/hosts')">Open Hosts</button>
           <button type="button" class="btn primary" @click="go('/')">Open labdex</button></div>
       </section>
-    </form>
+    </div>
   </main>
 
   <!-- sign in -->
@@ -200,6 +297,11 @@ function go(to) {
 .next li { display: flex; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); }
 .next li:last-child { border-bottom: 1px solid var(--line); }
 .nx-t { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.s-body > .field, .s-body > label { margin-top: 6px; }
+.conn { display: flex; gap: 8px; align-items: center; margin-top: 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--panel); }
+.conn.bad { border-color: var(--err); }
+.embed { margin-top: 16px; max-height: 420px; overflow: auto; border-top: 1px solid var(--line); padding-top: 12px; }
+.howto { margin: 16px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
 @media (max-width: 760px) {
   .setup { grid-template-columns: minmax(0, 1fr); }
   .steps { border-right: 0; border-bottom: 1px solid var(--line); }
