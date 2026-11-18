@@ -5,11 +5,15 @@ token that may not read it) still shows its workloads.
 """
 from __future__ import annotations
 
+import base64
 import os
+import re
+import subprocess
 import tempfile
+from pathlib import Path
 
+from labdex.plugins.base import Change, PluginError
 from labdex.plugins.base import Plugin as Base
-from labdex.plugins.base import PluginError
 
 WORKLOADS = (("Deployment", "deployments"), ("StatefulSet", "statefulsets"), ("DaemonSet", "daemonsets"))
 # group → [(kind, plural)]; the version comes from discovery (the cluster's preferred one)
@@ -66,6 +70,10 @@ def workload(kind: str, obj: dict) -> dict:
     state = "stopped" if want == 0 else "ok" if ready >= want else "down" if ready == 0 else "degraded"
     return {"kind": kind, "namespace": md.get("namespace", ""), "name": md.get("name", ""), "want": want, "ready": ready, "state": state,
             "images": [c.get("image", "") for c in containers if c.get("image")]}
+
+
+REPO_RE = re.compile(r"^(https://[^\s@]+|file://\S+|/\S+)$")  # no user:password@: the token is a setting
+AUTHOR = ("labdex", "labdex@localhost")
 
 
 def key(o: dict) -> str:
@@ -217,3 +225,124 @@ class Plugin(Base):
                       "detail": f"{len(st['workloads'])} workloads, {sum(1 for o in st['flux'] if o['kind'] in APPLIERS)} Flux objects"}]
         return {"kind": "status", "items": items, "link": f"/integrations/{self.ctx.name}?tab=cluster",
                 "sub": f"{self.cluster} · {st.get('version', '')}"}
+
+    # ---------------------------------------------------------------- Flux files as code
+    def _flux_cfg(self) -> dict:
+        s = self.settings
+        url = (s.get("flux_repo") or "").strip()
+        if not url:
+            raise PluginError("set the Flux repository first (settings › Flux files)")
+        if not REPO_RE.match(url):
+            raise PluginError("the Flux repository: an https:// address without user:password, or a local path")
+        branch = (s.get("flux_branch") or "main").strip()
+        folder = (s.get("flux_path") or "clusters/{cluster}/labdex").replace("{cluster}", self.cluster).strip("/")
+        if not folder or ".." in folder.split("/"):
+            raise PluginError("the folder for labdex's files: a relative path in the repository")
+        return {"url": url, "branch": branch, "path": folder, "token": s.get("flux_token") or "",
+                "namespace": (s.get("flux_namespace") or "flux-system").strip(),
+                "work": "labdex/flux-" + re.sub(r"[^A-Za-z0-9._-]+", "-", self.cluster).strip("-.")}
+
+    def _apps(self) -> list[dict]:
+        from labdex import fluxfiles
+        try:
+            return fluxfiles.parse(self.settings.get("apps") or "")
+        except fluxfiles.AppError as exc:
+            raise PluginError(f"apps: {exc}") from None
+
+    def _render(self, cfg_ns: str = "flux-system") -> dict[str, str]:
+        from labdex import fluxfiles
+        return fluxfiles.render(self._apps(), f"integration {self.ctx.name}, cluster {self.cluster}", cfg_ns)
+
+    def _git(self, cfg: dict, *args: str, check: bool = True) -> subprocess.CompletedProcess:
+        env = {**os.environ, "GIT_TERMINAL_PROMPT": "0", "GIT_ASKPASS": "true", "LC_ALL": "C"}
+        if cfg["token"] and cfg["url"].startswith("https://"):
+            basic = base64.b64encode(f"oauth2:{cfg['token']}".encode()).decode()
+            # in the environment, never on the command line or in .git/config
+            env.update(GIT_CONFIG_COUNT="1", GIT_CONFIG_KEY_0="http.extraHeader", GIT_CONFIG_VALUE_0=f"Authorization: Basic {basic}")
+        d = self._workdir()
+        try:
+            r = subprocess.run(["git", "-C", str(d), *args], capture_output=True, text=True, env=env, timeout=120)
+        except subprocess.TimeoutExpired:
+            raise PluginError(f"git {args[0]} took too long") from None
+        if check and r.returncode:
+            raise PluginError(f"git {args[0]}: {(r.stderr or r.stdout).strip()[:400]}")
+        return r
+
+    def _workdir(self) -> Path:
+        return Path(self.ctx.data_dir) / "flux" / self.ctx.name
+
+    def _fetch(self, cfg: dict) -> str:
+        """The live branch's head after a fetch; labdex's working copy never checks it out for writing."""
+        d = self._workdir()
+        if not (d / ".git").exists():
+            d.mkdir(parents=True, exist_ok=True)
+            os.chmod(d, 0o700)
+            self._git(cfg, "init", "-q")
+        self._git(cfg, "remote", "remove", "origin", check=False)
+        self._git(cfg, "remote", "add", "origin", cfg["url"])
+        self._git(cfg, "fetch", "-q", "--depth", "20", "origin", f"+refs/heads/{cfg['branch']}:refs/remotes/origin/{cfg['branch']}")
+        return self._git(cfg, "rev-parse", f"refs/remotes/origin/{cfg['branch']}").stdout.strip()
+
+    def _files_at(self, cfg: dict, commit: str) -> dict[str, str]:
+        r = self._git(cfg, "ls-tree", "--name-only", f"{commit}:{cfg['path']}", check=False)
+        out = {}
+        for name in r.stdout.split() if r.returncode == 0 else []:
+            if name.endswith((".yaml", ".yml")):
+                out[name] = self._git(cfg, "show", f"{commit}:{cfg['path']}/{name}").stdout
+        return out
+
+    def run_flux_preview(self, params):
+        files = self._render((self.settings.get("flux_namespace") or "flux-system").strip())
+        for name, text in files.items():
+            self.log(f"--- {name}")
+            for line in text.splitlines():
+                self.log(line)
+        return {"files": sorted(files), "folder": (self.settings.get("flux_path") or "clusters/{cluster}/labdex").replace("{cluster}", self.cluster)}
+
+    def plan_flux_files(self, params):
+        from labdex import fluxfiles
+        cfg = self._flux_cfg()
+        want = self._render(cfg["namespace"])
+        head = self._fetch(cfg)
+        diffs = fluxfiles.diff(want, self._files_at(cfg, head))
+        conflicts = [d["file"] for d in diffs if d["op"] == "conflict"]
+        if conflicts:
+            raise PluginError(f"{cfg['path']}: {', '.join(conflicts)} exist and weren't written by labdex; rename the app or move the file")
+        for d in diffs:
+            self.log(d["diff"].rstrip() or f"{d['op']} {d['file']}")
+        return [Change(d["op"], "file", f"{cfg['path']}/{d['file']}", d["summary"], None, {"diff": d["diff"]},
+                       {"file": d["file"], "content": want.get(d["file"]), "base": head}) for d in diffs]
+
+    def apply_flux_files(self, changes, params):
+        cfg = self._flux_cfg()
+        head = self._fetch(cfg)
+        base = changes[0].data["base"] if changes else head
+        if base != head:
+            raise PluginError(f"{cfg['branch']} moved since the plan ({base[:10]} → {head[:10]}); plan again")
+        self._git(cfg, "checkout", "-q", "--detach", "--force", head)
+        d = self._workdir() / cfg["path"]
+        for c in changes:
+            f = d / c.data["file"]
+            if c.data["content"] is None:
+                self._git(cfg, "rm", "-q", "--", f"{cfg['path']}/{c.data['file']}")
+            else:
+                f.parent.mkdir(parents=True, exist_ok=True)
+                f.write_text(c.data["content"], encoding="utf-8")
+                self._git(cfg, "add", "--", f"{cfg['path']}/{c.data['file']}")
+        message = f"labdex: Flux apps of cluster {self.cluster}"
+        self._git(cfg, "-c", f"user.name={AUTHOR[0]}", "-c", f"user.email={AUTHOR[1]}", "commit", "-q", "-m", message)
+        sha = self._git(cfg, "rev-parse", "HEAD").stdout.strip()
+        if cfg["work"] == cfg["branch"]:
+            raise PluginError("the labdex branch can't be the Flux branch")
+        # only ever labdex's own branch; the live branch changes when someone merges the request
+        self._git(cfg, "push", "-q", "--force", "origin", f"{sha}:refs/heads/{cfg['work']}")
+        url = ""
+        if cfg["url"].startswith("https://"):
+            from labdex import gitsource
+            try:
+                url = gitsource.open_merge_request({"url": cfg["url"], "branch": cfg["branch"]}, cfg["work"], message, token=cfg["token"],
+                                                   body=f"Flux apps of cluster {self.cluster}, proposed by labdex. Merging it lets Flux apply them.")
+            except gitsource.GitError as exc:
+                raise PluginError(f"pushed {cfg['work']} but couldn't open the merge request: {exc}") from None
+        self.log(f"pushed {sha[:10]} to {cfg['work']}" + (f"; merge request {url}" if url else ""))
+        return {"commit": sha, "branch": cfg["work"], "merge_request": url, "files": len(changes)}

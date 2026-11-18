@@ -2,14 +2,15 @@ id: kubernetes
 name: Kubernetes workloads & Flux
 kind: integration
 tags: [kubernetes, flux, gitops, status]
-version: "0.1"
+version: "0.2"
 labdex: ">=1.24"
 description: >-
-  Read-only. What runs in one cluster and how Flux is doing: Deployments, StatefulSets and
+  What runs in one cluster and how Flux is doing: Deployments, StatefulSets and
   DaemonSets with ready against wanted replicas, Flux Kustomizations and HelmReleases with their
   Ready state and applied revision, and the Git, OCI and Helm sources they come from. Tells you
   when a Flux object fails or a workload loses replicas. Add one per cluster. labdex never changes
-  the cluster.
+  the cluster; it can also keep the cluster's apps as Flux files in git and propose them as a merge
+  request.
 pages:
   - {id: cluster, label: Cluster}
 settings:
@@ -18,9 +19,21 @@ settings:
   - {key: ca_pem, label: Cluster CA (PEM), type: text, help: "certificate-authority-data from the kubeconfig, decoded; empty = the system CAs"}
   - {key: verify_tls, label: Check the TLS certificate, type: bool, default: true}
   - {key: cluster, label: Cluster name, type: string, help: "Shown on pages and in notifications, e.g. oak"}
+  - {key: flux_repo, label: Flux repository, type: string, group: Flux files, help: "https address of the git repository Flux reads (no user:password in it), or a local path. labdex never pushes to its branch: changes go to a labdex/flux-<cluster> branch with a merge request."}
+  - {key: flux_branch, label: Flux branch, type: string, default: main, group: Flux files}
+  - {key: flux_token, label: Git token, type: secret, group: Flux files, help: "May push branches and open merge requests (GitLab: api + write_repository; GitHub: Contents and Pull requests)"}
+  - {key: flux_path, label: Folder for labdex's files, type: string, default: "clusters/{cluster}/labdex", group: Flux files, help: "labdex writes and removes only files it wrote there. Include the folder from one of your Flux Kustomizations."}
+  - {key: flux_namespace, label: Flux namespace, type: string, default: flux-system, group: Flux files}
+  - {key: apps, label: Apps, type: text, group: Flux files, help: "YAML list. A Helm chart: {name, namespace, helm: {repo, chart, version}, values}. A folder of the repository: {name, path, source}. Both take depends_on and interval."}
   - {key: ignore_namespaces, label: Leave out namespaces, type: string, default: "kube-system kube-public kube-node-lease", help: "Space separated; their workloads aren't listed (Flux objects always are)"}
 actions:
   - {id: test, label: Check connection, mode: run}
   - {id: poll, label: Read workloads and Flux, mode: run, schedulable: true, schedule_default: 5, description: "Workload replicas and Flux objects; notifies when one starts failing"}
+  - {id: flux_preview, label: Show Flux files, mode: run, description: "The files the apps become, without touching git"}
+  - id: flux_files
+    label: Propose Flux files
+    mode: plan
+    approval: always
+    description: "Plans the changes to labdex's folder in the Flux repository; after an approval pushes them to a labdex branch and opens a merge request. Never the live branch."
 widgets:
   - {id: cluster, label: Kubernetes cluster, where: dashboard}

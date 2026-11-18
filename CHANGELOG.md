@@ -7,6 +7,11 @@
   their Ready state, applied revision and source, and the Git, OCI and Helm sources, on a Cluster
   page and a dashboard widget. Notifies when a Flux object starts failing or a workload loses
   replicas. See *Plugins › Kubernetes workloads & Flux*.
+- **Flux files as code** in the same plugin: list a cluster's apps (Helm charts or folders of the
+  Flux repository) in labdex. *Propose Flux files* plans the HelmRepositories, HelmReleases and
+  Kustomizations they become against labdex's folder in the Flux repository, waits for an
+  approval, then pushes them to a `labdex/flux-<cluster>` branch with a merge request. labdex
+  never pushes to the branch Flux reads and only touches files it wrote.
 
 ## 1.26.0
 
