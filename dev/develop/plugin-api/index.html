@@ -1069,6 +1069,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../plugins/patching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Patching (Ansible)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../plugins/ansible/" class="md-nav__link">
         
   
@@ -2017,7 +2045,7 @@ Anything not listed here (other modules, models, private methods) may change.</p
 </tr>
 <tr>
 <td><code>actions</code></td>
-<td><code>id</code>, <code>label</code>, <code>mode</code> (<code>run plan export</code>), <code>description</code>, <code>scope</code> (<code>global host</code>), <code>params</code>, <code>schedulable</code>, <code>schedule_default</code> (minutes), <code>danger</code>, <code>ansible</code> (playbook path)</td>
+<td><code>id</code>, <code>label</code>, <code>mode</code> (<code>run plan export</code>), <code>description</code>, <code>scope</code> (<code>global host</code>), <code>params</code>, <code>schedulable</code>, <code>schedule_default</code> (minutes), <code>danger</code>, <code>approval</code> (<code>always</code>: a plan always needs at least one approval, whatever the policy), <code>ansible</code> (playbook path)</td>
 </tr>
 <tr>
 <td><code>hooks</code></td>
@@ -2158,6 +2186,10 @@ Anything not listed here (other modules, models, private methods) may change.</p
 <tr>
 <td><code>report_status({host: {state, detail, data}})</code></td>
 <td>host status from this source (<code>up</code>, <code>down</code>, <code>unknown</code>)</td>
+</tr>
+<tr>
+<td><code>inventory.patches()</code></td>
+<td>host → patch state (<code>state</code>, <code>pending</code>, <code>security</code>, <code>reboot</code>, <code>patched_at</code>, …) for the integration's site</td>
 </tr>
 <tr>
 <td><code>report_patches({host: {pending, security, packages, reboot, os, kernel, patched_at}}, replace=True)</code></td>

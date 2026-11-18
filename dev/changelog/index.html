@@ -1067,6 +1067,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../plugins/patching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Patching (Ansible)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../plugins/ansible/" class="md-nav__link">
         
   
@@ -7384,6 +7412,17 @@
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>Patching (Ansible)</strong> plugin: <em>Install updates</em> plans from each host's patch state (what is
+  waiting, security updates, reboot) without touching a host, waits for a person's approval
+  whatever the approval policy says, then upgrades with apt, dnf or yum one host at a time,
+  reboots where needed if allowed (never a host that runs guests, unless you say so), and
+  reports every host back to the Patches page. Save it as a job template for a weekly run that
+  waits for your approval. <em>Read patch state</em> reads the state over SSH without installing
+  anything. See <em>Plugins › Patching</em>.</li>
+<li>Plugin actions can say <code>approval: always</code>: their plans need at least one approval even under a
+  policy that needs none. The hosts a planned change names count for zone-based approval policies.</li>
+<li>The patch state of a host now follows its most recent report also for the reboot, so a patch
+  run that rebooted the host clears what an older report said.</li>
 <li><strong>NetBird plugin</strong> (<code>plugins/netbird</code>): peers of a NetBird network, netbird.io or self-hosted,
   into Discovery with their mesh addresses; peers that are hosts report connected or not as host
   status, with groups, OS, version and an expired login on the host page. Read-only, with a

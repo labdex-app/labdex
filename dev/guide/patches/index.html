@@ -1151,6 +1151,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../plugins/patching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Patching (Ansible)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../plugins/ansible/" class="md-nav__link">
         
   
@@ -1855,14 +1883,16 @@
 <p>The <strong>Patches</strong> page shows, for every host, which updates are waiting, how many of them are security
 updates, whether it needs a reboot, and when it was last patched. A host's dashboard has the same
 in its <em>Patches</em> card.</p>
-<p>labdex doesn't log in to your hosts to find out. Something reports to it:</p>
+<p>Something reports to labdex:</p>
 <ul>
 <li><strong>labdex-patch-report</strong> on the host itself (Debian, Ubuntu, Proxmox VE, Fedora, RHEL and friends),
   from cron, a systemd timer or Ansible;</li>
+<li>the <a href="../../plugins/patching/">Patching</a> plugin, which runs the same report over SSH, and installs
+  the updates after an approval;</li>
 <li><strong>a plugin</strong>, for the systems it already talks to.</li>
 </ul>
 <p>Each source keeps its own report per host. When several report the same host, the most recent report
-counts, and a reboot that any of them asks for counts. A report older than three days is shown as
+counts, for the updates and for the reboot. A report older than three days is shown as
 <em>stale</em>, not as up to date.</p>
 <table>
 <thead>
