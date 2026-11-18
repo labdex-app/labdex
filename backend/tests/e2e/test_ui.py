@@ -493,3 +493,24 @@ def test_site_git_source(page, server, tmp_path):
     page.wait_for_selector(".dlg >> text=Webhook:")
     page.screenshot(path=str(tmp_path / "sites-git.png"))
     assert not page.errors
+
+
+def test_patches_page_and_host_card(page, server, tmp_path):
+    report = {"source": "agent", "hosts": {
+        "srv-vm-dns-01": {"os": "Ubuntu 24.04.1 LTS", "kernel": "6.8.0-45-generic", "reboot": True,
+                          "packages": [{"name": "openssl", "from": "3.0.13-0ubuntu3.4", "to": "3.0.13-0ubuntu3.5", "security": True}, {"name": "tzdata"}]},
+        "srv-vm-mon-01": {"os": "Debian GNU/Linux 12 (bookworm)", "pending": 0, "patched_at": "2026-11-10T06:00:00Z"}}}
+    status = page.evaluate("""async (r) => (await fetch('/api/patches', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-Requested-With': 'labdex'},
+        body: JSON.stringify(r)})).status""", report)
+    assert status == 200
+    page.goto(server + "/patches")
+    page.wait_for_selector("td >> text=srv-vm-dns-01")
+    assert page.locator(".tile.security b").inner_text() == "1"
+    page.click("tr.click:has-text('srv-vm-dns-01')")
+    page.wait_for_selector("tr.pdetail >> text=openssl")
+    page.screenshot(path=str(tmp_path / "patches.png"))
+    page.click(".tile.current")
+    page.wait_for_function("document.querySelectorAll('tr.click').length === 1")
+    open_host(page, server, "srv-vm-dns-01")
+    page.wait_for_selector(".glance >> text=1 security")
+    page.screenshot(path=str(tmp_path / "host-patches.png"))

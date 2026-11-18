@@ -183,7 +183,7 @@ def _handlers(ctx) -> dict:
         if not matcher:
             matcher.append(ctx.match_host())
         return matcher[0](x)
-    h = {"state": lambda: ctx.state, "set_state": ctx.set_state, "match": match, "report_status": ctx.report_status,
+    h = {"state": lambda: ctx.state, "set_state": ctx.set_state, "match": match, "report_status": ctx.report_status, "report_patches": ctx.report_patches,
          "notify": ctx.notify, "hosts": ctx.hosts, "host": ctx.host}
     h.update({f"inventory.{n}": getattr(ctx.inventory, n) for n in INVENTORY})
     h.update({f"discovery.{n}": getattr(ctx.discovery, n) for n in DISCOVERY})
