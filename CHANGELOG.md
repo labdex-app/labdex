@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **NetBird plugin** (`plugins/netbird`): peers of a NetBird network, netbird.io or self-hosted,
+  into Discovery with their mesh addresses; peers that are hosts report connected or not as host
+  status, with groups, OS, version and an expired login on the host page. Read-only, with a
+  service user's token. See *Compute and network*.
 - **Fix**: `labdex plan` of a site file with a VIP (a keepalived pair, say) no longer fails
   with a database error when that site is already loaded.
 - **Hostname patterns**: a lab with its own naming scheme lists it under Settings › General
