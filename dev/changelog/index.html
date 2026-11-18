@@ -1151,6 +1151,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../plugins/compose/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compose stacks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../plugins/ansible/" class="md-nav__link">
         
   
@@ -7516,6 +7544,11 @@
   Kustomizations they become against labdex's folder in the Flux repository, waits for an
   approval, then pushes them to a <code>labdex/flux-&lt;cluster&gt;</code> branch with a merge request. labdex
   never pushes to the branch Flux reads and only touches files it wrote.</li>
+<li><strong>Compose stacks</strong> plugin: Docker Compose stacks as code. Keep each stack's compose file and
+  environment in labdex (secrets as vault references). <em>Deploy stacks</em> reads the stack folders on
+  the hosts, plans a diff, waits for a person's approval whatever the policy says, then writes
+  <code>compose.yaml</code> and <code>.env</code> with Ansible and runs <code>docker compose up -d</code>. Only folders labdex
+  wrote are changed; removing stacks is off by default. See <em>Plugins › Compose stacks</em>.</li>
 </ul>
 <h2 id="1260">1.26.0<a class="headerlink" href="#1260" title="Permanent link">&para;</a></h2>
 <ul>
