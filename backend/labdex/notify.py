@@ -10,6 +10,7 @@ retries failures a few times. Events labdex itself sends:
     backup.failed   a backup failed
     host.down       a host stopped answering (sent by status integrations)
     host.up         … and came back
+    host.patches    a host has security updates waiting or needs a reboot (patches.py)
     plugins.update  a plugin update is available (once per version)
     plugins.updated / plugins.update_failed / plugins.withdrawn   see plugins/updates.py
     test            the "Send a test" button
@@ -42,6 +43,7 @@ EVENTS = [
     ("backup.failed", "A backup failed"),
     ("host.down", "A host stopped answering"),
     ("host.up", "A host answers again"),
+    ("host.patches", "A host has security updates waiting or needs a reboot"),
     ("digest.weekly", "Weekly digest: changes, lint findings, unknown addresses, waiting plans"),
     ("plugins.update", "A plugin update is available"),
     ("plugins.updated", "A plugin updated itself (official updates)"),

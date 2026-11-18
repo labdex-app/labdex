@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 import { api, setUnauthorizedHandler } from './api'
 import {
   AppWindow, Cable, CircleCheck, GitFork, Github, Globe, History, Info, KeyRound, LayoutDashboard, Layers, LifeBuoy, ListTree, Menu, Network,
-  GitPullRequestDraft, PanelLeftClose, PanelLeftOpen, Plug, Radar, Rows4, Search, Server, Settings, Shield, Tags, Waypoints,
+  GitPullRequestDraft, PackageCheck, PanelLeftClose, PanelLeftOpen, Plug, Radar, Rows4, Search, Server, Settings, Shield, Tags, Waypoints,
 } from 'lucide-vue-next'
 import mark from './assets/mark.svg'
 import CommandPalette from './components/CommandPalette.vue'
@@ -14,7 +14,7 @@ import ConfirmHost from './components/ConfirmHost.vue'
 import Login from './views/Login.vue'
 import { loadAuth, loadMeta, loadNav, refreshLint, refreshPending, stamp, startEvents, state, stopEvents } from './store'
 
-const KEEP = ['Hosts', 'Networks', 'Services', 'Aliases', 'Lint', 'Dns', 'Discovery', 'History'] // pages kept alive between visits
+const KEEP = ['Hosts', 'Networks', 'Services', 'Patches', 'Aliases', 'Lint', 'Dns', 'Discovery', 'History'] // pages kept alive between visits
 
 const route = useRoute()
 const error = ref('')
@@ -36,6 +36,7 @@ const groups = computed(() => {
       { to: '/racks', label: 'Racks', icon: Rows4 },
       { to: '/cables', label: 'Cables', icon: Cable },
       { to: '/services', label: 'Services', icon: AppWindow },
+      { to: '/patches', label: 'Patches', icon: PackageCheck },
       { to: '/dns', label: 'DNS', icon: Globe },
       { to: '/naming', label: 'Naming', icon: Tags },
       { to: '/vault', label: 'Vault', icon: KeyRound },
