@@ -419,10 +419,11 @@ def _bundle_dir() -> Path:
 
 
 def _ansible_params(a: Agent, params: dict) -> dict:
-    """{site?, playbook, vars?, check?} → the signed parameters: the bundle's hash, the commit, the playbook."""
+    """{playbook, vars?, check?} → the signed parameters: the bundle's hash, the commit, the playbook.
+    The playbook comes from the git working copy of the host's own site."""
     from . import gitsource, sites
     from .agent.ansible import PLAYBOOK
-    unknown = set(params) - {"site", "playbook", "vars", "check"}
+    unknown = set(params) - {"playbook", "vars", "check"}
     if unknown:
         raise AgentError(f"unknown parameters: {', '.join(sorted(unknown))}")
     playbook = str(params.get("playbook", ""))
@@ -431,14 +432,20 @@ def _ansible_params(a: Agent, params: dict) -> dict:
     if not isinstance(params.get("vars", {}), dict):
         raise AgentError("vars must be an object")
     h = store.find_host(a.host)
-    code = str(params.get("site") or (h.site if h else "") or sites.default())
+    # a known site code from the database, never a path piece from the request
+    want = h.site if h else ""
+    code = next((c for c in sites.codes() if c == want), sites.default())
     repo = gitsource.repo_dir(code)
     if not (repo / ".git").exists():
         raise AgentError(f"site {code} has no git working copy: set up its git source first")
-    commit = _git(repo, "rev-parse", "HEAD").strip()
     top = playbook.split("/", 1)[0] if "/" in playbook else "."
-    data = subprocess.run(["git", "-C", str(repo), "archive", "--format=tar.gz", commit, "--", top],
-                          capture_output=True, check=True, timeout=60).stdout
+    try:
+        commit = _git(repo, "rev-parse", "HEAD").strip()
+        data = subprocess.run(["git", "-C", str(repo), "archive", "--format=tar.gz", commit, "--", top],
+                              capture_output=True, check=True, timeout=60).stdout
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError):
+        current_app.logger.exception("agent %s: packing %s failed", a.id, top)
+        raise AgentError(f"couldn't pack {top}/ from the site's git working copy (is it in the repository?)") from None
     from .agent.ansible import MAX_BUNDLE
     if len(data) > MAX_BUNDLE:
         raise AgentError(f"the bundle of {top}/ is over {MAX_BUNDLE // 1024 // 1024} MB")

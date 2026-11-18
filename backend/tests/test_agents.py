@@ -522,3 +522,20 @@ def test_ansible_job_signs_a_bundle_from_git(hub):
     assert hashlib.sha256(data).hexdigest() == p["bundle"]
     names = tarfile.open(fileobj=io.BytesIO(data)).getnames()
     assert "ansible/site.yml" in names
+
+
+def test_ansible_takes_no_site_and_reports_a_missing_folder(hub):
+    import subprocess
+    from labdex import gitsource, sites
+    repo = gitsource.repo_dir(sites.default())
+    (repo / "ansible").mkdir(parents=True)
+    (repo / "ansible" / "site.yml").write_text("- hosts: all\n")
+    for cmd in (["init", "-q"], ["add", "."], ["-c", "user.email=ci@example.com", "-c", "user.name=ci", "commit", "-qm", "x"]):
+        subprocess.run(["git", "-C", str(repo), *cmd], check=True)
+    admin = hub["admin"]
+    enrol(hub, allow=["ansible"])
+    admin.patch(f"/api/hosts/{DNS}/agent", json={"capabilities": ["ansible"]})
+    r = admin.post(f"/api/hosts/{DNS}/agent/jobs", json={"type": "ansible.run", "params": {"site": "../../etc", "playbook": "ansible/site.yml"}})
+    assert r.status_code == 409 and "unknown parameters: site" in r.get_json()["error"]
+    r = admin.post(f"/api/hosts/{DNS}/agent/jobs", json={"type": "ansible.run", "params": {"playbook": "nope/site.yml"}})
+    assert r.status_code == 409 and "couldn't pack nope/" in r.get_json()["error"]
