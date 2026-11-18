@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **Patching (Ansible)** plugin: *Install updates* plans from each host's patch state (what is
+  waiting, security updates, reboot) without touching a host, waits for a person's approval
+  whatever the approval policy says, then upgrades with apt, dnf or yum one host at a time,
+  reboots where needed if allowed (never a host that runs guests, unless you say so), and
+  reports every host back to the Patches page. Save it as a job template for a weekly run that
+  waits for your approval. *Read patch state* reads the state over SSH without installing
+  anything. See *Plugins › Patching*.
+- Plugin actions can say `approval: always`: their plans need at least one approval even under a
+  policy that needs none. The hosts a planned change names count for zone-based approval policies.
+- The patch state of a host now follows its most recent report also for the reboot, so a patch
+  run that rebooted the host clears what an older report said.
 - **NetBird plugin** (`plugins/netbird`): peers of a NetBird network, netbird.io or self-hosted,
   into Discovery with their mesh addresses; peers that are hosts report connected or not as host
   status, with groups, OS, version and an expired login on the host page. Read-only, with a

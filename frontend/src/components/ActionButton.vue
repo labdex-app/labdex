@@ -27,7 +27,7 @@ function click() {
 
 async function go() {
   const a = props.action
-  if (a.danger && !(await confirm({ title: `${a.label}?`, body: 'This changes the host right away, without a plan.', action: a.label, danger: true }))) return
+  if (a.danger && a.mode !== 'plan' && !(await confirm({ title: `${a.label}?`, body: 'This changes the host right away, without a plan.', action: a.label, danger: true }))) return
   busy.value = true
   errors.value = {}
   try {
@@ -52,7 +52,7 @@ async function go() {
         <span class="ell">{{ busy ? 'Starting…' : action.label }}{{ action.params?.length ? '…' : '' }}</span>
       </button>
       <span class="small muted">
-        {{ action.mode === 'plan' ? 'Plans first; nothing changes until you apply.' : 'Runs right away.' }}
+        {{ action.mode === 'plan' ? (action.approval === 'always' ? 'Plans first; nothing changes until someone approves it.' : 'Plans first; nothing changes until you apply.') : 'Runs right away.' }}
         <template v-if="action.ansible">Ansible.</template> {{ action.description }}
       </span>
     </div>

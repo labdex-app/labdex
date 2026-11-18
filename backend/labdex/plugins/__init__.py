@@ -144,7 +144,7 @@ class Spec:
             "description": m.get("description", ""), "author": m.get("author", ""),
             "builtin": self.builtin, "bundled": self.bundled, "replaces_bundled": self.replaces_bundled, "isolated": self.isolated,
             "error": self.error, "settings": self.settings,
-            "actions": [{k: a.get(k) for k in ("id", "label", "mode", "description", "schedulable", "danger", "scope")}
+            "actions": [{k: a.get(k) for k in ("id", "label", "mode", "description", "schedulable", "danger", "scope", "approval")}
                         | {"ansible": bool(a.get("ansible")), "params": a.get("params") or []} for a in self.actions],
             "hooks": self.hooks, "endpoints": self.endpoints,
             "host_settings": self.host_settings, "host_view": self.host_view, "per_host": self.per_host,

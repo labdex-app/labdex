@@ -45,10 +45,13 @@ def test_bad_values_save_nothing(admin):
 
 
 def test_merge_of_sources(app, loaded):
-    patches.report("proxmox", {DNS: {"pending": 0, "reboot": True, "patched_at": "2026-11-01T08:00:00+01:00"}})
-    patches.report("agent", {DNS: {"pending": 2, "patched_at": 1793836800}})
+    patches.report("proxmox", {DNS: {"pending": 0, "patched_at": "2026-11-01T08:00:00+01:00"}})
+    patches.report("agent", {DNS: {"pending": 2, "reboot": True, "patched_at": 1793836800}})
     s = patches.summary(DNS)
-    assert s["state"] == "reboot" and s["pending"] == 2  # the latest report counts, a reboot from any source counts
+    assert s["state"] == "reboot" and s["pending"] == 2  # the latest report counts
+    patches.report("proxmox", {DNS: {"pending": 0}})
+    assert patches.summary(DNS)["state"] == "current"    # also for the reboot: a newer report clears it
+    patches.report("agent", {DNS: {"pending": 2, "reboot": True, "patched_at": 1793836800}})
     assert s["patched_at"] == "2026-11-05T00:00:00Z"       # the most recent of the two, in UTC
     assert [x["source"] for x in s["sources"]] == ["agent", "proxmox"]
     # an old report is stale, and alone it makes the host stale

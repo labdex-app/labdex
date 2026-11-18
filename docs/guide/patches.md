@@ -4,14 +4,16 @@ The **Patches** page shows, for every host, which updates are waiting, how many 
 updates, whether it needs a reboot, and when it was last patched. A host's dashboard has the same
 in its *Patches* card.
 
-labdex doesn't log in to your hosts to find out. Something reports to it:
+Something reports to labdex:
 
 - **labdex-patch-report** on the host itself (Debian, Ubuntu, Proxmox VE, Fedora, RHEL and friends),
   from cron, a systemd timer or Ansible;
+- the [Patching](../plugins/patching.md) plugin, which runs the same report over SSH, and installs
+  the updates after an approval;
 - **a plugin**, for the systems it already talks to.
 
 Each source keeps its own report per host. When several report the same host, the most recent report
-counts, and a reboot that any of them asks for counts. A report older than three days is shown as
+counts, for the updates and for the reboot. A report older than three days is shown as
 *stale*, not as up to date.
 
 | State | |

@@ -6,8 +6,8 @@ Sources report what they see, one row per host and source:
   posting to `POST /api/patches` with an API token;
 * an **integration**: a plugin calls `ctx.report_patches({host: {...}})` (Proxmox nodes, Synology …).
 
-`summary(host)` merges the sources of a host: the most recent report counts, a reboot from any
-source counts. A report older than STALE is shown as stale, not as up to date.
+`summary(host)` merges the sources of a host: the most recent report counts, also for the reboot
+(a patch run that rebooted the host clears what an older report said). A report older than STALE is shown as stale, not as up to date.
 """
 from __future__ import annotations
 
@@ -136,7 +136,7 @@ def _merge(rows: list[HostPatch]) -> dict:
     fresh = [r for r in rows if r.checked_at >= utcnow() - STALE]
     latest = max(fresh or rows, key=lambda r: r.checked_at)
     patched = [r.patched_at for r in rows if r.patched_at]
-    reboot = any(r.reboot for r in fresh)
+    reboot = bool(fresh) and latest.reboot
     state = ("stale" if not fresh else "error" if latest.error else "security" if latest.security else "reboot" if reboot
              else "pending" if latest.pending else "current")
     return {"state": state, "pending": latest.pending, "security": latest.security, "reboot": reboot, "os": latest.os,

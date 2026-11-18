@@ -136,12 +136,17 @@ def _execute_scoped(job_id: int, phase: str) -> None:
                 if fn is None:
                     raise PluginError(f"plugin has no plan_{job.action}()")
                 changes = _changes_from(fn(job.params))
+                # the hosts a change names count for the approval policy's zones
+                _note_hosts(job, {str(n) for c in changes for n in (c.data or {}).get("hosts") or []})
             job.plan = [c.as_dict() for c in changes]
             job.status = "planned" if changes else "succeeded"
             if changes:
                 from .. import approvals
                 job.fingerprint = approvals.fingerprint(job.plan)
                 job.policy = approvals.match(job)
+                if action.get("approval") == "always" and int(job.policy.get("approvals") or 0) < 1:
+                    # an action that changes hosts outside labdex: a person says yes, whatever the policy
+                    job.policy = {**job.policy, "approvals": 1, "name": f"{job.policy.get('name')}, at least one approval for this action"}
                 approvals.carry_over(job)
             job.result = {"changes": len(changes)} if changes else {"changes": 0, "message": "Nothing to change"}
             log(f"{len(changes)} change(s) planned" if changes else "nothing to change")
