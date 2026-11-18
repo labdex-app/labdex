@@ -71,6 +71,7 @@ class Plugin(labdex.plugins.base.Plugin):
 | `ansible(playbook, *, extravars, limit, check, diff, …)` | runs a playbook; an `AnsibleResult` (`ok`, `rc`, `changed`, `failed`, `unreachable`, `output`) |
 | `state`, `set_state(key, value)` | small private state kept on the instance |
 | `report_status({host: {state, detail, data}})` | host status from this source (`up`, `down`, `unknown`) |
+| `report_patches({host: {pending, security, packages, reboot, os, kernel, patched_at}}, replace=True)` | updates waiting and reboots from this source ([Patches](../guide/patches.md)) |
 | `match_host()` | a function: address, name, URL or `host:port` → host name |
 | `notify(event, title, body="", link="", data=None)` | a notification (`plugin.<id>.<event>`; `host.down`/`host.up` as is) |
 | `discovery.record_scan(source, scanned, hosts)` | a port scan: `hosts` = `[{ip, hostname, mac, services: [{port, proto, service, product, version}]}]`; ports not found on scanned addresses are marked closed |

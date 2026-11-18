@@ -2,6 +2,8 @@
 // A host at a glance: status and what monitors say, addresses, where it sits, links to its
 // services, and what plugins show for it. The landing tab of a host.
 import Copy from './Copy.vue'
+import PatchState from './PatchState.vue'
+import { ago, stamp } from '../store'
 import PortMap from './PortMap.vue'
 import WidgetGrid from './WidgetGrid.vue'
 import ZoneChip from './ZoneChip.vue'
@@ -46,6 +48,18 @@ const emit = defineEmits(['tab'])
             <span v-if="host.rack_face !== 'front'" class="faint"> {{ host.rack_face === 'full' ? 'full depth' : 'rear' }}</span></dd></template>
           <template v-if="host.hardware"><dt>hardware</dt><dd>{{ host.hardware }}</dd></template>
         </dl>
+      </div>
+      <div v-if="host.patches" class="card">
+        <h3>Patches</h3>
+        <div class="row" style="gap: 8px"><PatchState :state="host.patches" /></div>
+        <dl v-if="host.patches.state !== 'unknown'" class="kv small mt-2">
+          <dt>updates</dt><dd>{{ host.patches.pending }}<span v-if="host.patches.security" class="faint">, {{ host.patches.security }} security</span></dd>
+          <template v-if="host.patches.os"><dt>os</dt><dd>{{ host.patches.os }}</dd></template>
+          <template v-if="host.patches.kernel"><dt>kernel</dt><dd class="mono">{{ host.patches.kernel }}</dd></template>
+          <dt>patched</dt><dd :title="stamp(host.patches.patched_at)">{{ ago(host.patches.patched_at) }}</dd>
+          <dt>reported</dt><dd :title="stamp(host.patches.checked_at)">{{ ago(host.patches.checked_at) }} by {{ host.patches.sources.map((s) => s.source).join(', ') }}</dd>
+        </dl>
+        <p v-else class="small faint m-0 mt-2">Nothing reports updates for this host. <RouterLink to="/patches">How</RouterLink></p>
       </div>
       <div v-if="host.links?.length" class="card">
         <h3>Open</h3>
