@@ -93,6 +93,12 @@ const statusClass = (s) => ({ succeeded: 'ok', failed: 'bad', refused: 'bad', ex
           <dt>runs as</dt><dd>{{ agent.root ? 'root' : agent.facts.user || 'labdex-agent' }}<span v-if="agent.allow_root" class="faint"> (root allowed)</span></dd>
           <dt>version</dt><dd>{{ agent.version || '—' }} <span class="faint">on {{ agent.hostname }}</span></dd>
           <template v-if="agent.facts.os"><dt>os</dt><dd>{{ agent.facts.os }} · {{ agent.facts.kernel }}</dd></template>
+          <template v-if="agent.cert && agent.cert.mode !== 'off'">
+            <dt>certificate</dt>
+            <dd v-if="agent.cert.issued" :title="agent.cert.sha256">until {{ stamp(agent.cert.not_after) }}
+              <span class="faint">· {{ agent.cert.on_link ? 'used on this link' : 'not seen on the link' }}{{ agent.cert.mode === 'required' ? ', required' : '' }}</span></dd>
+            <dd v-else class="faint">none yet{{ agent.cert.mode === 'required' ? ' (required: the agent can’t link)' : '' }}</dd>
+          </template>
           <dt>enrolled</dt><dd :title="stamp(agent.enrolled_at)">{{ ago(agent.enrolled_at) }} <span class="faint">(token by {{ agent.enrolled_by }})</span></dd>
         </dl>
       </div>

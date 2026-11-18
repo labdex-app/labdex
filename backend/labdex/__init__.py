@@ -64,6 +64,10 @@ def create_app(config: dict | None = None) -> Flask:
         LABDEX_SSO_GROUPS_HEADER=os.environ.get("LABDEX_SSO_GROUPS_HEADER", ""),
         LABDEX_SSO_AUTOCREATE=_env_bool("LABDEX_SSO_AUTOCREATE", False),
         LABDEX_TRUSTED_PROXIES=_env_list("LABDEX_TRUSTED_PROXIES"),
+        # host agents' client certificates (agent_pki.py): off | optional | required, and the header a
+        # trusted reverse proxy passes the certificate in
+        LABDEX_AGENT_MTLS=(os.environ.get("LABDEX_AGENT_MTLS", "optional").strip().lower() or "optional"),
+        LABDEX_AGENT_CERT_HEADER=os.environ.get("LABDEX_AGENT_CERT_HEADER", "").strip(),
         # OpenID Connect sign-in (see oidc.py)
         LABDEX_OIDC_ISSUER=os.environ.get("LABDEX_OIDC_ISSUER", "").strip(),
         LABDEX_OIDC_CLIENT_ID=os.environ.get("LABDEX_OIDC_CLIENT_ID", "").strip(),

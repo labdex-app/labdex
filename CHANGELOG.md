@@ -13,6 +13,10 @@
   site's git repository as signed bundles. It runs as its own user with narrow sudo rules (root is a
   per-host opt-in) under systemd hardening, buffers results while labdex is away, and keeps an audit
   log on both ends. See *Concepts › Host agents*.
+- Agents also hold a client certificate from labdex's own agent CA (mTLS on top of the key),
+  made at enrolment from a key that never leaves the host and renewed over the link.
+  `LABDEX_AGENT_MTLS` (`optional` by default, or `required`, `off`); behind a reverse proxy the
+  certificate comes in `LABDEX_AGENT_CERT_HEADER` from `LABDEX_TRUSTED_PROXIES`.
 - The image runs gunicorn with 64 threads (was 16): each connected agent holds one.
 - **Kubernetes workloads & Flux** plugin (read-only, one per cluster): Deployments, StatefulSets
   and DaemonSets with ready against wanted replicas, Flux Kustomizations and HelmReleases with

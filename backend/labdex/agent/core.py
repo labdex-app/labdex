@@ -8,6 +8,7 @@ key is refused, and a heartbeat file for `labdex-agent health`.
 Files (all in the state folder, /var/lib/labdex-agent, owned by the agent's user, mode 0600):
 
     credentials.json   agent id, key, host name, hub URL and the hub's job-signing public key
+    client.pem         this agent's client certificate and its private key (mTLS), renewed over the link
     seen.json          ids of jobs already run, until they expire (no replays)
     audit.log          one JSON line per job received, refused, started and finished
     buffer/            results and heartbeats waiting for the hub (spool.py)
@@ -79,7 +80,59 @@ class Config:
     def ssl_context(self) -> ssl.SSLContext:
         ctx = ssl.create_default_context(cafile=self.ca_file or None)
         ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+        client = os.path.join(self.state_dir, CLIENT_PEM)
+        if os.path.exists(client):
+            ctx.load_cert_chain(client)  # presented when the hub or its proxy asks for it
         return ctx
+
+
+# ----------------------------------------------------------------------------- the client certificate
+CLIENT_PEM = "client.pem"
+
+
+def new_request():
+    """A fresh EC key and a certificate request for it. The hub uses only the key: it names the
+    certificate after the agent itself."""
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.x509.oid import NameOID
+
+    key = ec.generate_private_key(ec.SECP256R1())
+    csr = (x509.CertificateSigningRequestBuilder()
+           .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "labdex-agent")]))
+           .sign(key, hashes.SHA256()))
+    return key, csr.public_bytes(serialization.Encoding.PEM).decode()
+
+
+def save_certificate(state_dir: str, key, cert_pem: str) -> None:
+    """Keep the certificate with its key in one file, written at once, so a reconnect never pairs
+    a new certificate with an old key."""
+    from cryptography import x509
+    from cryptography.hazmat.primitives import serialization
+
+    cert = x509.load_pem_x509_certificate(cert_pem.encode())
+    spki = serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo
+    if cert.public_key().public_bytes(*spki) != key.public_key().public_bytes(*spki):
+        raise ValueError("the certificate is for another key")
+    pem = cert.public_bytes(serialization.Encoding.PEM).decode() + key.private_bytes(
+        serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()).decode()
+    os.makedirs(state_dir, mode=0o700, exist_ok=True)
+    _write_private(os.path.join(state_dir, CLIENT_PEM), pem)
+
+
+def certificate_info(state_dir: str) -> dict:
+    """SHA-256 and expiry of the saved client certificate, {} when there is none."""
+    import hashlib
+    try:
+        with open(os.path.join(state_dir, CLIENT_PEM), encoding="utf-8") as f:
+            text = f.read()
+        der = ssl.PEM_cert_to_DER_cert(text[:text.index("-----END CERTIFICATE-----") + 25])
+    except (OSError, ValueError):
+        return {}
+    from cryptography import x509
+    cert = x509.load_der_x509_certificate(der)
+    return {"sha256": hashlib.sha256(der).hexdigest(), "not_after": cert.not_valid_after_utc.isoformat()}
 
 
 def _write_private(path: str, data: str) -> None:
@@ -111,7 +164,8 @@ def enrol(cfg: Config, token: str, *, allow_http: bool = False, root: bool | Non
         raise SystemExit("labdex-agent: set url in the config or pass --url")
     if not cfg.url.startswith("https://") and not allow_http:
         raise SystemExit("labdex-agent: the hub URL must be https:// (the key travels over it)")
-    body = json.dumps({"token": token, "hostname": socket.gethostname(), "version": __version__,
+    key, csr = new_request()
+    body = json.dumps({"token": token, "hostname": socket.gethostname(), "version": __version__, "csr": csr,
                        "protocol": protocol.PROTOCOL, "root": os.geteuid() == 0 if root is None else root, "allow": sorted(cfg.allow)}).encode()
     req = urllib.request.Request(f"{cfg.url}/api/agents/enrol", data=body, method="POST",
                                  headers={"Content-Type": "application/json", "X-Requested-With": "labdex-agent"})
@@ -126,7 +180,13 @@ def enrol(cfg: Config, token: str, *, allow_http: bool = False, root: bool | Non
         if not isinstance(creds.get(k), str) or not creds[k]:
             raise SystemExit(f"labdex-agent: the hub's answer has no {k}")
     creds["url"] = cfg.url
+    cert = creds.pop("client_cert", None)
+    creds.pop("ca_cert", None)
     os.makedirs(cfg.state_dir, mode=0o700, exist_ok=True)
+    with contextlib.suppress(FileNotFoundError):
+        os.remove(os.path.join(cfg.state_dir, CLIENT_PEM))  # an older enrolment's: worthless now
+    if isinstance(cert, str) and cert:
+        save_certificate(cfg.state_dir, key, cert)
     _write_private(os.path.join(cfg.state_dir, "credentials.json"), json.dumps(creds, indent=2))
     return creds
 
@@ -197,6 +257,7 @@ class Agent:
         self._bundles: dict[str, Future] = {}
         self.heartbeat_every = protocol.HEARTBEAT
         self.last_contact = 0.0
+        self._pending_key = None  # the key of a certificate request the hub hasn't answered yet
 
     # -- sending
     def _send(self, message: dict) -> bool:
@@ -235,7 +296,8 @@ class Agent:
     def _hello(self) -> dict:
         return {"t": "hello", "version": __version__, "protocol": protocol.PROTOCOL, "hostname": socket.gethostname(),
                 "root": self.runner.root, "allow": sorted(self.cfg.allow), "jobs": sorted(HANDLERS),
-                "facts": host.facts(), "buffered": len(self.spool)}
+                "facts": host.facts(), "buffered": len(self.spool),
+                "certs": True, "cert_sha256": certificate_info(self.cfg.state_dir).get("sha256", "")}
 
     def link(self) -> None:
         """One link: open it, say hello, then take messages until it closes. Raises Refused to stop for good."""
@@ -257,6 +319,8 @@ class Agent:
                     raw = ws.receive(timeout=LINK_IDLE)
                 except simple_websocket.ConnectionClosed:
                     code = ws.close_reason
+                    if code == protocol.CLOSE_CERT:
+                        raise ConnectionError(f"the hub wants a valid client certificate: {ws.close_message or ''}") from None
                     if code in protocol.FATAL_CLOSES:
                         raise Refused(f"the hub closed the link for good ({code}: {ws.close_message or ''})") from None
                     raise ConnectionError(f"the hub closed the link ({code})") from None
@@ -284,6 +348,20 @@ class Agent:
                 self.log(f"[agent] sent {n} buffered record(s)")
         elif t == "job":
             self.take(message)
+        elif t == "renew":
+            self._pending_key, csr = new_request()
+            self._send({"t": "csr", "csr": csr})
+        elif t == "cert":
+            key, self._pending_key = self._pending_key, None
+            if message.get("error") or key is None:
+                self.log(f"[agent] no new client certificate: {message.get('error') or 'none was asked for'}")
+                return
+            try:
+                save_certificate(self.cfg.state_dir, key, str(message.get("cert", "")))
+            except (OSError, ValueError) as e:
+                self.log(f"[agent] couldn't save the new client certificate: {e}")
+                return
+            self.log("[agent] saved a new client certificate; it is used from the next link")
         elif t == "bundle":
             fut = self._bundles.get(str(message.get("sha256")))
             if fut is not None and not fut.done():

@@ -1063,6 +1063,12 @@ class Agent(db.Model):
     # write capabilities the hub may send jobs for (patch, reboot, ansible); the host must allow them too
     capabilities: Mapped[list] = mapped_column(JSONList, default=list)
     allow_root: Mapped[bool] = mapped_column(default=False)  # a root agent may link (the per-host opt-in)
+    # its client certificate (agent_pki.py): the SHA-256 of the current one, and of the one before
+    # it while a renewal hasn't been used on a link yet
+    cert_sha256: Mapped[str] = mapped_column(String(64), default="")
+    cert_prev_sha256: Mapped[str] = mapped_column(String(64), default="")
+    cert_not_after: Mapped[datetime | None] = mapped_column()
+    link_cert: Mapped[bool] = mapped_column(default=False)  # the current link presented the certificate
     discovery_every: Mapped[int] = mapped_column(default=60)  # minutes between scheduled discoveries, 0: off
     patches_every: Mapped[int] = mapped_column(default=360)  # minutes between scheduled patch reports, 0: off
     # what the agent said in its last hello and heartbeat

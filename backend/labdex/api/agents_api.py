@@ -13,14 +13,14 @@ from pathlib import Path
 
 from flask import Response, current_app, g, jsonify, request
 
-from .. import agents, audit, auth, rbac, store
+from .. import agent_pki, agents, audit, auth, rbac, store
 from ..agent import protocol
 from ..models import Agent, AgentJob, db, utcnow
 from . import PUBLIC, HOOKS, body, bp, err
 
 AGENT_DIR = Path(__file__).resolve().parent.parent / "agent"
 # reached by hosts, not people: no session and no CSRF header (the enrolment token or nothing secret)
-for _ep in ("api.agent_enrol", "api.agent_install_script", "api.agent_download"):
+for _ep in ("api.agent_enrol", "api.agent_install_script", "api.agent_download", "api.agent_ca"):
     PUBLIC.add(_ep)
     HOOKS.add(_ep)
 
@@ -82,7 +82,7 @@ def agent_enrol():
     if str(data.get("protocol", protocol.PROTOCOL)) != str(protocol.PROTOCOL):
         return err(426, f"this labdex speaks agent protocol {protocol.PROTOCOL}")
     try:
-        a, key = agents.enrol(str(data.get("token", "")), data, auth.client_ip())
+        a, key, cert = agents.enrol(str(data.get("token", "")), data, auth.client_ip())
     except agents.AgentError as e:
         db.session.rollback()
         return err(403, str(e))
@@ -90,7 +90,16 @@ def agent_enrol():
         db.session.rollback()
         return err(403, "this agent runs as root, and the token doesn't allow root for this host")
     db.session.commit()
-    return jsonify({"agent_id": a.id, "key": key, "host": a.host, "signing_key": agents.public_key(), "protocol": protocol.PROTOCOL})
+    out = {"agent_id": a.id, "key": key, "host": a.host, "signing_key": agents.public_key(), "protocol": protocol.PROTOCOL}
+    if cert:
+        out |= {"client_cert": cert, "ca_cert": agent_pki.ca_pem()}
+    return jsonify(out)
+
+
+@bp.get("/agents/ca.pem")
+def agent_ca():
+    """The CA of the agents' client certificates, for a reverse proxy that checks them."""
+    return Response(agent_pki.ca_pem(), mimetype="application/x-pem-file")
 
 
 @bp.post("/hosts/<name>/agent/token")
@@ -222,6 +231,19 @@ def _link(ws) -> None:
     if request.headers.get(protocol.PROTOCOL_HEADER, str(protocol.PROTOCOL)) != str(protocol.PROTOCOL):
         ws.close(reason=protocol.CLOSE_PROTOCOL, message=f"this labdex speaks agent protocol {protocol.PROTOCOL}")
         return
+    mtls = agent_pki.mode()
+    der = None
+    if mtls != "off":
+        try:
+            der = agent_pki.presented()
+            problem = agent_pki.check(a, der)
+        except ValueError as e:  # CertError, or a PEM that can't be read
+            problem = str(e) or "the client certificate can't be read"
+        if problem:
+            current_app.logger.warning("agent %s on %s: link refused: %s", a.id, a.host, problem)
+            db.session.rollback()
+            ws.close(reason=protocol.CLOSE_CERT, message=problem)
+            return
     agent_id, address = a.id, auth.client_ip()
     worker = f"{socket.gethostname()}:{os.getpid()}:{threading.get_ident()}"
     inbox: queue.Queue = queue.Queue()
@@ -273,8 +295,14 @@ def _link(ws) -> None:
                             ws.close(reason=protocol.CLOSE_ROOT, message="root isn't allowed for this host")
                             break
                         agents.hello(a, msg, worker, address)
+                        if mtls != "off":
+                            agents.cert_seen(a, der)
                         said_hello = True
                         send({"t": "welcome", "host": a.host, "heartbeat": protocol.HEARTBEAT, "server_time": utcnow().timestamp()})
+                        if mtls != "off" and msg.get("certs") and (msg.get("cert_sha256") != a.cert_sha256 or
+                                                                   agent_pki.needs_renewal(a.cert_not_after)):
+                            # it has no certificate, not the latest one, or one that runs out within 30 days
+                            send({"t": "renew"})
                     elif t == "heartbeat":
                         agents.heartbeat(a, msg)
                         if not msg.get("buffered"):
@@ -283,6 +311,11 @@ def _link(ws) -> None:
                         agents.acked(a, msg.get("id"))
                     elif t == "result":
                         agents.finished(a, msg)
+                    elif t == "csr" and mtls != "off":
+                        try:
+                            send({"t": "cert", "cert": agents.renew_cert(a, str(msg.get("csr", ""))), "ca": agent_pki.ca_pem()})
+                        except agents.AgentError as e:
+                            send({"t": "cert", "error": str(e)})
                     elif t == "bundle.get":
                         data = agents.bundle(a, str(msg.get("sha256", "")))
                         send({"t": "bundle", "sha256": msg.get("sha256")} |

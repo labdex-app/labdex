@@ -29,7 +29,7 @@ from pathlib import Path
 
 from flask import current_app
 
-from . import audit, store
+from . import agent_pki, audit, store
 from .agent import protocol
 from .models import Agent, AgentJob, AgentToken, DiscoveredService, Host, db, utcnow
 
@@ -115,11 +115,42 @@ def enrol(token: str, info: dict, address: str = "") -> tuple[Agent, str]:
     a = Agent(id=agent_id, host=t.host, key_hash=_hash(secret), enrolled_by=t.created_by, allow_root=t.allow_root,
               version=str(info.get("version", ""))[:32], hostname=str(info.get("hostname", ""))[:253], address=address[:64],
               root=bool(info.get("root")), host_allow=_caps(info.get("allow")))
+    cert = ""
+    if agent_pki.mode() != "off" and info.get("csr"):
+        try:
+            cert, a.cert_sha256, a.cert_not_after = agent_pki.issue(info["csr"], agent_id)
+        except agent_pki.CertError as e:
+            raise AgentError(str(e)) from None
+    elif agent_pki.mode() == "required":
+        raise AgentError("this labdex requires a client certificate: use an agent that sends a certificate request")
     db.session.add(a)
     audit.record("enrol", "agent", t.host, after=_audit_view(a), actor=actor,
-                 summary=f"agent {agent_id} enrolled on {a.hostname or t.host} (token by {t.created_by})")
+                 summary=f"agent {agent_id} enrolled on {a.hostname or t.host} (token by {t.created_by})"
+                 + (", client certificate issued" if cert else ""))
     db.session.flush()
-    return a, f"lxa_{agent_id}_{secret}"
+    return a, f"lxa_{agent_id}_{secret}", cert
+
+
+def renew_cert(a: Agent, csr: str) -> str:
+    """A new client certificate for a linked agent. The old one keeps working until the agent links
+    with the new one, so a renewal the agent couldn't save doesn't lock it out."""
+    try:
+        cert, sha, not_after = agent_pki.issue(csr, a.id)
+    except agent_pki.CertError as e:
+        raise AgentError(str(e)) from None
+    if a.cert_sha256:
+        a.cert_prev_sha256 = a.cert_sha256
+    a.cert_sha256, a.cert_not_after = sha, not_after
+    audit.record("cert", "agent", a.host, actor=(f"agent:{a.host}", "agent"),
+                 summary=f"client certificate for agent {a.id} renewed, valid until {not_after:%Y-%m-%d}")
+    return cert
+
+
+def cert_seen(a: Agent, der: bytes | None) -> None:
+    """The link presented a certificate that checked out (or none, in optional mode)."""
+    a.link_cert = der is not None
+    if der is not None and hashlib.sha256(der).hexdigest() == a.cert_sha256:
+        a.cert_prev_sha256 = ""  # the renewal arrived: the old certificate is done
 
 
 def _caps(value) -> list[str]:
@@ -312,7 +343,7 @@ def heartbeat(a: Agent, msg: dict) -> None:
 
 def unlinked(a: Agent, worker: str) -> None:
     if a.connected == worker:
-        a.connected = ""
+        a.connected, a.link_cert = "", False
 
 
 def tick(now=None) -> dict:
@@ -480,7 +511,9 @@ def to_dict(a: Agent, now=None) -> dict:
             "last_seen": _iso(a.last_seen), "linked_at": _iso(a.linked_at), "version": a.version, "hostname": a.hostname,
             "address": a.address, "root": a.root, "allow_root": a.allow_root, "capabilities": list(a.capabilities or []),
             "host_allow": list(a.host_allow or []), "discovery_every": a.discovery_every, "patches_every": a.patches_every,
-            "facts": a.facts or {}, "metrics": a.metrics or {}}
+            "facts": a.facts or {}, "metrics": a.metrics or {},
+            "cert": {"mode": agent_pki.mode(), "issued": bool(a.cert_sha256), "sha256": a.cert_sha256,
+                     "not_after": _iso(a.cert_not_after), "on_link": bool(a.link_cert and linked(a, now))}}
 
 
 def job_to_dict(j: AgentJob, with_result: bool = False) -> dict:

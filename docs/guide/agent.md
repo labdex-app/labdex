@@ -31,7 +31,8 @@ Read `install.sh` before you run it. It:
 4. writes `/etc/labdex-agent/agent.conf` and the sudo rules in `/etc/sudoers.d/labdex-agent`
    (checked with `visudo` first);
 5. swaps the token for the host's own key (`/var/lib/labdex-agent/credentials.json`, mode 0600;
-   labdex keeps only a hash of it);
+   labdex keeps only a hash of it) and a client certificate (`client.pem`, mode 0600, see
+   [below](#client-certificates));
 6. installs and starts the systemd service `labdex-agent`.
 
 Options:
@@ -106,6 +107,84 @@ absolute paths, no `..` and no links, then runs `ansible-playbook -i localhost, 
 **Revoke** on the Agent tab stops the key at once: labdex closes the live connection within a
 second, and the agent stops and stays stopped (`RestartPreventExitStatus=3`). Enrolling a host again
 revokes its older agent.
+
+## Client certificates
+
+On top of its key, each agent has a client certificate for mutual TLS. labdex is a small
+certificate authority for its own agents and nothing else (`<data>/agent-ca.key` and
+`agent-ca.pem`). At enrolment the agent makes a key pair on the host and sends a certificate
+request with the token. labdex signs a certificate for a year, named after the agent, and keeps
+its SHA-256. The private key never leaves the host. On every link the agent presents the
+certificate in the TLS handshake, and labdex checks that it is from this CA, in date, for this
+agent and the one on record. Thirty days before it runs out, labdex asks the agent for a new
+one over the link. The old one keeps working until the agent links with the new one. **Revoke**
+makes the key and the certificate worthless at once, so there is no revocation list.
+
+`LABDEX_AGENT_MTLS` decides how strict this is:
+
+| | |
+| --- | --- |
+| `optional` (default) | agents get certificates; a certificate that is presented must be right, but a link without one still works |
+| `required` | no link and no enrolment without a certificate. Switch to it once the Agent tab shows *used on this link* for your agents |
+| `off` | keys only |
+
+`optional` doesn't protect against a stolen key: only `required` does. The Agent tab shows the
+certificate's expiry and whether the current link presented it.
+
+The certificate has to reach labdex from whoever terminates TLS:
+
+- **labdex itself**, with gunicorn's own TLS: add `--cert-reqs 1 --ca-certs /data/agent-ca.pem`
+  to its `--certfile`/`--keyfile`.
+- **A reverse proxy**: it asks for a client certificate, checks it against labdex's CA
+  (`/api/agents/ca.pem`), and passes it on in a header. Name the header in
+  `LABDEX_AGENT_CERT_HEADER` and put the proxy in `LABDEX_TRUSTED_PROXIES`. The proxy must
+  overwrite the header on every request, so a client can't set it. Enrolment comes without a
+  certificate, so make it optional, not required, at the proxy.
+
+**Caddy**
+
+```caddy
+lantern.example.net {
+    tls {
+        client_auth {
+            mode verify_if_given
+            trust_pool file /etc/caddy/labdex-agent-ca.pem
+        }
+    }
+    reverse_proxy labdex:8000 {
+        header_up X-Client-Cert {http.request.tls.client.certificate_der_base64}
+    }
+}
+```
+
+**nginx**
+
+```nginx
+ssl_client_certificate /etc/nginx/labdex-agent-ca.pem;
+ssl_verify_client optional;
+location / {
+    proxy_set_header X-Client-Cert $ssl_client_escaped_cert;
+    proxy_pass http://labdex:8000;
+}
+```
+
+**Traefik**
+
+```yaml
+tls:
+  options:
+    labdex-agents:
+      clientAuth:
+        caFiles: [/etc/traefik/labdex-agent-ca.pem]
+        clientAuthType: VerifyClientCertIfGiven
+http:
+  middlewares:
+    labdex-agent-cert:
+      passTLSClientCert:
+        pem: true   # sent as X-Forwarded-Tls-Client-Cert
+```
+
+With Traefik, set `LABDEX_AGENT_CERT_HEADER=X-Forwarded-Tls-Client-Cert`.
 
 ## Offline
 

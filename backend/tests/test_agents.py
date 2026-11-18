@@ -539,3 +539,149 @@ def test_ansible_takes_no_site_and_reports_a_missing_folder(hub):
     assert r.status_code == 409 and "unknown parameters: site" in r.get_json()["error"]
     r = admin.post(f"/api/hosts/{DNS}/agent/jobs", json={"type": "ansible.run", "params": {"playbook": "nope/site.yml"}})
     assert r.status_code == 409 and "couldn't pack nope/" in r.get_json()["error"]
+
+
+# ----------------------------------------------------------------------------- mTLS client certificates
+def _server_cert(tmp_path):
+    """A self-signed certificate for 127.0.0.1, as the hub's TLS certificate."""
+    import datetime
+    import ipaddress
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.x509.oid import NameOID
+
+    key = ec.generate_private_key(ec.SECP256R1())
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "hub.example.com")])
+    now = datetime.datetime.now(datetime.timezone.utc)
+    cert = (x509.CertificateBuilder().subject_name(name).issuer_name(name).public_key(key.public_key())
+            .serial_number(1).not_valid_before(now - datetime.timedelta(minutes=5)).not_valid_after(now + datetime.timedelta(days=1))
+            .add_extension(x509.SubjectAlternativeName([x509.IPAddress(ipaddress.ip_address("127.0.0.1"))]), critical=False)
+            .sign(key, hashes.SHA256()))
+    cert_path, key_path = tmp_path / "hub.pem", tmp_path / "hub.key"
+    cert_path.write_bytes(cert.public_bytes(serialization.Encoding.PEM))
+    key_path.write_bytes(key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
+    return str(cert_path), str(key_path)
+
+
+@pytest.fixture
+def tls_hub(loaded, admin, tmp_path, monkeypatch):
+    """The hub terminating TLS itself and asking for (not demanding) a client certificate from its agent CA."""
+    import ssl
+
+    from labdex import agent_pki
+    loaded.config["LABDEX_DATA_DIR"] = str(tmp_path / "data")
+    loaded.config["LABDEX_AGENT_MTLS"] = "required"
+    monkeypatch.setattr(protocol, "HEARTBEAT", 1)
+    with loaded.app_context():
+        agent_pki.ca()
+    cert, key = _server_cert(tmp_path)
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ctx.load_cert_chain(cert, key)
+    ctx.verify_mode = ssl.CERT_OPTIONAL  # enrolment comes without one
+    ctx.load_verify_locations(str(tmp_path / "data" / agent_pki.CA_CERT))
+    server = make_server("127.0.0.1", 0, loaded, threaded=True, ssl_context=ctx)
+    t = threading.Thread(target=server.serve_forever, daemon=True)
+    t.start()
+    yield {"url": f"https://127.0.0.1:{server.server_port}", "admin": admin, "tmp": tmp_path, "ca_file": cert}
+    server.shutdown()
+
+
+def tls_enrol(hub, name="a1"):
+    tok = hub["admin"].post(f"/api/hosts/{DNS}/agent/token", json={}).get_json()["token"]
+    cfg = core.Config("/nonexistent", url=hub["url"], allow=[], state_dir=str(hub["tmp"] / name), ca_file=hub["ca_file"])
+    return cfg, core.enrol(cfg, tok, root=False)
+
+
+def test_mtls_enrol_issues_a_certificate_and_the_link_needs_it(tls_hub):
+    cfg, creds = tls_enrol(tls_hub)
+    pem = os.path.join(cfg.state_dir, core.CLIENT_PEM)
+    assert os.stat(pem).st_mode & 0o077 == 0 and "PRIVATE KEY" in open(pem).read()
+    info = core.certificate_info(cfg.state_dir)
+    a = db.session.get(Agent, creds["agent_id"])
+    assert a.cert_sha256 == info["sha256"] and a.cert_not_after is not None and "client_cert" not in creds
+    logs = []
+    agent, th, out = start(cfg, creds, logs=logs)
+    wait(lambda: agents.linked(db.session.get(Agent, creds["agent_id"])))
+    cert = tls_hub["admin"].get(f"/api/hosts/{DNS}/agent").get_json()["agent"]["cert"]
+    assert cert["mode"] == "required" and cert["issued"] and cert["on_link"] and cert["sha256"] == info["sha256"]
+    agent.stop()
+    th.join(10)
+    # the key alone isn't enough: without its certificate the link is refused, and the agent keeps trying
+    os.remove(pem)
+    logs = []
+    agent, th, out = start(cfg, creds, logs=logs)
+    wait(lambda: any("client certificate" in m for m in logs))
+    assert th.is_alive() and "refused" not in out
+    agent.stop()
+
+
+def test_mtls_required_refuses_enrolment_without_a_request(tls_hub, loaded):
+    tok = tls_hub["admin"].post(f"/api/hosts/{DNS}/agent/token", json={}).get_json()["token"]
+    r = tls_hub["admin"].post("/api/agents/enrol", json={"token": tok})
+    assert r.status_code == 403 and "client certificate" in r.get_json()["error"]
+    from .conftest import client
+    assert "BEGIN CERTIFICATE" in client(loaded).get("/api/agents/ca.pem").get_data(as_text=True)
+
+
+def test_mtls_certificate_checks(hub, loaded):
+    import base64
+    import ssl
+    import urllib.parse
+
+    from labdex import agent_pki
+    cfg, creds = enrol(hub)
+    a = db.session.get(Agent, creds["agent_id"])
+    der = ssl.PEM_cert_to_DER_cert(open(os.path.join(cfg.state_dir, core.CLIENT_PEM)).read().split("-----BEGIN PRIVATE")[0])
+    assert agent_pki.check(a, der) is None and agent_pki.check(a, None) is None  # optional: none is fine
+    loaded.config["LABDEX_AGENT_MTLS"] = "required"
+    assert "requires" in agent_pki.check(a, None)
+    loaded.config["LABDEX_AGENT_MTLS"] = "sometimes"
+    assert agent_pki.mode() == "required"  # a typo doesn't switch the check off
+    # another agent's certificate from the same CA
+    _, csr = core.new_request()
+    other, _, _ = agent_pki.issue(csr, "0000beef")
+    assert "another agent" in agent_pki.check(a, ssl.PEM_cert_to_DER_cert(other))
+    # a certificate for this agent that isn't the one on record
+    mine, _, _ = agent_pki.issue(csr, a.id)
+    assert "on record" in agent_pki.check(a, ssl.PEM_cert_to_DER_cert(mine))
+    # one from a CA that isn't this labdex's
+    ca = loaded.extensions["labdex"].pop("agent_ca")
+    loaded.config["LABDEX_DATA_DIR"] = str(hub["tmp"] / "elsewhere")
+    foreign, _, _ = agent_pki.issue(csr, a.id)
+    loaded.extensions["labdex"]["agent_ca"] = ca
+    assert "isn't from this labdex" in agent_pki.check(a, ssl.PEM_cert_to_DER_cert(foreign))
+    # a request that can't be read
+    with pytest.raises(agent_pki.CertError):
+        agent_pki.issue("-----BEGIN CERTIFICATE REQUEST-----\nAAAA\n-----END CERTIFICATE REQUEST-----\n", a.id)
+    # proxy headers: only from trusted proxies, in PEM (escaped) or base64 DER
+    loaded.config["LABDEX_AGENT_CERT_HEADER"] = "X-Client-Cert"
+    pem = ssl.DER_cert_to_PEM_cert(der)
+    for value in (urllib.parse.quote(pem), base64.b64encode(der).decode(), pem.replace("\n", " ")):
+        with loaded.test_request_context("/api/agents/link", headers={"X-Client-Cert": value}, environ_base={"REMOTE_ADDR": "10.0.0.2"}):
+            loaded.config["LABDEX_TRUSTED_PROXIES"] = []
+            assert agent_pki.presented() is None
+            loaded.config["LABDEX_TRUSTED_PROXIES"] = ["10.0.0.0/24"]
+            assert agent_pki.presented() == der
+    loaded.config["LABDEX_TRUSTED_PROXIES"] = []
+
+
+def test_mtls_renewal_over_the_link(hub):
+    from datetime import timedelta
+
+    from labdex.models import utcnow
+    cfg, creds = enrol(hub)
+    old = core.certificate_info(cfg.state_dir)["sha256"]
+    a = db.session.get(Agent, creds["agent_id"])
+    a.cert_not_after = utcnow() + timedelta(days=10)  # runs out soon
+    db.session.commit()
+    logs = []
+    agent, th, out = start(cfg, creds, logs=logs)
+    wait(lambda: any("new client certificate" in m for m in logs))
+    new = core.certificate_info(cfg.state_dir)["sha256"]
+    a = db.session.get(Agent, creds["agent_id"])
+    assert new != old and a.cert_sha256 == new and a.cert_prev_sha256 == old
+    assert a.cert_not_after > utcnow() + timedelta(days=300)
+    assert any(e.action == "cert" for e in db.session.scalars(db.select(AuditEvent).where(AuditEvent.object_type == "agent")))
+    agent.stop()

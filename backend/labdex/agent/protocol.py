@@ -29,6 +29,7 @@ MAX_MESSAGE = 16 * 1024 * 1024
 CLOSE_REFUSED = 4401    # unknown or revoked key
 CLOSE_ROOT = 4403       # runs as root, and the host isn't allowed a root agent
 CLOSE_PROTOCOL = 4426   # one side has to be updated
+CLOSE_CERT = 4495       # no client certificate, or the wrong one: try again later (a proxy may be fixed)
 FATAL_CLOSES = {CLOSE_REFUSED, CLOSE_ROOT, CLOSE_PROTOCOL}
 
 # Every job type there is. Nothing else runs, and there is no way to pass a shell command.
