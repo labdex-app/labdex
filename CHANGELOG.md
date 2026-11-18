@@ -65,6 +65,9 @@
   for approval. The host's Overview tab adds Details and Activity cards. Host details carry
   `plan_actions`; the status bar's git entry carries `branch` and `path`. Segmented controls
   share one style.
+- **Default sidebar**: administrators make their hidden pages and order the default for
+  everyone who hasn't changed their own (`/api/admin/sidebar-default`). *Use the default pages*
+  goes back to it and keeps your pins.
 - **Host agents** (`labdex-agent`): a systemd service on Linux hosts that keeps one outgoing
   WebSocket connection to labdex, so hosts need no open port. Enrol it from the host's new
   **Agent** tab with a one-time token; labdex keeps only a hash of the host's key, and **Revoke**

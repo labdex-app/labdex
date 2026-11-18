@@ -12,7 +12,7 @@ export const state = reactive({
   live: false, // the event stream is open: the status bar's "live"
   bar: null, // /api/statusbar: git sync per site, agents, vault
   site: readSite(), // the site switcher: '' is every site
-  sidebar: { pins: [], hidden: [], order: [] }, // /api/me/sidebar: only for this user
+  sidebar: { pins: [], hidden: [], order: [], from_default: true }, // /api/me/sidebar: only for this user
 })
 
 export async function loadSidebar() {
@@ -20,7 +20,8 @@ export async function loadSidebar() {
 }
 export async function saveSidebar(next) {
   const before = state.sidebar
-  state.sidebar = { ...before, ...next } // at once; put back if the server says no
+  // changing pages makes them yours; changing pins alone keeps following the default pages
+  state.sidebar = { ...before, ...next, from_default: 'hidden' in next || 'order' in next ? false : before.from_default } // at once; put back if the server says no
   try { state.sidebar = await api.put('/api/me/sidebar', state.sidebar) } catch (e) { state.sidebar = before; toast(e.message, 'error') }
 }
 export const isPinned = (to) => state.sidebar.pins.some((p) => p.to === to)

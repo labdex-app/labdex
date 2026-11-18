@@ -609,5 +609,15 @@ def test_pin_a_host_and_hide_a_page(page, server):
     page.wait_for_selector(".side a.nl:has-text('Physical')", state="detached")
     page.click("button:has-text('Unpin')")
     page.wait_for_selector(".side #grp-pins", state="detached")
-    page.click("button:has-text('Reset pages to default')")
+    page.click("button:has-text('Use the default pages')")
     page.wait_for_selector(".side a.nl:has-text('Physical')")
+    # an administrator's pages become everyone's default
+    page.click("label.check:has(input[aria-label='Show DNS in the sidebar'])")
+    page.wait_for_selector(".side a.nl:has-text('DNS')", state="detached")
+    page.click("button:has-text('Make these pages the default')")
+    page.wait_for_selector(".toast >> text=default for everyone")
+    page.click("button:has-text('Use the default pages')")
+    page.wait_for_selector(".h-tag >> text=pages: the default")
+    assert page.locator(".side a.nl:has-text('DNS')").count() == 0
+    assert page.evaluate("""async () => (await fetch('/api/admin/sidebar-default', {method: 'PUT',
+        headers: {'Content-Type': 'application/json', 'X-Requested-With': 'labdex'}, body: '{}'})).status""") == 200

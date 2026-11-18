@@ -132,7 +132,9 @@ The **star** next to the breadcrumb pins what's on screen to your sidebar, under
 and Inbox: a host (with its live dot), a network, a zone, a plan, any page, or a list with
 filters (a saved view). *Your sidebar* in the menu under your name reorders and unpins them,
 and hides or reorders pages; hidden pages stay in the search. This is kept for you only, on
-the server, so it follows you to other browsers.
+the server, so it follows you to other browsers. Until you change the pages, they follow the
+default: administrators set it with *Make these pages the default*, and *Use the default
+pages* goes back to it (your pins stay).
 
 On Hosts and Networks a click on a row shows that host or network in a panel on the
 right, beside the list, with what you need most often and a button to its full page; a

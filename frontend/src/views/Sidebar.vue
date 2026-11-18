@@ -5,7 +5,8 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowDown, ArrowUp, Star } from 'lucide-vue-next'
 import { SECTIONS } from '../nav'
-import { saveSidebar, state } from '../store'
+import { api } from '../api'
+import { saveSidebar, state, toast } from '../store'
 
 const router = useRouter()
 const pins = computed(() => state.sidebar.pins)
@@ -33,16 +34,27 @@ function movePage(g, n, d) {
 }
 const hidden = (to) => state.sidebar.hidden.includes(to)
 const flip = (to) => saveSidebar({ hidden: hidden(to) ? state.sidebar.hidden.filter((x) => x !== to) : [...state.sidebar.hidden, to] })
-const reset = () => saveSidebar({ hidden: [], order: [] })
+// back to the default pages (an administrator's, or labdex's own); pins stay
+async function reset() {
+  try { state.sidebar = await api.del('/api/me/sidebar') } catch (e) { toast(e.message, 'error') }
+}
+// administrators: these pages, hidden and in this order, for everyone who hasn't changed theirs
+async function makeDefault() {
+  try {
+    await api.put('/api/admin/sidebar-default', { hidden: state.sidebar.hidden, order: state.sidebar.order })
+    toast('These pages are now the default for everyone who hasn’t changed theirs')
+  } catch (e) { toast(e.message, 'error') }
+}
 const KIND = { host: 'host', network: 'network', zone: 'zone', service: 'service', change: 'change', view: 'saved view', page: 'page' }
 </script>
 
 <template>
   <div class="page">
     <div class="page-head">
-      <h1>Your sidebar</h1><span class="h-tag">only for you</span>
+      <h1>Your sidebar</h1><span class="h-tag">{{ state.sidebar.from_default ? 'pages: the default' : 'only for you' }}</span>
       <span class="grow"></span>
-      <button class="btn" @click="reset">Reset pages to default</button>
+      <button v-if="state.meta?.is_admin" class="btn" title="Hidden pages and order for everyone who hasn't changed their own" @click="makeDefault">Make these pages the default</button>
+      <button class="btn" :disabled="state.sidebar.from_default" @click="reset">Use the default pages</button>
       <button class="btn primary" @click="router.back()">Done</button>
     </div>
     <div class="split">
