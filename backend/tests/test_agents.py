@@ -436,6 +436,12 @@ def test_discovery_without_sudo_still_lists_ports(tmp_path):
     out = discovery.collect(NoSudo(), proc=fake_proc(tmp_path))
     assert out["listeners"] and any("sudo rule for ss" in n for n in out["notes"])
 
+    class Hardened(NoSudo):
+        def privileged(self, name, timeout=60):
+            return 1, "", 'sudo: The "no new privileges" flag is set, which prevents sudo from running as root.'
+    out = discovery.collect(Hardened(), proc=str(tmp_path / "proc"))
+    assert any("NoNewPrivileges" in n for n in out["notes"])
+
 
 def test_discovery_lands_in_discovery_and_on_the_host_page(hub, tmp_path):
     cfg, creds = enrol(hub)

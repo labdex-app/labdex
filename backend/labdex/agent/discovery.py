@@ -92,8 +92,12 @@ def listeners(runner) -> tuple[list[dict], list[str]]:
     notes = []
     code, out, err = runner.privileged("ss")
     if code != 0:
-        notes.append("no processes for listening ports: the sudo rule for ss is missing" if "sudo" in err or code == 1
-                     else f"ss with processes failed: {err.strip()[:200]}")
+        if "no new privileges" in err:
+            notes.append("no processes for listening ports: sudo can't run under NoNewPrivileges (check the service's hardening)")
+        elif "sudo" in err or code == 1:
+            notes.append("no processes for listening ports: the sudo rule for ss is missing")
+        else:
+            notes.append(f"ss with processes failed: {err.strip()[:200]}")
         code, out, err = runner.run(["ss", "-Htuln"])
         if code != 0:
             return [], [*notes, f"ss failed: {err.strip()[:200]}"]

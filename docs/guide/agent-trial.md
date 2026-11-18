@@ -15,6 +15,19 @@ and leave the writes off: the agent then only reads, and you can take it all bac
   first, or leave `LABDEX_AGENT_MTLS` at `optional` for the trial.
 - **Outgoing only:** the host opens one connection to labdex. Open no port on the host.
 
+## Rehearse it first (optional)
+
+With Docker on your computer and a labdex checkout, rehearse all of this in a throwaway
+container with systemd, against a local labdex that requires client certificates:
+
+```sh
+cd backend && pip install -e ".[server]" && python tools/agent_rehearsal.py
+```
+
+It installs read-only, checks the link, the certificate and the read-only jobs, revokes, and
+uninstalls. It ends with `all 13 checks passed`, or says what failed. It touches nothing outside the
+container and a temporary folder.
+
 ## Install
 
 1. In labdex, open the host, then the **Agent** tab, and choose **Enrol an agent**. Leave *run it
