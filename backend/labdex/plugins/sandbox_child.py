@@ -181,6 +181,9 @@ class ChildContext:
     def report_status(self, results):
         return self._wire.call("report_status", results)
 
+    def report_patches(self, results, replace=True):
+        return self._wire.call("report_patches", results, replace)
+
     def notify(self, event, title, body="", link="", data=None):
         return self._wire.call("notify", event, title, body, link, data)
 
