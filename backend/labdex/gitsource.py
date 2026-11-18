@@ -281,13 +281,15 @@ def _forge(url: str) -> tuple[str, str, str]:
     return "gitlab", f"{u.scheme}://{u.netloc}/api/v4", project
 
 
-def open_merge_request(cfg: dict, branch: str, title: str, session=None) -> str:
-    """Opens (or finds the open) merge request from `branch` to the site's branch; returns its URL."""
+def open_merge_request(cfg: dict, branch: str, title: str, session=None, token: str | None = None, body: str = "Changes made in labdex.") -> str:
+    """Opens (or finds the open) merge request from `branch` to cfg's branch; returns its URL.
+    The token comes from the vault reference in cfg, or is given (a plugin's own secret)."""
     import requests
     if not cfg["url"].startswith("https://"):
         return ""
     from . import secretstore
-    token = secretstore.reveal(cfg["token_ref"]) if cfg.get("token_ref") else ""
+    if token is None:
+        token = secretstore.reveal(cfg["token_ref"]) if cfg.get("token_ref") else ""
     if not token:
         raise GitError("opening a merge request needs a token (an API token in the vault)")
     kind, api, project = _forge(cfg["url"])
@@ -299,7 +301,7 @@ def open_merge_request(cfg: dict, branch: str, title: str, session=None) -> str:
         if r.status_code == 200 and r.json():
             return r.json()[0]["html_url"]
         r = s.post(f"{api}/repos/{project}/pulls", json={"title": title, "head": branch, "base": cfg["branch"],
-                                                          "body": "Changes made in labdex."}, headers=h, timeout=30)
+                                                          "body": body}, headers=h, timeout=30)
         if r.status_code >= 300:
             raise GitError(f"GitHub refused the pull request: HTTP {r.status_code} {r.text[:200]}")
         return r.json()["html_url"]
@@ -309,7 +311,7 @@ def open_merge_request(cfg: dict, branch: str, title: str, session=None) -> str:
     if r.status_code == 200 and r.json():
         return r.json()[0]["web_url"]
     r = s.post(f"{api}/projects/{pid}/merge_requests", json={"source_branch": branch, "target_branch": cfg["branch"], "title": title,
-                                                             "description": "Changes made in labdex.", "remove_source_branch": True},
+                                                             "description": body, "remove_source_branch": True},
                headers=h, timeout=30)
     if r.status_code >= 300:
         raise GitError(f"GitLab refused the merge request: HTTP {r.status_code} {r.text[:200]}")

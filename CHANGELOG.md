@@ -14,6 +14,16 @@
   per-host opt-in) under systemd hardening, buffers results while labdex is away, and keeps an audit
   log on both ends. See *Concepts › Host agents*.
 - The image runs gunicorn with 64 threads (was 16): each connected agent holds one.
+- **Kubernetes workloads & Flux** plugin (read-only, one per cluster): Deployments, StatefulSets
+  and DaemonSets with ready against wanted replicas, Flux Kustomizations and HelmReleases with
+  their Ready state, applied revision and source, and the Git, OCI and Helm sources, on a Cluster
+  page and a dashboard widget. Notifies when a Flux object starts failing or a workload loses
+  replicas. See *Plugins › Kubernetes workloads & Flux*.
+- **Flux files as code** in the same plugin: list a cluster's apps (Helm charts or folders of the
+  Flux repository) in labdex. *Propose Flux files* plans the HelmRepositories, HelmReleases and
+  Kustomizations they become against labdex's folder in the Flux repository, waits for an
+  approval, then pushes them to a `labdex/flux-<cluster>` branch with a merge request. labdex
+  never pushes to the branch Flux reads and only touches files it wrote.
 
 ## 1.26.0
 
