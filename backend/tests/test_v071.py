@@ -107,3 +107,13 @@ def test_manifest_checks(loaded):
     assert "duplicate" in _validate({"id": "xx", "widgets": [{"id": "a"}, {"id": "a"}]}, Path("."))
     assert widgets.clean({"kind": "table", "columns": ["a", "b"], "rows": [[1, "x", "extra"], "bad"]}) == {
         "kind": "table", "columns": ["a", "b"], "rows": [[1, "x"]]}
+
+
+def test_heartbeat_and_meter_are_cleaned():
+    from labdex.widgets import clean
+    hb = clean({"kind": "heartbeat", "beats": ["up", "down", "nope", "warn"] + ["up"] * 200, "value": "99.5", "unit": "%"})
+    assert len(hb["beats"]) == 120 and set(hb["beats"]) == {"up"}  # the last 120 checks
+    assert hb["value"] == 99.5 and hb["unit"] == "%"
+    m = clean({"kind": "meter", "value": 91, "max": -1, "unit": "GB", "tone": "bad"})
+    assert m == {"kind": "meter", "value": 91, "max": 100, "unit": "GB", "tone": ""}
+    assert clean({"kind": "heartbeat", "beats": ["up", "x"]})["beats"] == ["up", "unknown"]

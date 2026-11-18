@@ -113,8 +113,9 @@ ExportFile(filename, mimetype, body)
 
 `stat` (`value`, `unit`, `tone`), `status` (`items`: `label`, `state` up/down/warn/
 unknown, `detail`), `list` (`items`: `label`, `value`, `tone`), `table` (`columns`,
-`rows`), `sparkline` (`points`, `value`, `unit`, `min`, `max`). Each can have `sub` and
-`link`. labdex draws them: no plugin code runs in the browser.
+`rows`), `sparkline` (`points`, `value`, `unit`, `min`, `max`), `heartbeat` (`beats`:
+up/down/warn/unknown per check, oldest first, the last 120 shown; `value`, `unit`) and
+`meter` (`value`, `max`, `unit`, `tone`). Each can have `sub` and `link`. labdex draws them: no plugin code runs in the browser.
 
 ## Events
 

@@ -49,6 +49,10 @@
   sign-on as a second button (or the only one with `LABDEX_OIDC_ONLY`). A new labdex opens
   a set-up in steps: the first administrator, then links to sites, plugins, import and
   agents.
+- **Charts**: two new widget kinds for plugins, `heartbeat` (one bar per check; colour and
+  height both show the state) and `meter` (used of total). Sparklines are a thin blue line;
+  widget labels are mono capitals and values mono. The demo adds made-up *Reachable* and
+  *Memory* host widgets. A stale health source says when it last reported in plain time.
 - **Host agents** (`labdex-agent`): a systemd service on Linux hosts that keeps one outgoing
   WebSocket connection to labdex, so hosts need no open port. Enrol it from the host's new
   **Agent** tab with a one-time token; labdex keeps only a hash of the host's key, and **Revoke**

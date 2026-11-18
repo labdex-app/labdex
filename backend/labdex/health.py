@@ -97,7 +97,7 @@ def sources() -> dict[str, list[dict]]:
         fresh = r.checked_at >= cutoff
         out.setdefault(r.host, []).append({
             "integration": r.integration.name, "plugin": r.integration.plugin_id,
-            "state": r.state if fresh else "unknown", "detail": r.detail if fresh else f"no report since {r.checked_at.isoformat()}Z",
+            "state": r.state if fresh else "unknown", "detail": r.detail if fresh else f"no report since {r.checked_at:%Y-%m-%d %H:%M} UTC",
             "data": r.data or {}, "checked_at": r.checked_at.isoformat() + "Z", "since": r.changed_at.isoformat() + "Z"})
     return out
 

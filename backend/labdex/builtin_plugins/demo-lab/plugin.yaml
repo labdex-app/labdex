@@ -17,3 +17,5 @@ widgets:
   - {id: traffic, label: Lab traffic, where: dashboard, size: wide, refresh: 60}
   - {id: records, label: DNS records, where: dashboard, refresh: 30}
   - {id: load, label: Load, where: host, refresh: 60}
+  - {id: reach, label: Reachable, where: host, refresh: 60}
+  - {id: memory, label: Memory, where: host, refresh: 60}
