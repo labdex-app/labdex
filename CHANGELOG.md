@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Workflows**: steps in order (job templates, plugin actions, waits, and checks that hosts
+  answer again), run by a click or on a schedule, inside a maintenance window if you give one.
+  Each step that is a plan waits for its own approvals, and the run waits with it; a failed or
+  discarded step stops the run unless it may continue. A run outside its window waits, and pauses
+  between steps when the window closes. Jobs of a run carry its workflow and step for the Changes
+  page. `workflow.*` notifications. See *Operating › Workflows and maintenance windows*.
 - **Host agents** (`labdex-agent`): a systemd service on Linux hosts that keeps one outgoing
   WebSocket connection to labdex, so hosts need no open port. Enrol it from the host's new
   **Agent** tab with a one-time token; labdex keeps only a hash of the host's key, and **Revoke**

@@ -85,6 +85,7 @@ nav:
       - Jobs and the worker: operate/jobs.md
       - Notifications: operate/notifications.md
       - Templates and Ansible Vault: operate/templates.md
+      - Workflows and maintenance windows: operate/workflows.md
       - Backups: operate/backups.md
       - Upgrading: operate/upgrading.md
       - Security: operate/security.md
