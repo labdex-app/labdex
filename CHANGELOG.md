@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **Git source per site**: a site's file (`labdex/<site>.yaml`) can live in a GitLab or GitHub
+  repository (Settings › Sites › Git source). New commits are planned and imported on a webhook or
+  a timer; edits made in labdex are committed to the branch, or opened as a merge request (pull
+  request on GitHub) per site. When both sides changed, nothing moves until someone keeps git or
+  keeps labdex. The token is a vault reference. See *Inventory in git*.
+- **`labdex plan FILE`**: what importing an inventory file (or one site's file) would change,
+  without keeping anything: the hosts, networks and other objects that change, field by field, and
+  the DNS records, firewall aliases and DHCP reservations labdex would generate differently. With
+  `--base` (or `--base-ref origin/main`) it plans over the target branch's files instead of the
+  database, so CI can comment the plan on a merge request; `--format json|markdown`,
+  `--detailed-exitcode`. Admins get the same from `POST /api/admin/plan`. See *Inventory in git*.
 - **Sites**: one labdex for more than one part of your infrastructure, such as `home` behind your
   firewall and `public` at a cloud provider (Settings › Sites). Each site has its own hosts,
   networks and integrations; zones, naming, features and people are shared. An integration works

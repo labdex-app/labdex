@@ -57,6 +57,7 @@ nav:
   - Concepts:
       - Zones and names: guide/zones.md
       - Sites: guide/sites.md
+      - Inventory in git: guide/git.md
       - Hosts, networks, services: guide/inventory.md
       - Working fast: guide/working-fast.md
       - Coming from another tool: guide/import.md

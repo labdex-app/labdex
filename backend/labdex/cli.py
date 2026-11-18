@@ -7,6 +7,7 @@
     labdex import inventory.yaml       replace the inventory with a YAML file
     labdex export [-o file]            write the inventory as YAML
     labdex lint                        check conventions; exit 1 on errors
+    labdex plan FILE [--base FILE]     what importing a file would change (for merge requests)
     labdex diff --since 7d             what changed in the inventory since then
     labdex changeset FILE [--apply]    preview (or apply) a file of inventory changes as one unit
     labdex openapi [-o file]           the OpenAPI description of the REST API
@@ -91,6 +92,43 @@ def register(app: Flask) -> None:
         for s in _sites.all_sites():
             u = _sites.usage(s.code)
             click.echo(f"{s.code:<16} {s.name:<24} {u['networks']:>4} networks {u['hosts']:>5} hosts {u['integrations']:>3} integrations")
+
+    @app.cli.command("plan")
+    @click.argument("path", type=click.Path(exists=True, dir_okay=False))
+    @click.option("--base", "bases", multiple=True, type=click.Path(exists=True, dir_okay=False),
+                  help="Import this first (the file on the target branch; repeatable, in order). Without it: this labdex's inventory.")
+    @click.option("--base-ref", default="", help="Take the base from git: the same path at this ref (origin/main). A file that's new there has no base.")
+    @click.option("--site", default="", help="The file is this site's networks and hosts (default: its site: key).")
+    @click.option("--format", "fmt", type=click.Choice(["text", "json", "markdown"]), default="text", show_default=True)
+    @click.option("--detailed-exitcode", is_flag=True, help="Exit 2 when there are changes (0: none, 1: the file has errors).")
+    def plan_cmd(path, bases, base_ref, site, fmt, detailed_exitcode):
+        """What importing a file would change: inventory objects, DNS records, aliases, DHCP. Nothing is kept."""
+        import json
+        import subprocess
+        from pathlib import Path
+
+        from . import fileplan
+        text = Path(path).read_text(encoding="utf-8")
+        base_texts = [Path(b).read_text(encoding="utf-8") for b in bases]
+        if base_ref:
+            top = subprocess.run(["git", "-C", str(Path(path).resolve().parent), "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+            if top.returncode != 0:
+                raise click.ClickException(f"{path} isn't in a git repository")
+            rel = Path(path).resolve().relative_to(Path(top.stdout.strip()))
+            r = subprocess.run(["git", "-C", top.stdout.strip(), "show", f"{base_ref}:{rel.as_posix()}"], capture_output=True, text=True)
+            if r.returncode == 0:
+                base_texts.append(r.stdout)
+        p = fileplan.plan(text, base_texts or None, site or None)
+        if fmt == "json":
+            click.echo(json.dumps(p, indent=2, default=str))
+        elif fmt == "markdown":
+            click.echo(fileplan.markdown(p, title=f"labdex plan: {path}"), nl=False)
+        else:
+            click.echo(fileplan.text(p))
+        if not p["ok"]:
+            sys.exit(1)
+        if detailed_exitcode and not fileplan.empty(p):
+            sys.exit(2)
 
     @app.cli.command("lint")
     @click.option("--warnings-as-errors", is_flag=True)
