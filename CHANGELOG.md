@@ -108,14 +108,11 @@
   docs pointing at routes that exist.
 
 ### Labels
-- **Host labels with a QR code**: *Label* on a host's page, or tick hosts and choose *Labels*
-  to print a sheet. Each label has the fun name, hostname, addresses and zone, and a QR code
-  that opens the host. SVG in millimetres (62 × 29, 50 × 25 or 89 × 36), so it prints true on
-  a label printer. `GET /api/hosts/<name>/label.svg?size=…`.
-- **Cable labels with a QR code** next to each cable on the Cables page
-  (`GET /api/cables/label.svg?host=&port=`); the code opens the cable's trace.
-- Set the address of your labdex (Settings › General) so the codes work from outside; without
-  it they use the address you opened labdex with. New dependency: `segno` (pure Python).
+- **Labels as SVG from the API**, made on the server: `GET /api/hosts/<name>/label.svg?size=…`
+  (62 × 29, 50 × 25 or 89 × 36 mm) for a host and `GET /api/cables/label.svg?host=&port=` for a
+  cable, whose code opens the cable's trace. A tag icon next to each cable on the Cables page
+  opens its label. Ticking hosts and choosing *Labels* opens the Labels page with them.
+  New dependency: `segno` (pure Python).
 
 ### Hosts
 - **Saved searches**: a *Saved* menu on the Hosts page keeps the search text, filters, tab and
@@ -153,6 +150,22 @@
   and **Check now** on the card asks again at once (`POST /api/about/update-check`; at most
   every 30 seconds). The card says when it last looked. Versions are compared the PEP 440
   way, so `1.24.10` is newer than `1.24.9` and a `.post`, `rc` or `.dev` build compares right.
+
+## 1.25.0
+
+### Impact: what breaks if this goes down?
+- New page **Impact** (Network). Pick hosts and labdex lists what goes down with them, what's
+  cut off from its gateway (through switches and patch panels), networks left without
+  routing, VIPs, unavailable services and whether DNS stops, each with the reason.
+  Also from a host's **Impact** button and the search box. API: `GET /api/impact`.
+
+### Labels with QR codes
+- New page **Labels** (Inventory): labels for hosts, cables, switch and patch panel ports
+  and racks, each with a QR code that opens it in labdex. Sizes for Brother and Dymo label
+  printers, a cable flag for 12 mm tape and Avery A4 sheets (with "start at label" for a
+  part-used sheet). Cables → Print labels and a host's new **Label** button lead here.
+- Settings › General › *Public address* is what the QR codes point to.
+
 
 ## 1.24.1-1
 
