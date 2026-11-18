@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Fix**: `labdex plan` of a site file with a VIP (a keepalived pair, say) no longer fails
+  with a database error when that site is already loaded.
 - **Git source per site**: a site's file (`labdex/<site>.yaml`) can live in a GitLab or GitHub
   repository (Settings › Sites › Git source). New commits are planned and imported on a webhook or
   a timer; edits made in labdex are committed to the branch, or opened as a merge request (pull
