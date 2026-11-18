@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.26.0
 
 - **Git source per site**: a site's file (`labdex/<site>.yaml`) can live in a GitLab or GitHub
   repository (Settings › Sites › Git source). New commits are planned and imported on a webhook or
