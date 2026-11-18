@@ -1,0 +1,47 @@
+# The labdex agent: one outgoing WebSocket link to the hub, signed jobs from a fixed list.
+# Installed by install.sh; a root agent gets a drop-in (root.conf) that sets User=root.
+[Unit]
+Description=labdex agent
+Documentation=https://labdex-app.github.io/labdex/guide/agent/
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=labdex-agent
+Group=labdex-agent
+ExecStart=/opt/labdex-agent/venv/bin/python /opt/labdex-agent/labdex-agent.pyz run
+Restart=on-failure
+RestartSec=10
+# 3: the hub refused the agent (revoked, or root not allowed): stay stopped until someone looks
+RestartPreventExitStatus=3
+StateDirectory=labdex-agent
+StateDirectoryMode=0700
+ConfigurationDirectory=labdex-agent
+
+# Hardening. NoNewPrivileges stays off: the narrow sudo rules (labdex-agent sudoers) need it.
+# Write jobs run through systemd-run, outside this sandbox, so ProtectSystem can be strict.
+ProtectSystem=strict
+ReadWritePaths=/var/lib/labdex-agent
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+# netlink: ss reads sockets through it
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+UMask=0077
+MemoryMax=256M
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target

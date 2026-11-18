@@ -76,7 +76,7 @@ cd frontend && npm ci && npm run build && cd ..   # builds the UI into backend/l
 cd backend && pip install -e ".[server]"          # plus: apt install nmap; pip install ansible-core (optional)
 labdex import --yes ../examples/homelab.yaml
 labdex user create admin --admin
-gunicorn --workers 1 --threads 16 -b 127.0.0.1:8080 "labdex:create_app()"
+gunicorn --workers 1 --threads 64 -b 127.0.0.1:8080 "labdex:create_app()"
 ```
 
 For UI development run `labdex run --debug` (port 5000) and `npm run dev` in
