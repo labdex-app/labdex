@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { getCached, setQueryData, useQuery } from '../query'
 import { api, ApiError } from '../api'
 import {
-  AppWindow, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Box, Cable, EthernetPort, ListPlus, Lock, MapPin, Merge, Pencil, Plus, RotateCcw, Route, Tag, Trash2, Waypoints, Wifi,
+  AppWindow, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Box, Cable, EthernetPort, ListPlus, Lock, MapPin, Merge, Pencil, Plus, QrCode, RotateCcw, Route, Tag, Trash2, Unplug, Waypoints, Wifi,
 } from 'lucide-vue-next'
 import { confirm } from '../confirm'
 import ChipInput from '../components/ChipInput.vue'
@@ -22,7 +22,7 @@ import HostDashboard from '../components/HostDashboard.vue'
 import SecretList from '../components/SecretList.vue'
 import { stringify as toYaml } from 'yaml'
 import ZoneChip from '../components/ZoneChip.vue'
-import { ago, changed, stamp, state, tagColour, toast, zoneHex } from '../store'
+import { ago, changed, isPinned, stamp, state, tagColour, toast, zoneHex } from '../store'
 import CableExtras from '../components/CableExtras.vue'
 import PortMap from '../components/PortMap.vue'
 import CableTrace from '../components/CableTrace.vue'
@@ -34,6 +34,15 @@ const props = defineProps({ name: { type: String, required: true } })
 const router = useRouter()
 const route = useRoute()
 const isNew = computed(() => props.name === 'new')
+const LIVE_CLASS = { up: 'ok', down: 'err', degraded: 'warn' }
+const live = computed(() => derived.value?.health?.live)
+const pinnedHere = computed(() => isPinned(route.path))
+// the address people know the host by: the primary interface's, else the first one
+const primaryAddr = computed(() => {
+  const ifs = (derived.value?.interfaces || []).filter((i) => i.ip4 || i.ip6)
+  const i = ifs.find((x) => x.primary) || ifs[0]
+  return i ? i.ip4 || i.ip6 : ''
+})
 
 const blank = () => ({
   name: '', site: route.query.site || state.meta.sites?.[0]?.code || 'home', fun: '', zone: '', zone_pinned: false, kind: 'device', vip_protocol: '', vip_members: [],
@@ -199,8 +208,8 @@ function setTab(t) {
 }
 const errIn = (prefix) => Object.keys(errors.value).some((k) => k.startsWith(prefix))
 const tabs = computed(() => [
-  ...(isNew.value ? [] : [{ id: 'dashboard', label: 'Dashboard' }]),
-  { id: 'overview', label: 'Overview', err: ['name', 'fun', 'zone', 'status', 'function', 'runs_on', 'hardware'].some((k) => errors.value[k]) },
+  ...(isNew.value ? [] : [{ id: 'dashboard', label: 'Overview' }]),
+  { id: 'overview', label: isNew.value ? 'Overview' : 'Details', err: ['name', 'fun', 'zone', 'status', 'function', 'runs_on', 'hardware'].some((k) => errors.value[k]) },
   { id: 'network', label: 'Network', count: form.interfaces.length, err: errIn('interfaces') },
   { id: 'services', label: 'Services', count: form.services.length, err: errIn('services') },
   { id: 'dns', label: 'DNS', count: form.records.length, err: errIn('records') || !!errors.value.fun_no_dns },
@@ -520,28 +529,41 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
         <button class="btn small primary" @click="draft.restore()">Restore them</button>
         <button class="btn small ghost" @click="draft.discard()">Discard</button>
       </div>
-      <div class="page-head">
-        <RouterLink to="/hosts" class="btn ghost small">← Hosts</RouterLink>
-        <h1>
-          <template v-if="isNew">New host</template>
+      <!-- the object header: what it is, its state, where it sits, and its actions on one row -->
+      <div class="objhead">
+        <span class="oh-icon" aria-hidden="true"><HostIcon v-if="derived" :host="derived" :size="24" /></span>
+        <div class="oh-main">
+          <div class="label">Host<template v-if="derived?.kind && derived.kind !== 'device'"> · {{ derived.kind }}</template><template v-if="derived?.function"> · {{ derived.function }}</template></div>
+          <h1>
+            <template v-if="isNew">New host</template>
+            <template v-else>
+              <span class="mono oh-name">{{ derived?.name || name }}</span>
+              <span v-if="live && live !== 'unknown'" class="oh-live" :class="LIVE_CLASS[live]"><span class="dot" :class="LIVE_CLASS[live]"></span>{{ live }}</span>
+              <span v-if="pinnedHere" class="oh-pin">★ pinned</span>
+            </template>
+          </h1>
+          <div v-if="!isNew && derived" class="oh-tags">
+            <span v-if="derived.fun" class="h-tag">fun <b>{{ derived.fun }}</b></span>
+            <span v-if="(state.meta.sites || []).length > 1" class="h-tag">site <b>{{ derived.site }}</b></span>
+            <ZoneChip v-if="form.zone" :zone="form.zone" />
+            <span v-if="primaryAddr" class="h-tag"><b>{{ primaryAddr }}</b></span>
+            <span v-if="derived.runs_on" class="h-tag">on <b>{{ derived.runs_on }}</b></span>
+            <span v-if="derived.rack" class="h-tag">rack <b>{{ derived.rack }}<template v-if="derived.rack_unit"> U{{ derived.rack_unit }}</template></b></span>
+          </div>
+        </div>
+        <div class="oh-acts">
+          <RouterLink v-if="!isNew && derived?.name" :to="{ path: '/impact', query: { host: derived.name } }" class="btn"
+            title="What breaks if this host goes down"><Unplug :size="15" /> What breaks?</RouterLink>
+          <RouterLink v-if="!isNew && derived?.name" :to="{ path: '/labels', query: { what: 'hosts', host: derived.name } }" class="btn"
+            title="Print a label with a QR code for this host"><QrCode :size="15" /> Label</RouterLink>
+          <span v-if="readOnly" class="lock" title="Your roles don't allow changing this host">🔒 read-only for you</span>
           <template v-else>
-            <span v-if="derived?.fun" class="fun" style="font-size: calc(22px * var(--text))">{{ derived.fun }}</span>
-            <span class="mono" :class="{ muted: derived?.fun }" style="margin-left: 10px; font-size: calc(16px * var(--text))">{{ derived?.name || name }}</span>
+            <button v-if="!isNew" class="btn danger" @click="remove">Delete</button>
+            <button class="btn primary" :disabled="busy || (!dirty && !isNew)" @click="save">
+              {{ busy ? 'Saving…' : isNew ? 'Create host' : dirty ? 'Save changes' : 'Saved' }}
+            </button>
           </template>
-        </h1>
-        <ZoneChip v-if="form.zone" :zone="form.zone" />
-        <span class="grow"></span>
-        <RouterLink v-if="!isNew && derived?.name" :to="{ path: '/impact', query: { host: derived.name } }" class="btn ghost small"
-          title="What breaks if this host goes down">Impact</RouterLink>
-        <RouterLink v-if="!isNew && derived?.name" :to="{ path: '/labels', query: { what: 'hosts', host: derived.name } }" class="btn ghost small"
-          title="Print a label with a QR code for this host">Label</RouterLink>
-        <span v-if="readOnly" class="lock" title="Your roles don't allow changing this host">🔒 read-only for you</span>
-        <template v-else>
-          <button v-if="!isNew" class="btn danger" @click="remove">Delete</button>
-          <button class="btn primary" :disabled="busy || (!dirty && !isNew)" @click="save">
-            {{ busy ? 'Saving…' : isNew ? 'Create host' : dirty ? 'Save changes' : 'Saved' }}
-          </button>
-        </template>
+        </div>
       </div>
       <nav class="tabs" aria-label="Host sections">
         <a v-for="t in tabs" :key="t.id" href="#" :class="{ 'router-link-active': tab === t.id }" :aria-current="tab === t.id ? 'page' : undefined" @click.prevent="setTab(t.id)">
@@ -1232,6 +1254,15 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
 </template>
 
 <style scoped>
+.objhead { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+.oh-icon { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--card); color: var(--muted); }
+.oh-main { flex: 1; min-width: 0; }
+.oh-main h1 { margin: 2px 0 6px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.oh-name { font-size: calc(22px * var(--text)); font-weight: 600; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.oh-live { display: inline-flex; align-items: center; gap: 6px; font: 500 calc(12px * var(--text)) var(--mono); text-transform: uppercase; color: var(--muted); }
+.oh-pin { font-size: calc(12px * var(--text)); color: var(--accent-soft); font-weight: 500; }
+.oh-tags { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.oh-acts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .ifgroup { margin: 12px 0 6px; font-weight: 600; }
 .ifgroup:first-of-type { margin-top: 0; }
 .bulkprev { margin: 0; overflow-wrap: anywhere; }

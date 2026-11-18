@@ -27,6 +27,9 @@
   waiting, changes to review), a Sites table (git source, hosts, status, updates, open plans,
   last apply), Needs attention with one action per row, and Activity. Your cards follow below;
   the counts card is left out on the start page. `/api/dashboard` adds `sites` and `counts.updates`.
+- **Host page header**: the host's icon, name, live state and pin mark on one line, with its
+  function, site, zone, address, hypervisor and rack as tags below, and What breaks?, Label,
+  Delete and Save on the right. The first tab is now *Overview*; the form tab is *Details*.
 - **Host agents** (`labdex-agent`): a systemd service on Linux hosts that keeps one outgoing
   WebSocket connection to labdex, so hosts need no open port. Enrol it from the host's new
   **Agent** tab with a one-time token; labdex keeps only a hash of the host's key, and **Revoke**
