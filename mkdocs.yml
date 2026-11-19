@@ -61,6 +61,7 @@ nav:
       - Hosts, networks, services: guide/inventory.md
       - Patches: guide/patches.md
       - Host agents: guide/agent.md
+      - A first agent, read-only: guide/agent-trial.md
       - Working fast: guide/working-fast.md
       - Coming from another tool: guide/import.md
       - Change sets: guide/change-sets.md
@@ -85,6 +86,7 @@ nav:
       - Jobs and the worker: operate/jobs.md
       - Notifications: operate/notifications.md
       - Templates and Ansible Vault: operate/templates.md
+      - Workflows and maintenance windows: operate/workflows.md
       - Backups: operate/backups.md
       - Upgrading: operate/upgrading.md
       - Security: operate/security.md

@@ -242,6 +242,7 @@ def _run_claimed(app: Flask, job_id: int, phase: str) -> None:
                 _after_plan(job_id)
             if phase != "apply":
                 _rerun_if_pending(job_id)
+            _workflow_next(job_id)
         finally:
             db.session.remove()
 
@@ -255,6 +256,24 @@ def _drift_note(job_id: int) -> None:
     except Exception:  # never let the check break the plan
         db.session.rollback()
         current_app.logger.exception("the drift check of job #%s failed", job_id)
+
+
+def _workflow_next(job_id: int) -> None:
+    """A job of a workflow run finished a phase: move the run along now, not at the next tick."""
+    db.session.expire_all()
+    job = db.session.get(Job, job_id)
+    if job is None or not job.workflow_run_id:
+        return
+    from .. import workflows
+    from ..models import WorkflowRun
+    run = db.session.get(WorkflowRun, job.workflow_run_id)
+    if run is None:
+        return
+    try:
+        workflows.advance(run)
+    except Exception:  # the scheduler tries again; the job itself is done
+        db.session.rollback()
+        current_app.logger.exception("moving workflow run #%s along failed", run.id)
 
 
 def _after_plan(job_id: int) -> None:
@@ -414,7 +433,7 @@ def queue_status() -> dict:
 
 
 def start(integration: Integration, action_id: str, *, trigger="manual", params=None, created_by="system",
-          replaces: int | None = None, template_id: int | None = None) -> Job:
+          replaces: int | None = None, template_id: int | None = None, workflow_run_id: int | None = None) -> Job:
     spec = ext()["registry"].get(integration.plugin_id)
     action = spec.action(action_id) if spec else None
     if action is None or action["mode"] == "export":
@@ -459,7 +478,7 @@ def start(integration: Integration, action_id: str, *, trigger="manual", params=
         job = Job(integration_id=integration.id, action=action_id, mode=action["mode"], trigger=trigger,
                   params=params, created_by=created_by, inventory_rev=audit.inventory_revision(),
                   phase="plan" if action["mode"] == "plan" else "run", status="queued", replaces=replaces,
-                  template_id=template_id)
+                  template_id=template_id, workflow_run_id=workflow_run_id)
         if params.get("host"):
             _note_hosts(job, [params["host"]])
         db.session.add(job)
@@ -522,7 +541,7 @@ def apply_now(job: Job, by: str) -> str:
         db.session.commit()
         try:
             new = start(job.integration, job.action, trigger=job.trigger, params=dict(job.params or {}),
-                        created_by=job.created_by, replaces=job.id)
+                        created_by=job.created_by, replaces=job.id, workflow_run_id=job.workflow_run_id)
         except PluginError as exc:
             _append_log(job, f"couldn't plan again: {exc}")
             return "stale"
@@ -637,6 +656,12 @@ def _tick(app: Flask) -> None:
             except Exception:
                 db.session.rollback()
                 app.logger.exception("starting scheduled templates failed")
+            try:
+                from .. import workflows
+                workflows.tick()  # scheduled workflows, and runs waiting on a step
+            except Exception:
+                db.session.rollback()
+                app.logger.exception("moving workflows along failed")
             if not app.config.get("LABDEX_DEMO"):
                 try:
                     from . import installer

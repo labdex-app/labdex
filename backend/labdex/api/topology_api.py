@@ -28,8 +28,15 @@ def _visible_hosts() -> dict[str, dict]:
     return {e["host"]["name"]: e["host"] for e in store.host_index() if p.can("host", "view", e["facts"])}
 
 
-def _host_node(h: dict, parent: str | None = None) -> dict:
+def _live() -> dict[str, str]:
+    """host → up, down or unknown, from status sources and Discovery (see health.py)."""
+    from .. import health
+    return {k: v["live"] for k, v in health.states().items()}
+
+
+def _host_node(h: dict, parent: str | None = None, live: dict | None = None) -> dict:
     return {"id": f"h:{h['name']}", "type": "host", "name": h["name"], "uid": h.get("uid", ""), "label": h.get("fun") or h["name"],
+            "live": (live or {}).get(h["name"], "unknown"),
             "fun": h.get("fun") or "", "colour": h.get("colour") or "", "zone": h["zone"],
             "status": h["status"], "kind": h.get("kind") or "device", "icon": h.get("icon") or "",
             "function": h.get("function") or "", "parent": parent, "runs_on": h.get("runs_on") or "",
@@ -47,6 +54,7 @@ def _answer(view: str, nodes: dict, edges: list):
 def _l3(hosts: dict[str, dict], zone: str):
     """Layer 3: networks as nodes, every host joined to the networks it has an address in."""
     p = g.principal
+    live = _live()
     nodes: dict[str, dict] = {}
     edges: list[dict] = []
     for n in db.session.scalars(db.select(Network).order_by(Network.name)):
@@ -58,7 +66,7 @@ def _l3(hosts: dict[str, dict], zone: str):
         nets = [i for i in h["interfaces"] if i.get("network") and f"n:{i['network']}" in nodes]
         if not nets:
             continue
-        nodes[f"h:{name}"] = _host_node(h)
+        nodes[f"h:{name}"] = _host_node(h, live=live)
         for k, i in enumerate(nets):
             edges.append({"id": f"a:{name}:{k}", "source": f"h:{name}", "target": f"n:{i['network']}", "kind": "address",
                           "label": ", ".join(a for a in [i.get("ip4") or i.get("ip6"), *(i.get("extra_ips") or [])] if a) or "dhcp", "a_port": i.get("label") or "", "a_host": name})
@@ -91,6 +99,8 @@ def topology():
         return _l3(hosts, zone)
     hosts = {k: h for k, h in hosts.items() if h.get("kind") != "vip"}  # an address, not a thing with cables
     hypervisors = {h["runs_on"] for h in hosts.values() if h.get("runs_on") in hosts}
+    live = _live()
+    seen = cabling.checks(set(hosts))
 
     nodes: dict[str, dict] = {}
     edges: list[dict] = []
@@ -107,7 +117,7 @@ def topology():
     for name in sorted(hypervisors):
         h = hosts[name]
         nodes[f"box:{name}"] = {"id": f"box:{name}", "type": "box", "host": name, "label": h.get("fun") or name, "name": name, "uid": h.get("uid", ""),
-                                "fun": h.get("fun") or "", "colour": h.get("colour") or "",
+                                "fun": h.get("fun") or "", "colour": h.get("colour") or "", "live": live.get(name, "unknown"),
                                 "zone": h["zone"], "status": h["status"], "icon": h.get("icon") or "", "function": h.get("function") or ""}
         for i in h["interfaces"]:
             if i.get("label"):
@@ -125,7 +135,7 @@ def topology():
         if name in hypervisors:
             continue
         on = h.get("runs_on") if h.get("runs_on") in hypervisors else ""
-        nodes[f"h:{name}"] = _host_node(h, f"box:{on}" if on else None)
+        nodes[f"h:{name}"] = _host_node(h, f"box:{on}" if on else None, live)
         for i in h["interfaces"]:  # a guest interface on the hypervisor's bridge: an internal link
             par = i.get("parent") or ""
             if ":" in par:
@@ -160,7 +170,8 @@ def topology():
         edges.append({"id": f"c:{lk.id}", "source": src, "target": dst, "kind": "internal" if internal else "cable", "link": lk.id,
                       "a_port": a_port, "b_port": b_port, "a_host": a, "b_host": b, "medium": lk.medium or "",
                       "speed": lk.speed or "", "notes": lk.notes or "", "cable_label": lk.label or "", "length": lk.length or "",
-                      "cable_colour": lk.colour or "", "label": f"{a_port} – {b_port}"})
+                      "cable_colour": lk.colour or "", "label": f"{a_port} – {b_port}",
+                      **({"lldp": seen[lk.id]} if lk.id in seen and not internal else {})})
     # the same internal link may be both a guest's interface parent and an internal cable: keep one
     out_edges, keys = [], set()
     for ed in sorted(edges, key=lambda x: bool(x.get("auto"))):  # a drawn link wins over a guessed one

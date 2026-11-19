@@ -1,5 +1,7 @@
 // Cables: media, speeds and the colour a speed gets on the topology (and in lists).
 export const MEDIA = ['copper', 'fiber', 'dac', 'wifi']
+// the colour a medium gets on the topology (the same families Floorbit uses: blue copper, yellow fiber, violet DAC)
+export const MEDIUM_COLOURS = { copper: '#3b82f6', fiber: '#eab308', dac: '#a855f7', wifi: '#06b6d4' }
 export const SPEEDS = ['100M', '1G', '2.5G', '5G', '10G', '25G', '40G', '100G', '400G']
 
 /** "2.5G", "10 Gbit", "100M", "1000" → megabits per second (0 when it can't tell). */

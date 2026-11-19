@@ -10,7 +10,7 @@ After=network-online.target
 Type=simple
 User=labdex-agent
 Group=labdex-agent
-ExecStart=/opt/labdex-agent/venv/bin/python /opt/labdex-agent/labdex-agent.pyz run
+ExecStart=/usr/bin/python3 -I /opt/labdex-agent/labdex-agent.pyz run
 Restart=on-failure
 RestartSec=10
 # 3: the hub refused the agent (revoked, or root not allowed): stay stopped until someone looks
@@ -19,26 +19,20 @@ StateDirectory=labdex-agent
 StateDirectoryMode=0700
 ConfigurationDirectory=labdex-agent
 
-# Hardening. NoNewPrivileges stays off: the narrow sudo rules (labdex-agent sudoers) need it.
-# Write jobs run through systemd-run, outside this sandbox, so ProtectSystem can be strict.
+# Hardening. The agent's narrow sudo rules (labdex-agent sudoers) are how it reads ports and
+# containers and starts write jobs, and sudo can't work under NoNewPrivileges. systemd switches
+# that on by itself for a service with a user of its own and any of PrivateDevices,
+# ProtectKernel*, ProtectClock, ProtectHostname, RestrictNamespaces, RestrictRealtime,
+# RestrictAddressFamilies, LockPersonality, MemoryDenyWriteExecute or SystemCallArchitectures, so
+# those stay off (checked on Debian 12 with systemd 252). What stays on:
 ProtectSystem=strict
 ReadWritePaths=/var/lib/labdex-agent
 ProtectHome=yes
 PrivateTmp=yes
-PrivateDevices=yes
-ProtectKernelTunables=yes
-ProtectKernelModules=yes
-ProtectKernelLogs=yes
 ProtectControlGroups=yes
-ProtectClock=yes
-ProtectHostname=yes
-RestrictNamespaces=yes
-RestrictRealtime=yes
-LockPersonality=yes
-MemoryDenyWriteExecute=yes
-SystemCallArchitectures=native
-# netlink: ss reads sockets through it
-RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+# what sudo needs to become root, and what ss needs to see which process owns a socket; nothing
+# else, even as root. Write jobs run through systemd-run, started by systemd outside this sandbox.
+CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_AUDIT_WRITE CAP_DAC_READ_SEARCH CAP_SYS_PTRACE
 UMask=0077
 MemoryMax=256M
 TasksMax=64
