@@ -91,9 +91,14 @@ previous one too.
 
 - a GitHub release with the CHANGELOG section, labdex's own source (not the plugins), the wheel,
   their SBOMs and cosign bundles
-- `ghcr.io/labdex-app/labdex:<version>` for amd64 and arm64, signed, with its SBOM attached
+- `ghcr.io/labdex-app/labdex:<version>` for amd64 and arm64, signed, with its SBOM attached, also as
+  `<X.Y>`, `<X>` and `latest` (`latest` is always the newest release)
 - its own docs: `https://labdex-app.github.io/labdex/<X.Y>/` (the version picker at the top);
   `latest` is the newest release, `dev` is `main`
+
+Between releases, every push to `main` publishes `ghcr.io/labdex-app/labdex:dev` (the newest
+commit) and `:sha-<7 hex>` (that commit), signed, for amd64 and arm64. They are for testing:
+they never move `latest` or a version tag.
 
 ## Checklist
 

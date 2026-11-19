@@ -509,7 +509,8 @@ GitHub Actions runs it on pull requests (`ci.yml`: what a change can affect, inc
 build and the upgrade gate, a 0.5 database started on the current release,
 `tests/test_upgrade_gate.py`), and ruff and eslint on every push (`lint.yml`).
 Publishing a GitHub release tagged `v<version>` publishes signed multi-arch images (amd64, arm64) to `ghcr.io/<owner>/labdex`
-and a GitHub release with signed archives, wheel and SBOMs (`release.yml`). `docs.yml`
+and a GitHub release with signed archives, wheel and SBOMs (`release.yml`); every push to `main`
+publishes `:dev` and `:sha-<commit>` (`image.yml`). `docs.yml`
 publishes the docs, one version per release, to GitHub Pages; the official plugin
 repository is its own project ([labdex-plugins](https://github.com/labdex-app/labdex-plugins)).
 
