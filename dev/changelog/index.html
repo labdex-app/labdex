@@ -672,6 +672,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../guide/agent-trial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    A first agent, read-only
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../guide/working-fast/" class="md-nav__link">
         
   
@@ -7534,6 +7562,17 @@
   <code>LABDEX_AGENT_MTLS</code> (<code>optional</code> by default, or <code>required</code>, <code>off</code>); behind a reverse proxy the
   certificate comes in <code>LABDEX_AGENT_CERT_HEADER</code> from <code>LABDEX_TRUSTED_PROXIES</code>.</li>
 <li>The image runs gunicorn with 64 threads (was 16): each connected agent holds one.</li>
+<li>Agent install, tried end to end on Debian 12 with systemd: the agent now brings its
+  libraries along (nothing from PyPI, no venv on hosts), <code>install.sh</code> installs packages only when
+  they are missing, falls back to Python without <code>curl</code>, and takes <code>--uninstall [--purge]</code>. The
+  service no longer turns on hardening that makes systemd set <code>NoNewPrivileges</code> by itself, which
+  stopped every sudo rule; a capability bounding set takes its place. <code>patch.apply</code> stops when
+  <code>apt-get update</code> couldn't fetch, and Ansible installed with pip is found. New guide: <em>A first
+  agent, read-only</em>.</li>
+<li><strong>Agents</strong> page: every host's agent with its link, last contact, root, writes, client
+  certificate and latest metrics, with tiles to filter.</li>
+<li><code>backend/tools/agent_rehearsal.py</code> rehearses the agent's install, revoke and uninstall in a
+  throwaway systemd container against a local labdex with client certificates required.</li>
 <li><strong>Kubernetes workloads &amp; Flux</strong> plugin (read-only, one per cluster): Deployments, StatefulSets
   and DaemonSets with ready against wanted replicas, Flux Kustomizations and HelmReleases with
   their Ready state, applied revision and source, and the Git, OCI and Helm sources, on a Cluster

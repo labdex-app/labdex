@@ -14,7 +14,7 @@
         <link rel="prev" href="../patches/">
       
       
-        <link rel="next" href="../working-fast/">
+        <link rel="next" href="../agent-trial/">
       
       
         
@@ -741,6 +741,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#all-agents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        All agents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#revoke" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -821,6 +832,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../agent-trial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    A first agent, read-only
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -2021,6 +2060,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#all-agents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        All agents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#revoke" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2137,9 +2187,11 @@ sudo<span class="w"> </span>sh<span class="w"> </span>install.sh<span class="w">
 </code></pre></div>
 <p>Read <code>install.sh</code> before you run it. It:</p>
 <ol>
-<li>installs Python 3 with <code>cryptography</code> (from the distribution) and <code>simple-websocket</code>, in a
-   virtual environment under <code>/opt/labdex-agent</code>;</li>
-<li>downloads the agent from labdex and checks it against <code>--sha256</code>;</li>
+<li>installs Python 3 (3.11 or newer), its <code>cryptography</code> package and <code>sudo</code> from the distribution,
+   but only what is missing. The agent brings its other libraries along, so nothing comes from
+   PyPI;</li>
+<li>downloads the agent (<code>/opt/labdex-agent/labdex-agent.pyz</code>) from labdex and checks it against
+   <code>--sha256</code>;</li>
 <li>creates the system user <code>labdex-agent</code> (no shell, no home);</li>
 <li>writes <code>/etc/labdex-agent/agent.conf</code> and the sudo rules in <code>/etc/sudoers.d/labdex-agent</code>
    (checked with <code>visudo</code> first);</li>
@@ -2169,8 +2221,16 @@ sudo<span class="w"> </span>sh<span class="w"> </span>install.sh<span class="w">
 <td><code>--ca-file /path/ca.pem</code></td>
 <td>for a labdex with a certificate from your own CA.</td>
 </tr>
+<tr>
+<td><code>--uninstall</code></td>
+<td>stop and remove the agent again: its service, sudo rules, config and program. The key, certificate and audit log stay in <code>/var/lib/labdex-agent</code>; add <code>--purge</code> to remove them and the <code>labdex-agent</code> user too. Revoke the agent on the Agent tab as well.</td>
+</tr>
 </tbody>
 </table>
+<p>Running it again installs the agent anew with a new token, and revokes the older one.
+Without <code>curl</code> on the host, it downloads with Python instead; fetch <code>install.sh</code> itself the same way:</p>
+<div class="highlight"><pre><span></span><code>python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import urllib.request as u; open('install.sh','wb').write(u.urlopen('https://lantern.example.net/api/agents/install.sh').read())"</span>
+</code></pre></div>
 <p>The hub URL must be <code>https://</code>: the key travels over it.</p>
 <h2 id="what-runs-with-privileges">What runs with privileges<a class="headerlink" href="#what-runs-with-privileges" title="Permanent link">&para;</a></h2>
 <p>The agent runs as <code>labdex-agent</code>. Its sudo rules allow exactly these command lines and nothing else
@@ -2209,10 +2269,17 @@ sudo<span class="w"> </span>sh<span class="w"> </span>install.sh<span class="w">
 <p>The agent's user is never put in the <code>docker</code> group, because that is as good as root. Write jobs run
 through <code>systemd-run</code>, outside the agent's sandbox, one at a time, and show up in the journal as
 <code>labdex-agent-patch</code> or <code>labdex-agent-ansible</code>.</p>
-<p>The service runs with systemd hardening: <code>ProtectSystem=strict</code>, <code>ProtectHome</code>, <code>PrivateTmp</code>,
-<code>PrivateDevices</code>, kernel and cgroup protection, a memory limit and more (see
-<code>backend/labdex/agent/dist/labdex-agent.service</code>). <code>NoNewPrivileges</code> stays off, because the sudo
-rules need it.</p>
+<p>The service runs in a systemd sandbox: <code>ProtectSystem=strict</code> (the only folder it can write is
+<code>/var/lib/labdex-agent</code>), <code>ProtectHome</code>, <code>PrivateTmp</code>, <code>ProtectControlGroups</code>, a capability bounding
+set that holds only what sudo needs to become root and what <code>ss</code> needs to see a socket's process,
+and limits on memory and tasks (see <code>backend/labdex/agent/dist/labdex-agent.service</code>).</p>
+<p>Some hardening is left off on purpose. With a user of its own, systemd turns on
+<code>NoNewPrivileges</code> by itself as soon as a service has any of <code>PrivateDevices</code>,
+<code>ProtectKernelTunables</code>, <code>ProtectKernelModules</code>, <code>ProtectKernelLogs</code>, <code>ProtectClock</code>,
+<code>ProtectHostname</code>, <code>RestrictNamespaces</code>, <code>RestrictRealtime</code>, <code>RestrictAddressFamilies</code>,
+<code>LockPersonality</code>, <code>MemoryDenyWriteExecute</code> or <code>SystemCallArchitectures</code>. Under
+<code>NoNewPrivileges</code>, sudo can't run, so every sudo rule above would fail. This was checked on
+Debian 12 with systemd 252.</p>
 <h2 id="jobs">Jobs<a class="headerlink" href="#jobs" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -2277,6 +2344,11 @@ agent the bundle's SHA-256, the commit, the playbook path and the variables, all
 fetches the bundle over the same connection and checks the hash. It unpacks the bundle with no
 absolute paths, no <code>..</code> and no links, then runs <code>ansible-playbook -i localhost, -c local</code> through
 <code>systemd-run</code>. Tick <em>check only</em> for <code>--check --diff</code>.</p>
+<h2 id="all-agents">All agents<a class="headerlink" href="#all-agents" title="Permanent link">&para;</a></h2>
+<p><strong>Agents</strong> in the sidebar lists every host's agent: linked or not, when it was last seen, whether it
+runs as root, which writes are on at both ends, whether the link used its client certificate, and
+its latest CPU, memory and <code>/</code> use. The tiles filter the list, for example to agents that link
+without a certificate before you switch <code>LABDEX_AGENT_MTLS</code> to <code>required</code>.</p>
 <h2 id="revoke">Revoke<a class="headerlink" href="#revoke" title="Permanent link">&para;</a></h2>
 <p><strong>Revoke</strong> on the Agent tab stops the key at once: labdex closes the live connection within a
 second, and the agent stops and stays stopped (<code>RestartPreventExitStatus=3</code>). Enrolling a host again
@@ -2381,7 +2453,9 @@ labdex-agent<span class="w"> </span>health<span class="w">                 </spa
 labdex-agent<span class="w"> </span>show<span class="w"> </span>discovery<span class="w">         </span><span class="c1"># what discovery would report, printed here, nothing sent</span>
 labdex-agent<span class="w"> </span>sudoers<span class="w">                </span><span class="c1"># the sudo rules for this host's capabilities</span>
 </code></pre></div>
-<p><code>labdex-agent</code> is <code>/opt/labdex-agent/venv/bin/python /opt/labdex-agent/labdex-agent.pyz</code>.</p>
+<p><code>labdex-agent</code> (in <code>/usr/local/bin</code>) runs <code>/usr/bin/python3 -I /opt/labdex-agent/labdex-agent.pyz</code>.
+Its log is in the journal: <code>journalctl -u labdex-agent</code>. Write jobs log there too, as
+<code>labdex-agent-patch</code> and <code>labdex-agent-ansible</code>.</p>
 <h2 id="running-labdex-for-agents">Running labdex for agents<a class="headerlink" href="#running-labdex-for-agents" title="Permanent link">&para;</a></h2>
 <p>Each connected agent holds one of the web server's threads. The image starts gunicorn with 64
 threads. With many agents, raise <code>--threads</code> in the container's command. Behind a reverse
@@ -2439,13 +2513,13 @@ proxy, pass WebSockets through for <code>/api/agents/link</code>.</p>
         
         
           
-          <a href="../working-fast/" class="md-footer__link md-footer__link--next" aria-label="Next: Working fast">
+          <a href="../agent-trial/" class="md-footer__link md-footer__link--next" aria-label="Next: A first agent, read-only">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Working fast
+                A first agent, read-only
               </div>
             </div>
             <div class="md-footer__button md-icon">
