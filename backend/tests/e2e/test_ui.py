@@ -577,11 +577,12 @@ def test_patches_page_and_host_card(page, server, tmp_path):
     assert status == 200
     page.goto(server + "/patches")
     page.wait_for_selector("td >> text=srv-vm-dns-01")
-    assert page.locator(".tile.security b").inner_text() == "1"
+    assert page.locator(".kpi.security b").inner_text() == "1"
     page.click("tr.click:has-text('srv-vm-dns-01')")
-    page.wait_for_selector("tr.pdetail >> text=openssl")
+    page.wait_for_selector(".drawer .pdetail >> text=openssl")
     page.screenshot(path=str(tmp_path / "patches.png"))
-    page.click(".tile.current")
+    page.click(".drawer button[aria-label='Close']")
+    page.click(".kpi.current")
     page.wait_for_function("document.querySelectorAll('tr.click').length === 1")
     open_host(page, server, "srv-vm-dns-01")
     page.wait_for_selector(".glance >> text=1 security")
@@ -636,7 +637,7 @@ def test_agents_page(page, server, tmp_path):
     assert status == 200
     page.goto(server + "/agents")
     page.wait_for_selector("td >> text=srv-vm-dns-01")
-    assert page.locator(".tile.offline b").inner_text() == "1" and page.locator(".tile.linked b").inner_text() == "0"
+    assert page.locator(".kpi.offline b").inner_text() == "1" and page.locator(".kpi.linked b").inner_text() == "0"
     assert page.locator("td >> text=read-only").count() == 1
     page.screenshot(path=str(tmp_path / "agents.png"))
     page.click("td a >> text=srv-vm-dns-01")

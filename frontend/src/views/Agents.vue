@@ -20,13 +20,15 @@ const certState = (a) => {
 }
 const pct = (used, total) => (total ? Math.round((100 * used) / total) : null)
 
+// the cards: key, label, test, the colour of the number, the line under it
 const TILES = [
-  ['linked', 'linked', (a) => a.linked],
-  ['offline', 'not linked', (a) => !a.linked],
-  ['writes', 'writes on', (a) => writes(a).length > 0],
-  ['root', 'run as root', (a) => a.root],
-  ['nocert', 'link without a certificate', (a) => a.linked && ['unused', 'none'].includes(certState(a))],
+  ['linked', 'Linked', (a) => a.linked, 'ok', 'connected now'],
+  ['offline', 'Not linked', (a) => !a.linked, 'warn', 'enrolled, no connection'],
+  ['writes', 'Writes on', (a) => writes(a).length > 0, '', 'may change their host'],
+  ['root', 'Run as root', (a) => a.root, '', 'not as labdex-agent'],
+  ['nocert', 'No certificate', (a) => a.linked && ['unused', 'none'].includes(certState(a)), 'warn', 'linked without one'],
 ]
+const BAR = { ok: 'var(--ok)', warn: 'var(--warn)', '': 'var(--accent)' }
 const counts = computed(() => Object.fromEntries(TILES.map(([k, , f]) => [k, agents.value.filter(f).length])))
 const rows = computed(() => {
   const n = q.value.trim().toLowerCase()
@@ -42,14 +44,17 @@ const mode = computed(() => agents.value[0]?.cert?.mode || '')
   <div class="page">
     <div class="page-head">
       <h1>Agents</h1>
-      <span class="sub">{{ counts.linked }} of {{ agents.length }} linked</span>
+      <span class="h-tag">{{ counts.linked }}/{{ agents.length }} linked</span>
       <span class="grow"></span>
       <input v-model="q" type="search" placeholder="Search hosts, OS, version" style="max-width: 300px" aria-label="Search agents">
     </div>
 
-    <div class="tiles">
-      <button v-for="[k, label] in TILES" :key="k" class="tile" :class="[k, { on: filter === k }]" @click="filter = filter === k ? '' : k">
-        <b>{{ counts[k] }}</b><span>{{ label }}</span>
+    <div class="kpis">
+      <button v-for="[k, label, , tone, sub] in TILES" :key="k" class="kpi" :class="[k, tone, { on: filter === k }]" :aria-pressed="filter === k" @click="filter = filter === k ? '' : k">
+        <span class="label">{{ label }}</span>
+        <b>{{ counts[k] }}</b>
+        <div class="bar"><div :style="{ width: `${pct(counts[k], agents.length) || 0}%`, background: BAR[tone] }"></div></div>
+        <span class="small muted">{{ sub }}</span>
       </button>
     </div>
 
@@ -76,9 +81,9 @@ const mode = computed(() => agents.value[0]?.cert?.mode || '')
                 <span v-else class="faint">—</span>
                 <div v-if="a.cert?.not_after" class="faint">until {{ new Date(a.cert.not_after).toLocaleDateString() }}</div>
               </td>
-              <td class="num">{{ a.linked && a.metrics?.cpu_percent != null ? `${Math.round(a.metrics.cpu_percent)} %` : '—' }}</td>
-              <td class="num">{{ a.linked && pct(a.metrics?.mem_total - a.metrics?.mem_available, a.metrics?.mem_total) != null ? `${pct(a.metrics.mem_total - a.metrics.mem_available, a.metrics.mem_total)} %` : '—' }}</td>
-              <td class="num">{{ a.linked && pct(a.metrics?.root_used, a.metrics?.root_total) != null ? `${pct(a.metrics.root_used, a.metrics.root_total)} %` : '—' }}</td>
+              <td class="num mono">{{ a.linked && a.metrics?.cpu_percent != null ? `${Math.round(a.metrics.cpu_percent)} %` : '—' }}</td>
+              <td class="num mono">{{ a.linked && pct(a.metrics?.mem_total - a.metrics?.mem_available, a.metrics?.mem_total) != null ? `${pct(a.metrics.mem_total - a.metrics.mem_available, a.metrics.mem_total)} %` : '—' }}</td>
+              <td class="num mono">{{ a.linked && pct(a.metrics?.root_used, a.metrics?.root_total) != null ? `${pct(a.metrics.root_used, a.metrics.root_total)} %` : '—' }}</td>
               <td class="small mono">{{ a.version || '—' }}</td>
             </tr>
             <tr v-if="!rows.length"><td colspan="9" class="empty">{{ agents.length ? 'Nothing matches.' : 'No agents yet.' }}</td></tr>
@@ -95,13 +100,6 @@ const mode = computed(() => agents.value[0]?.cert?.mode || '')
 </template>
 
 <style scoped>
-.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
-.tile { font: inherit; text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-box); padding: 10px 14px;
-  display: flex; flex-direction: column; gap: 2px; cursor: pointer; color: var(--muted); }
-.tile b { font-size: calc(22px * var(--text)); color: var(--ink); }
-.tile.linked b { color: var(--ok); }
-.tile.offline b, .tile.nocert b { color: var(--warn); }
-.tile.on { border-color: var(--accent); }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
 .st { font-size: 12px; padding: 0 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
 .ok { color: var(--ok); }
