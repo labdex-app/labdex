@@ -2020,7 +2020,7 @@
 
 
 <h1 id="patches">Patches<a class="headerlink" href="#patches" title="Permanent link">&para;</a></h1>
-<p>The <strong>Patches</strong> page shows, for every host, which updates are waiting, how many of them are security
+<p>The <strong>Updates</strong> page (Operate › Updates) shows, for every host, which updates are waiting, how many of them are security
 updates, whether it needs a reboot, and when it was last patched. A host's dashboard has the same
 in its <em>Patches</em> card.</p>
 <p>Something reports to labdex:</p>
@@ -2078,7 +2078,7 @@ counts, for the updates and for the reboot. A report older than three days is sh
 to the channels that subscribed to it.</p>
 <h2 id="labdex-patch-report">labdex-patch-report<a class="headerlink" href="#labdex-patch-report" title="Permanent link">&para;</a></h2>
 <p>A single Python 3 file with only the standard library, so it runs on a bare VM. Download it from
-your labdex (the link is on the Patches page) and give it an <a href="../rbac/">API token</a> of a user who may
+your labdex (the link is on the Updates page) and give it an <a href="../rbac/">API token</a> of a user who may
 edit the host:</p>
 <div class="highlight"><pre><span></span><code><span class="gp"># </span>curl<span class="w"> </span>-fsSL<span class="w"> </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$LABDEX_TOKEN</span><span class="s2">"</span><span class="w"> </span>https://labdex.example.net/api/patches/agent<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-o<span class="w"> </span>/usr/local/bin/labdex-patch-report<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span>/usr/local/bin/labdex-patch-report
