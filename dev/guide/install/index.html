@@ -2035,6 +2035,11 @@ is written. Put labdex behind your reverse proxy over HTTPS.</p>
 <p>Release images are signed with cosign (keyless, GitHub Actions OIDC) and carry an
 SBOM. See <a href="../../operate/security/#verifying-a-release">Security</a>.</p>
 </div>
+<div class="admonition note">
+<p class="admonition-title">Trying what's next</p>
+<p><code>ghcr.io/labdex-app/labdex:dev</code> is the newest commit on <code>main</code>, rebuilt on every push.
+It is not a release: keep <code>:1</code> (or a version) for the lab you rely on.</p>
+</div>
 <h2 id="docker-compose">Docker Compose<a class="headerlink" href="#docker-compose" title="Permanent link">&para;</a></h2>
 <p>The repository's <code>docker-compose.yml</code> starts labdex, and with
 <code>--profile postgres</code> a PostgreSQL next to it. A commented <code>worker</code> service runs jobs

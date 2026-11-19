@@ -2245,10 +2245,14 @@ previous one too.</p>
 <ul>
 <li>a GitHub release with the CHANGELOG section, labdex's own source (not the plugins), the wheel,
   their SBOMs and cosign bundles</li>
-<li><code>ghcr.io/labdex-app/labdex:&lt;version&gt;</code> for amd64 and arm64, signed, with its SBOM attached</li>
+<li><code>ghcr.io/labdex-app/labdex:&lt;version&gt;</code> for amd64 and arm64, signed, with its SBOM attached, also as
+  <code>&lt;X.Y&gt;</code>, <code>&lt;X&gt;</code> and <code>latest</code> (<code>latest</code> is always the newest release)</li>
 <li>its own docs: <code>https://labdex-app.github.io/labdex/&lt;X.Y&gt;/</code> (the version picker at the top);
   <code>latest</code> is the newest release, <code>dev</code> is <code>main</code></li>
 </ul>
+<p>Between releases, every push to <code>main</code> publishes <code>ghcr.io/labdex-app/labdex:dev</code> (the newest
+commit) and <code>:sha-&lt;7 hex&gt;</code> (that commit), signed, for amd64 and arm64. They are for testing:
+they never move <code>latest</code> or a version tag.</p>
 <h2 id="checklist">Checklist<a class="headerlink" href="#checklist" title="Permanent link">&para;</a></h2>
 <ul>
 <li>[ ] CHANGELOG: what changed, for the people running it (not the commits)</li>
