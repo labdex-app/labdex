@@ -8,6 +8,7 @@ retries failures a few times. Events labdex itself sends:
     plan.applied    a plan was applied
     job.failed      an action failed (a plan, a run or an apply)
     backup.failed   a backup failed
+    workflow.started / workflow.waiting / workflow.succeeded / workflow.failed   see workflows.py
     host.down       a host stopped answering (sent by status integrations)
     host.up         … and came back
     host.patches    a host has security updates waiting or needs a reboot (patches.py)
@@ -41,6 +42,10 @@ EVENTS = [
     ("plan.applied", "A plan was applied"),
     ("job.failed", "An action failed"),
     ("backup.failed", "A backup failed"),
+    ("workflow.started", "A workflow started"),
+    ("workflow.waiting", "A workflow step waits for an approval"),
+    ("workflow.succeeded", "A workflow finished"),
+    ("workflow.failed", "A workflow failed"),
     ("host.down", "A host stopped answering"),
     ("host.up", "A host answers again"),
     ("host.patches", "A host has security updates waiting or needs a reboot"),
