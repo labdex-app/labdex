@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **The rest of the pages in the new look.** KPI cards (Updates, Agents; Discovery and *What
+  breaks?* counts look the same); page heads are the title, a mono tag and the actions, with what
+  the page is for on one line under them; titles match the sidebar (Updates, Activity,
+  Integrations, Automation, What breaks?). **Updates** and **Activity** are list and detail: a click
+  shows the host's packages, or the change and its diff, beside the list; a double click opens it.
+  Empty states with a next step on Agents, Physical, Discovery and Updates.
 - **New look (Blueprint), step one: the frame.** Geist and Geist Mono replace the Red Hat fonts; a
   quiet light and dark palette (light and dark designed alike, following the system unless you pick
   one in the user menu); a faint dot grid behind the page; rounder corners (cards 10 px, buttons and
