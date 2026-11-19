@@ -61,8 +61,10 @@ def mounts(proc: str = PROC) -> list[str]:
     out = []
     for line in _read(f"{proc}/mounts").splitlines():
         parts = line.split()
-        if len(parts) >= 3 and parts[2] in real and parts[1] not in out:
-            out.append(parts[1].replace("\\040", " "))
+        path = parts[1].replace("\\040", " ") if len(parts) >= 3 else ""
+        # a single bind-mounted file (containers: /etc/hosts) is no disk
+        if path and parts[2] in real and path not in out and os.path.isdir(path):
+            out.append(path)
     return out or ["/"]
 
 

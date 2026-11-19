@@ -18,6 +18,7 @@ export const router = createRouter({
     { path: '/services', component: () => import('./views/Services.vue'), meta: { title: 'Services' } },
     { path: '/patches', component: () => import('./views/Patches.vue'), meta: { title: 'Patches' } },
     { path: '/workloads', component: () => import('./views/Workloads.vue'), meta: { title: 'Workloads' } },
+    { path: '/agents', component: () => import('./views/Agents.vue'), meta: { title: 'Agents' } },
     { path: '/dns', component: () => import('./views/Dns.vue'), meta: { title: 'DNS' } },
     { path: '/discovery', component: () => import('./views/Discovery.vue'), meta: { title: 'Discovery' } },
     { path: '/plugins', component: () => import('./views/Plugins.vue'), meta: { title: 'Plugins' } },

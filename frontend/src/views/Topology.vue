@@ -6,7 +6,7 @@
 // Drag things where you like them: each view's arrangement is shared, everyone sees the same map
 // (people who edit hosts move it; for others a drag only lasts until the page reloads).
 // People who edit hosts draw cables here too: Cable, then click both ends.
-import { Cable, Download, LocateFixed, MoreHorizontal, RefreshCw, Route, Save, Server, Trash2, Unplug, X } from 'lucide-vue-next'
+import { AlertTriangle, Cable, Download, LocateFixed, MoreHorizontal, RefreshCw, Route, Save, Server, Trash2, Unplug, X } from 'lucide-vue-next'
 import CableTrace from '../components/CableTrace.vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -20,7 +20,7 @@ import { useQuery } from '../query'
 import { api } from '../api'
 import { confirm } from '../confirm'
 import { iconFor, iconPicture } from '../icons'
-import { MEDIA, SPEEDS, SPEED_STEPS, cableHex, speedMbps, speedStep } from '../links'
+import { MEDIA, MEDIUM_COLOURS, SPEEDS, SPEED_STEPS, cableHex, speedMbps, speedStep } from '../links'
 import { state, toast, zoneHex } from '../store'
 import { shown as shownTheme } from '../theme'
 
@@ -32,7 +32,7 @@ const lonely = ref(false)
 // per browser: the grid (and snapping to it) and the networks hidden from the L3 view
 const pref = (k, d) => { try { const v = localStorage.getItem(`labdex-topo-${k}`); return v == null ? d : JSON.parse(v) } catch { return d } }
 const grid = ref(pref('grid', false))
-const lines = ref(pref('lines', 'cable')) // what colours a cable: 'cable' (its own colour, if it has one) or 'speed'
+const lines = ref(pref('lines', 'cable')) // what colours a cable: 'cable' (its own colour, if it has one), 'speed' or 'medium'
 watch(lines, (v) => { try { localStorage.setItem('labdex-topo-lines', JSON.stringify(v)) } catch { /* */ } recolour() })
 const hiddenNets = ref(pref('hidden-nets', []))
 watch(grid, (v) => { try { localStorage.setItem('labdex-topo-grid', JSON.stringify(v)) } catch { /* */ } })
@@ -155,9 +155,36 @@ const speedsUsed = computed(() => {
   const cables = (data.value?.edges || []).filter((e) => e.kind === 'cable')
   const used = new Set(cables.map((e) => speedStep(e.speed)?.label || ''))
   const cols = new Set(cables.map((e) => cableHex(e.cable_colour) ? (e.cable_colour || '').toLowerCase() : ''))
+  const media = new Set(cables.map((e) => (MEDIUM_COLOURS[e.medium] ? e.medium : '')))
   return { steps: SPEED_STEPS.filter((s) => used.has(s.label)), unknown: used.has(''), any: cables.length > 0,
+    media: MEDIA.filter((m) => media.has(m)).map((m) => ({ label: m, colour: MEDIUM_COLOURS[m] })), nomedium: media.has(''),
     colours: [...cols].filter(Boolean).map((c) => ({ label: c, colour: cableHex(c) })), uncoloured: cols.has('') }
 })
+
+// what needs a look: hosts a status source or Discovery says are down, and cables where a switch sees
+// something else than the record (LLDP/CDP, UniFi)
+const problems = computed(() => {
+  const d = data.value
+  if (!d) return []
+  const down = d.nodes.filter((n) => (n.type === 'host' || n.type === 'box') && n.live === 'down')
+    .map((n) => ({ id: n.id, text: `${n.fun || n.name || n.host} is down`, kind: 'down' }))
+  const patch = d.edges.filter((e) => e.lldp?.state === 'other')
+    .map((e) => ({ id: e.id, text: `${e.a_host} ${e.a_port} – ${e.b_host} ${e.b_port}: the switch sees ${e.lldp.sees}`, kind: 'patch' }))
+  return [...down, ...patch]
+})
+let focusAfterDraw = null // a problem picked that wasn't drawn (a host without cables): show it once it is
+function showProblem(p) {
+  const c = cy.value
+  const el = c?.getElementById(p.id)
+  if (!el || el.empty()) {
+    if (data.value?.nodes.some((n) => n.id === p.id && n.lonely) && !lonely.value) { focusAfterDraw = p; lonely.value = true }
+    return
+  }
+  sel.value = el.isEdge() ? { ...el.data(), type: 'edge' } : el.data()
+  c.animate({ fit: { eles: el.isEdge() ? el.connectedNodes() : el, padding: 140 }, duration: 250 })
+}
+const LIVE = { up: 'Up', down: 'Down', unknown: 'No live data' }
+const LLDP = { seen: 'Seen as on record', other: 'Check the patch', unseen: 'Not seen on this port' }
 
 function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#888' }
 function saved() { return fresh ? {} : { ...(data.value?.layout || {}), ...local[view.value] } }
@@ -180,6 +207,7 @@ function elements(d) {
   return [
     ...nodes.map((n) => ({ group: 'nodes', data: { ...n, parent: n.parent || undefined, colour: n.colour || (n.zone ? zoneHex(n.zone) : css('--line-strong')),
       picture: n.type === 'host' ? iconPicture(iconFor({ name: n.name, icon: n.icon, kind: n.kind }), ink) : undefined,
+      dot: n.type === 'host' && (n.live === 'up' || n.live === 'down') ? dotPicture(css(n.live === 'up' ? '--ok' : '--err'), css('--card')) : undefined,
       // a host: its hostname below it (its fun name is a node of its own, see below); a hypervisor box: both on one line
       text: n.type === 'box' ? `${n.label}${n.label !== n.name ? `  ${n.name}` : ''}` : n.type === 'network' ? net(n)
         : n.type === 'host' && n.fun ? n.name : n.label } })),
@@ -191,7 +219,8 @@ function elements(d) {
       ...(e.source === e.target ? { loop: `${e.a_port} – ${e.b_port}` } // a cable inside one host: one label at the loop
         : { src: e.source.startsWith('h:') && e.kind !== 'address' ? e.a_port || '' : '', dst: e.target.startsWith('h:') && e.kind !== 'address' ? e.b_port || '' : '' }),
       ...lineColour(e),
-      weight: e.kind === 'cable' ? Math.min(1.6 + Math.log10(Math.max(speedMbps(e.speed), 100) / 100) * 1.1, 5) : undefined } })),
+      weight: e.kind === 'cable' ? Math.min(1.6 + Math.log10(Math.max(speedMbps(e.speed), 100) / 100) * 1.1, 5) : undefined },
+      classes: e.lldp?.state === 'other' ? 'patch' : undefined })),
   ]
 }
 
@@ -199,9 +228,17 @@ function elements(d) {
 function lineColour(e) {
   if (e.kind !== 'cable') return { colour: undefined, outline: undefined }
   if (lines.value === 'speed') return { colour: speedStep(e.speed)?.colour, outline: undefined }
+  if (lines.value === 'medium') return { colour: MEDIUM_COLOURS[e.medium], outline: undefined }
   const hex = cableHex(e.cable_colour)
   const pale = ['white', 'black', '#f5f5f5', '#262626', '#ffffff', '#000000'].includes(String(e.cable_colour || '').toLowerCase())
   return { colour: hex || undefined, outline: pale ? css('--muted') : undefined }
+}
+// the live dot in a host's corner: a small disc ringed in the card colour so it reads on any border
+const dots = new Map()
+function dotPicture(fill, ring) {
+  const k = `${fill}|${ring}`
+  if (!dots.has(k)) dots.set(k, `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"><circle cx="6" cy="6" r="4.5" fill="${fill}" stroke="${ring}" stroke-width="2"/></svg>`)}`)
+  return dots.get(k)
 }
 function recolour() {
   cy.value?.edges('[kind = "cable"]').forEach((ed) => {
@@ -226,6 +263,7 @@ async function draw() {
   try { cytoscape.use(fcose) } catch { /* already registered */ }
   cy.value?.destroy()
   const ink = css('--ink'), muted = css('--muted'), line = css('--line-strong'), accent = css('--accent'), panel = css('--panel'), card = css('--card'), bg = css('--bg')
+  const err = css('--err'), warn = css('--warn')
   const c = cytoscape({
     container: box.value,
     elements: elements(d),
@@ -245,6 +283,12 @@ async function draw() {
       { selector: 'node[type = "host"][kind = "vip"]', style: { shape: 'ellipse', 'border-style': 'dashed' } },
       { selector: 'node[type = "host"][?router]', style: { 'border-width': 3, shape: 'round-diamond', width: 42, height: 42 } },
       { selector: 'node[type = "host"][status = "offline"], node[type = "host"][status = "planned"]', style: { 'border-style': 'dashed', opacity: 0.75 } },
+      // live: a dot in the corner (green up, red down); down also gets a red dashed border, like Floorbit
+      { selector: 'node[type = "host"][dot]', style: { 'background-image': (n) => [n.data('picture'), n.data('dot')],
+        'background-width': ['62%', '12px'], 'background-height': ['62%', '12px'], 'background-position-x': ['50%', '100%'],
+        'background-position-y': ['50%', '0%'], 'background-offset-x': [0, 5], 'background-offset-y': [0, -5],
+        'background-clip': ['node', 'none'], 'background-image-containment': ['inside', 'over'], 'bounds-expansion': 6 } },
+      { selector: 'node[type = "host"][live = "down"], node[type = "box"][live = "down"]', style: { 'border-color': err, 'border-style': 'dashed', 'border-width': 2.5 } },
       { selector: 'node[type = "box"]', style: { shape: 'round-rectangle', 'background-color': panel, 'background-opacity': 0.9, 'border-width': 1.5,
         'border-color': 'data(colour)', padding: 28, 'text-valign': 'top', 'text-halign': 'center', 'text-margin-y': -6, 'font-weight': 600,
         'font-size': 12, 'corner-radius': 10 } },
@@ -260,6 +304,8 @@ async function draw() {
       { selector: 'edge[kind = "cable"][outline]', style: { 'line-outline-width': 0.75, 'line-outline-color': 'data(outline)' } },
       { selector: 'edge[kind = "cable"][weight]', style: { width: 'data(weight)' } },
       { selector: 'edge[kind = "cable"][medium = "wifi"]', style: { 'line-style': 'dashed', 'line-dash-pattern': [2, 4] } },
+      // a switch sees something else on this cable's port: a warning halo, so the cable keeps its own colour
+      { selector: 'edge.patch', style: { 'underlay-color': warn, 'underlay-opacity': 0.5, 'underlay-padding': 4 } },
       { selector: 'edge[kind = "internal"]', style: { 'line-style': 'dashed', 'line-color': accent, width: 1.4 } },
       { selector: 'edge[?auto]', style: { opacity: 0.5, 'line-dash-pattern': [3, 5] } },
       { selector: 'edge[kind = "vip"]', style: { 'line-style': 'dotted', 'line-color': accent, width: 1.6 } },
@@ -339,6 +385,7 @@ async function draw() {
   if (camera) { c.viewport({ zoom: camera.zoom, pan: { x: camera.x, y: camera.y } }); camera = null }
   highlight()
   paintImpact()
+  if (focusAfterDraw) { const p = focusAfterDraw; focusAfterDraw = null; showProblem(p) }
 }
 
 const pending = {}
@@ -619,13 +666,24 @@ onBeforeUnmount(() => cy.value?.destroy())
       <button v-for="n in allNets" :key="n" type="button" class="chip" :class="{ off: hiddenNets.includes(n) }" :aria-pressed="!hiddenNets.includes(n)" @click="toggleNet(n)">{{ n }}</button>
       <button v-if="hiddenNets.length" type="button" class="btn small ghost" @click="hiddenNets = []">all</button>
     </div>
+    <div v-if="problems.length" class="problems small" role="region" aria-label="Needs a look">
+      <AlertTriangle :size="14" class="c-warn" aria-hidden="true" /><b>{{ problems.length }} to look at</b>
+      <button v-for="p in problems.slice(0, 8)" :key="p.id" type="button" class="chip" :class="p.kind" @click="showProblem(p)">{{ p.text }}</button>
+      <span v-if="problems.length > 8" class="faint">and {{ problems.length - 8 }} more</span>
+    </div>
     <div class="canvas-wrap" :class="{ wiring, grid }">
       <div v-if="view === 'physical' && speedsUsed.any" class="legend small onmap">
         <div class="seg mini" role="radiogroup" aria-label="Colour cables by">
           <button type="button" role="radio" :aria-checked="lines === 'cable'" :class="{ on: lines === 'cable' }" @click="lines = 'cable'">Cable colour</button>
           <button type="button" role="radio" :aria-checked="lines === 'speed'" :class="{ on: lines === 'speed' }" @click="lines = 'speed'">Speed</button>
+          <button type="button" role="radio" :aria-checked="lines === 'medium'" :class="{ on: lines === 'medium' }" @click="lines = 'medium'">Medium</button>
         </div>
-        <template v-if="lines === 'speed'">
+        <template v-if="lines === 'medium'">
+          <span v-for="x in speedsUsed.media" :key="x.label"><i :style="{ background: x.colour }"></i>{{ x.label }}</span>
+          <span v-if="speedsUsed.nomedium"><i class="none"></i>no medium set</span>
+          <span class="faint">thicker is faster</span>
+        </template>
+        <template v-else-if="lines === 'speed'">
           <span v-for="x in speedsUsed.steps" :key="x.label"><i :style="{ background: x.colour }"></i>{{ x.label }}</span>
           <span v-if="speedsUsed.unknown"><i class="none"></i>no speed</span>
         </template>
@@ -647,7 +705,8 @@ onBeforeUnmount(() => cy.value?.destroy())
         <b>{{ hover.n.fun || hover.n.name || hover.n.host }}</b> <span v-if="hover.n.fun" class="mono small muted">{{ hover.n.name || hover.n.host }}</span>
         <div v-if="hover.n.function" class="small">{{ hover.n.function }}</div>
         <div class="row small" style="gap: 6px; margin-top: 4px"><ZoneChip v-if="hover.n.zone" :zone="hover.n.zone" />
-          <span class="status" :class="`s-${hover.n.status}`">{{ hover.n.status }}</span><span v-if="hover.n.address" class="mono">{{ hover.n.address }}</span></div>
+          <span class="status" :class="`s-${hover.n.status}`">{{ hover.n.status }}</span>
+          <span v-if="hover.n.live" class="live" :class="hover.n.live">{{ LIVE[hover.n.live] }}</span><span v-if="hover.n.address" class="mono">{{ hover.n.address }}</span></div>
       </div>
       <aside v-if="breaks" class="panel" aria-live="polite">
         <div class="ph"><Unplug :size="16" /><b>{{ impact ? `If ${impact.host} goes down` : 'What breaks?' }}</b><span class="grow"></span>
@@ -683,6 +742,12 @@ onBeforeUnmount(() => cy.value?.destroy())
           <div v-else><RouterLink :to="`/hosts/${sel.b_host || hostName(sel.target)}?tab=network`">{{ sel.b_host || hostName(sel.target) }}</RouterLink>
             <span class="mono">{{ sel.b_port }}</span></div>
         </div>
+        <p v-if="sel.lldp" class="small lldp" :class="sel.lldp.state">
+          <b>{{ LLDP[sel.lldp.state] }}</b>
+          <template v-if="sel.lldp.state === 'other'">: a switch sees {{ sel.lldp.sees }} here ({{ sel.lldp.protocol }}, {{ sel.lldp.source }}). Fix the patch or the record; the Cables page can use what's seen.</template>
+          <template v-else-if="sel.lldp.state === 'seen'"> by {{ sel.lldp.protocol }} ({{ sel.lldp.source }}).</template>
+          <template v-else>: an end reports its neighbours, but none on this port. LLDP may be off on the other box.</template>
+        </p>
         <p v-if="sel.auto" class="small muted">Guessed: the guest's interface has no “sits on” set, so it's drawn to {{ sel.b_host }}'s bridge in the same network. Set it on the guest's Network tab to make it exact.</p>
         <p v-if="sel.kind === 'vip'" class="small muted">{{ sel.label || 'shared' }}: the VIP's members are set on the VIP.</p>
         <template v-if="edgeForm">
@@ -710,7 +775,8 @@ onBeforeUnmount(() => cy.value?.destroy())
           <div class="mono small muted">{{ sel.name || sel.host }}</div>
           <div v-if="sel.function" class="small mt-2">{{ sel.function }}</div>
           <div class="row small" style="gap: 8px; margin-top: 8px"><ZoneChip v-if="sel.zone" :zone="sel.zone" />
-            <span class="status" :class="`s-${sel.status}`">{{ sel.status }}</span><span v-if="sel.address" class="mono">{{ sel.address }}</span></div>
+            <span class="status" :class="`s-${sel.status}`">{{ sel.status }}</span>
+            <span v-if="sel.live" class="live" :class="sel.live">{{ LIVE[sel.live] }}</span><span v-if="sel.address" class="mono">{{ sel.address }}</span></div>
         </template>
         <div v-if="edgesOf.length" class="links">
           <div v-for="e in edgesOf" :key="e.id" class="small lk">
@@ -733,7 +799,8 @@ onBeforeUnmount(() => cy.value?.destroy())
       </aside>
     </div>
     <p v-if="view === 'physical'" class="hint">Drag to arrange: the map is shared, everyone sees the same{{ data?.layout_by ? ` (last moved by ${data.layout_by})` : '' }}. Scroll to zoom; point at a host for a summary, click a line for its ends and details, double-click a host to open it.
-      A host's fun name is a label of its own: drag it to wherever it reads best. Cables are drawn in their own colour (or by speed, switch it on the legend) and thicker when faster;
+      A host's fun name is a label of its own: drag it to wherever it reads best. The dot in a host's corner is its live state (green up, red down; a host that is down also gets a red dashed border).
+      Cables are drawn in their own colour (or by speed or medium, switch it on the legend) and thicker when faster; a yellow halo means a switch sees something else on that port;
       dashed lines are internal links inside a hypervisor, dotted ones how its interfaces are stacked.</p>
     <p v-else class="hint">Every host joined to the networks it has an address in; hosts in several networks (routers, firewalls, multi-homed servers) are diamonds.
       Hover a line for the address. The arrangement is shared and kept apart from the physical view.</p>
@@ -797,6 +864,20 @@ onBeforeUnmount(() => cy.value?.destroy())
 .chip { font: inherit; font-size: calc(12px * var(--text)); font-family: var(--mono); border: 1px solid var(--line-strong); background: var(--card);
   color: var(--ink); border-radius: 999px; padding: 2px 10px; cursor: pointer; }
 .chip.off { color: var(--faint); background: none; text-decoration: line-through; }
+.problems { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; padding: 6px 10px; border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--warn); border-radius: var(--r-ctl); background: var(--card); }
+.problems .chip { font-family: inherit; }
+.problems .chip.down { border-color: var(--err); }
+.problems .chip.patch { border-color: var(--warn); }
+.c-warn { color: var(--warn); }
+.live { font-weight: 600; padding: 0 6px; border-radius: var(--r-ctl); color: var(--faint); background: rgba(255, 255, 255, .05); }
+.live.up { color: var(--ok); background: rgba(74, 222, 128, .1); }
+.live.down { color: var(--err); background: rgba(248, 113, 113, .12); }
+.lldp { margin: 8px 0 0; padding: 6px 8px; border-radius: var(--r-ctl); background: var(--hover); }
+.lldp.seen b { color: var(--ok); }
+.lldp.other { background: rgba(250, 204, 21, .1); }
+.lldp.other b { color: var(--warn); }
+.lldp.unseen b { color: var(--muted); }
 .panel { position: absolute; top: 12px; right: 12px; width: 320px; max-height: calc(100% - 24px); overflow: auto; background: var(--card);
   border: 1px solid var(--line-strong); border-radius: var(--r-box); padding: 12px 14px; box-shadow: 0 12px 30px var(--shadow); }
 .ph { display: flex; align-items: center; gap: 8px; }

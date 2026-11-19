@@ -136,6 +136,55 @@ def suggestions(visible=None) -> dict:
     return out
 
 
+def checks(visible=None) -> dict[int, dict]:
+    """What switches see on each cable on record: {link id: {"state", "sees", "source", "protocol"}}.
+    state: "seen" (a neighbour on one of its ports is the other end), "other" (a port sees
+    something else: check the patch), "unseen" (an end's host reports neighbours, but none on
+    this port; LLDP may just be off on the other box). Cables no source can tell about are left out.
+    A disagreement someone ignored on the Cables page doesn't count. visible: host names the caller
+    may see; others are named "a host you can't see"."""
+    cables: dict[tuple[int, str], Link] = {}
+    all_links = list(db.session.scalars(db.select(Link).where(Link.medium != "virtual")))
+    for lk in all_links:
+        cables[(lk.a_host_id, lk.a_port.lower())] = lk
+        cables[(lk.b_host_id, lk.b_port.lower())] = lk
+    ignored = {x.key for x in db.session.scalars(db.select(CableIgnore))}
+    shown = (lambda h: h.name if visible is None or h.name in visible else "a host you can't see")
+    out: dict[int, dict] = {}
+    reporting: set[int] = set()  # hosts that tell their neighbours
+
+    def other(lk: Link, sees: str, s: LinkSeen):
+        out[lk.id] = {"state": "other", "sees": sees, "source": s.source, "protocol": s.protocol}
+
+    for s in db.session.scalars(db.select(LinkSeen).order_by(LinkSeen.id)):
+        a, b = s.a_host, s.b_host
+        if a is None:
+            continue
+        reporting.add(a.id)
+        here = _cable_at(cables, a.id, s.a_port)
+        there = _cable_at(cables, b.id, s.b_port) if b is not None and s.b_port else None
+        if b is None:  # a neighbour labdex doesn't know, on a port with a cable to something it does
+            if here is not None and (s.b_name or s.b_mac or s.b_ip):
+                other(here, " ".join(x for x in [s.b_name or s.b_mac or s.b_ip, s.b_port] if x), s)
+            continue
+        k = key(a.name, s.a_port, b.name, s.b_port or s.b_mac)
+        far = here.b_host_id if here is not None and here.a_host_id == a.id else here.a_host_id if here is not None else None
+        if here is not None and (here is there or (not s.b_port and far == b.id)):
+            if out.get(here.id, {}).get("state") != "other":
+                out[here.id] = {"state": "seen", "sees": f"{shown(b)} {s.b_port}".strip(), "source": s.source, "protocol": s.protocol}
+            continue
+        if k in ignored:
+            continue
+        if here is not None:
+            other(here, f"{shown(b)} {s.b_port}".strip(), s)
+        if there is not None and there is not here:
+            other(there, f"{shown(a)} {s.a_port}".strip(), s)
+    for lk in all_links:  # an end that reports neighbours, but none on this cable's port
+        if lk.id not in out and (lk.a_host_id in reporting or lk.b_host_id in reporting):
+            out[lk.id] = {"state": "unseen", "sees": "", "source": "", "protocol": ""}
+    return out
+
+
 def ignore(keys: list[str], actor: str) -> int:
     n = 0
     for k in keys:

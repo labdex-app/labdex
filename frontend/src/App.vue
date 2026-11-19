@@ -13,7 +13,7 @@ import Login from './views/Login.vue'
 import { SECTIONS, entryFor } from './nav'
 import { isPinned, loadAuth, loadMeta, loadNav, loadSidebar, refreshBar, refreshLint, refreshPending, setSite, stamp, startEvents, state, stopEvents, togglePin } from './store'
 
-const KEEP = ['Hosts', 'Networks', 'Services', 'Patches', 'Aliases', 'Lint', 'Dns', 'Discovery', 'History'] // pages kept alive between visits
+const KEEP = ['Hosts', 'Networks', 'Services', 'Patches', 'Agents', 'Aliases', 'Lint', 'Dns', 'Discovery', 'History'] // pages kept alive between visits
 
 const route = useRoute()
 const router = useRouter()

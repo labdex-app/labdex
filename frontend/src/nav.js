@@ -1,8 +1,8 @@
-// The sidebar's map of the app: five groups, fifteen entries at most. An entry can stand for
+// The sidebar's map of the app: five groups, sixteen entries at most. An entry can stand for
 // several routes (Physical is Racks, Cables and Labels); those show as tabs under the top bar
 // until each area gets its own merged page. Routes outside the map stay one Ctrl K away.
 import {
-  Activity, Boxes, Container, GitPullRequestArrow, Globe, Inbox, LayoutGrid, Network, PackageCheck, Plug, Server, Shield,
+  Activity, Antenna, Boxes, Container, GitPullRequestArrow, Globe, Inbox, LayoutGrid, Network, PackageCheck, Plug, Server, Shield,
   SquareStack, Waypoints, Wrench,
 } from 'lucide-vue-next'
 
@@ -29,6 +29,7 @@ export const SECTIONS = [
   ] },
   { id: 'operate', label: 'Operate', items: [
     { to: '/patches', label: 'Updates', icon: PackageCheck },
+    { to: '/agents', label: 'Agents', icon: Antenna },
     { to: '/features', label: 'Automation', icon: Wrench },
     { to: '/workloads', label: 'Workloads', icon: Container },
   ] },

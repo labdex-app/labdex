@@ -76,6 +76,15 @@ links; click a line for its two ends and, for a cable, its medium, speed and not
 people who edit hosts can change or remove right there. **Cable** draws a new one: click
 both ends (the same host twice for a cable between two of its ports).
 
+**What's live.** The dot in a host's corner is its live state from the status plugins and
+Discovery: green up, red down, none when nothing tells. A host or hypervisor that is down also
+gets a red dashed border. When switches tell labdex their neighbours (see [Cables](#cables)), each
+cable's panel says what they see: *seen as on record*, *check the patch* (the port sees another
+host or port; the cable gets a yellow halo) or *not seen on this port* (the switch tells its
+neighbours, but none here: LLDP may be off on the other box). A disagreement ignored on the
+Cables page doesn't count. A strip above the map lists the hosts that are down and the cables to
+check; click one to go to it. The legend colours cables by their own colour, speed or **medium**.
+
 The arrangement is shared: drag things where they belong and everyone sees the same map
 (people who edit hosts move it; Arrange again lays it out anew). **Grid** shows a dot grid
 and snaps what you drop to it.

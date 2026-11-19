@@ -1,14 +1,14 @@
 """Changes of a host's combined state, for the 48 h health strip.
 
-Revision ID: 0042_host_health_events
-Revises: 0041_user_prefs
+Revision ID: 0044_host_health_events
+Revises: 0043_user_prefs
 Create Date: 2026-11-18
 """
 from alembic import op
 import sqlalchemy as sa
 
-revision = "0042_host_health_events"
-down_revision = "0041_user_prefs"
+revision = "0044_host_health_events"
+down_revision = "0043_user_prefs"
 branch_labels = None
 depends_on = None
 
