@@ -7,6 +7,7 @@ import os
 import tarfile
 import threading
 import time
+from pathlib import Path
 
 import pytest
 from werkzeug.serving import make_server
@@ -179,6 +180,9 @@ def test_enrol_endpoints_need_no_login_but_tokens_do(hub, loaded):
     assert hashlib.sha256(pyz.data).hexdigest() == pyz.headers["X-Labdex-SHA256"]
     names = zipfile.ZipFile(io.BytesIO(pyz.data)).namelist()
     assert "__main__.py" in names and "labdex_agent/core.py" in names and "labdex_agent/protocol.py" in names
+    # its libraries go along (nothing from PyPI on hosts), with their licences
+    assert {"simple_websocket/__init__.py", "wsproto/__init__.py", "h11/__init__.py"} <= set(names)
+    assert any(n.startswith("licenses/wsproto-") for n in names)
     assert anon.get("/api/agents/download/labdex-agent.service").status_code == 200
     assert anon.get("/api/agents/download/secret.key").status_code == 404
 
@@ -303,6 +307,56 @@ def test_agent_refuses_bad_jobs(hub, tmp_path):
     assert sum(1 for x in audit if x["event"] == "refused") == 7
 
 
+def test_an_expired_token_or_a_token_for_a_gone_host_doesnt_enrol(hub):
+    from datetime import timedelta
+
+    from labdex.models import AgentToken, Host, utcnow
+    admin = hub["admin"]
+    tok = admin.post(f"/api/hosts/{DNS}/agent/token", json={}).get_json()["token"]
+    t = db.session.scalar(db.select(AgentToken).order_by(AgentToken.id.desc()))
+    t.expires_at = utcnow() - timedelta(seconds=1)
+    db.session.commit()
+    r = admin.post("/api/agents/enrol", json={"token": tok})
+    assert r.status_code == 403 and "expired" in r.get_json()["error"]
+    # the same answer for a token that never existed: nothing to learn from it
+    assert admin.post("/api/agents/enrol", json={"token": "lxe_" + "x" * 43}).get_json() == r.get_json()
+    tok = admin.post(f"/api/hosts/{DNS}/agent/token", json={}).get_json()["token"]
+    db.session.delete(db.session.scalar(db.select(Host).where(Host.name == DNS)))
+    db.session.commit()
+    r = admin.post("/api/agents/enrol", json={"token": tok})
+    assert r.status_code == 403 and "gone" in r.get_json()["error"]
+    assert db.session.scalar(db.select(db.func.count()).select_from(Agent)) == 0
+
+
+def test_enrolling_again_cuts_the_older_agents_live_link(hub):
+    cfg, creds = enrol(hub, name="old")
+    agent, th, out = start(cfg, creds)
+    wait(lambda: agents.linked(db.session.get(Agent, creds["agent_id"])))
+    cfg2, creds2 = enrol(hub, name="new")
+    th.join(10)
+    assert not th.is_alive() and "4401" in out["refused"]
+    agent2, th2, out2 = start(cfg2, creds2)
+    wait(lambda: agents.linked(db.session.get(Agent, creds2["agent_id"])))
+    assert agents.current(DNS).id == creds2["agent_id"]
+    events = [e for e in db.session.scalars(db.select(AuditEvent).where(AuditEvent.object_type == "agent", AuditEvent.action == "revoke"))]
+    assert any("re-enrolled" in (e.summary or "") for e in events)
+    agent2.stop()
+
+
+def test_an_agent_revoked_while_offline_is_refused_when_it_comes_back(hub):
+    cfg, creds = enrol(hub)
+    a = db.session.get(Agent, creds["agent_id"])
+    j = agents.queue(a, "ping")
+    db.session.commit()
+    assert hub["admin"].delete(f"/api/hosts/{DNS}/agent").status_code == 200
+    db.session.expire_all()
+    assert db.session.get(AgentJob, j.id).status == "cancelled"  # its waiting jobs never go out
+    agent, th, out = start(cfg, creds)
+    th.join(10)
+    assert "4401" in out["refused"] and not os.path.exists(os.path.join(cfg.state_dir, "audit.log"))
+    assert hub["admin"].get(f"/api/hosts/{DNS}/agent").get_json()["agent"] is None
+
+
 def test_results_wait_in_the_buffer_while_the_hub_is_away(hub):
     cfg, creds = enrol(hub)
     agent = core.Agent(cfg, creds, runner=FakeRunner(), log=lambda m: None)
@@ -382,6 +436,12 @@ def test_discovery_without_sudo_still_lists_ports(tmp_path):
     out = discovery.collect(NoSudo(), proc=fake_proc(tmp_path))
     assert out["listeners"] and any("sudo rule for ss" in n for n in out["notes"])
 
+    class Hardened(NoSudo):
+        def privileged(self, name, timeout=60):
+            return 1, "", 'sudo: The "no new privileges" flag is set, which prevents sudo from running as root.'
+    out = discovery.collect(Hardened(), proc=str(tmp_path / "proc"))
+    assert any("NoNewPrivileges" in n for n in out["notes"])
+
 
 def test_discovery_lands_in_discovery_and_on_the_host_page(hub, tmp_path):
     cfg, creds = enrol(hub)
@@ -422,6 +482,41 @@ def test_schedule_queues_discovery_and_patch_reports(hub):
     for j in db.session.scalars(db.select(AgentJob)):
         j.status, j.created_at = "succeeded", j.created_at - agents.timedelta(days=1)
     assert agents.tick()["queued"] == 1  # discovery is off now
+
+
+def test_patch_apply_stops_when_apt_cant_fetch(tmp_path):
+    class Offline(FakeRunner):
+        def privileged(self, name, timeout=60):
+            self.calls.append(name)
+            if name == "apt_update":  # apt-get update exits 0 when a mirror is down
+                return 0, "Err:1 http://deb.debian.org/debian bookworm InRelease\n  Could not resolve 'deb.debian.org'\n", \
+                    "W: Some index files failed to download.\n"
+            return 0, "", ""
+    runner = Offline()
+    out = jobs.HANDLERS["patch.apply"]({}, jobs.Context(runner, {"patch"}, str(tmp_path)))
+    assert not out["ok"] and "couldn't fetch" in out["error"] and runner.calls == ["apt_update"]
+
+
+def test_the_unit_keeps_sudo_working():
+    """systemd sets NoNewPrivileges by itself for a non-root service with any of these, and sudo
+    can't run under it (found on Debian 12): the agent's sudo rules would all fail."""
+    unit = (Path(core.__file__).parent / "dist" / "labdex-agent.service").read_text()
+    lines = [x.split("=", 1)[0] for x in unit.splitlines() if "=" in x and not x.startswith("#")]
+    implies_nnp = {"NoNewPrivileges", "PrivateDevices", "ProtectKernelTunables", "ProtectKernelModules", "ProtectKernelLogs",
+                   "ProtectClock", "ProtectHostname", "RestrictNamespaces", "RestrictRealtime", "RestrictSUIDSGID",
+                   "RestrictAddressFamilies", "LockPersonality", "MemoryDenyWriteExecute", "SystemCallArchitectures",
+                   "SystemCallFilter", "DynamicUser"}
+    assert not implies_nnp & set(lines)
+    assert "ProtectSystem" in lines and "CapabilityBoundingSet" in lines
+    assert "ExecStart=/usr/bin/python3 -I /opt/labdex-agent/labdex-agent.pyz run" in unit
+
+
+def test_install_script_parses_and_can_roll_back():
+    import subprocess
+    script = Path(core.__file__).parent / "dist" / "install.sh"
+    assert subprocess.run(["sh", "-n", str(script)]).returncode == 0
+    text = script.read_text()
+    assert "--uninstall" in text and "--purge" in text and "pip install" not in text and "venv/bin" not in text
 
 
 def test_sudoers_rules():
@@ -495,7 +590,8 @@ def test_ansible_needs_root_and_a_matching_bundle(tmp_path):
     out = agent_ansible.run(params | {"check": True}, ctx)
     argv = runner.calls[-1]
     assert out["ok"] and "PLAY RECAP" in out["recap"] and argv[0] == "systemd-run" and "--check" in argv
-    assert argv[argv.index("ansible-playbook"):][:5] == ["ansible-playbook", "-i", "localhost,", "-c", "local"]
+    i = next(i for i, a in enumerate(argv) if a.endswith("ansible-playbook"))
+    assert argv[i + 1:i + 5] == ["-i", "localhost,", "-c", "local"]
     assert not (tmp_path / "bundles" / sha).exists()  # cleaned up
 
 

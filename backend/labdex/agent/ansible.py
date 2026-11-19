@@ -19,6 +19,7 @@ import re
 import shutil
 import tarfile
 
+from .jobs import SEARCH_PATH
 from .protocol import BadJob
 
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -94,7 +95,8 @@ def run(params: dict, ctx) -> dict:
             json.dump(params.get("vars") or {}, f)
         argv = ["systemd-run", "--quiet", "--wait", "--pipe", "--collect", "--unit=labdex-agent-ansible",
                 f"--working-directory={work}", "--setenv=ANSIBLE_NOCOLOR=1", "--setenv=ANSIBLE_RETRY_FILES_ENABLED=0",
-                "ansible-playbook", "-i", "localhost,", "-c", "local", "-e", f"@{varfile}",
+                # absolute: systemd-run looks programs up on its own PATH, and pip puts ansible in /usr/local/bin
+                shutil.which("ansible-playbook", path=SEARCH_PATH) or "ansible-playbook", "-i", "localhost,", "-c", "local", "-e", f"@{varfile}",
                 *(["--check", "--diff"] if params.get("check") else []), playbook]
         with ctx.runner.write_lock:
             code, out, err = ctx.runner.run(argv, timeout=3300)

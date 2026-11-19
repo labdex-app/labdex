@@ -514,3 +514,18 @@ def test_patches_page_and_host_card(page, server, tmp_path):
     open_host(page, server, "srv-vm-dns-01")
     page.wait_for_selector(".glance >> text=1 security")
     page.screenshot(path=str(tmp_path / "host-patches.png"))
+
+
+def test_agents_page(page, server, tmp_path):
+    token = page.evaluate("""async () => (await (await fetch('/api/hosts/srv-vm-dns-01/agent/token', {method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-Requested-With': 'labdex'}, body: '{}'})).json()).token""")
+    status = page.evaluate("""async (t) => (await fetch('/api/agents/enrol', {method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({token: t, hostname: 'dns01', version: '0.1.0', allow: []})})).status""", token)
+    assert status == 200
+    page.goto(server + "/agents")
+    page.wait_for_selector("td >> text=srv-vm-dns-01")
+    assert page.locator(".tile.offline b").inner_text() == "1" and page.locator(".tile.linked b").inner_text() == "0"
+    assert page.locator("td >> text=read-only").count() == 1
+    page.screenshot(path=str(tmp_path / "agents.png"))
+    page.click("td a >> text=srv-vm-dns-01")
+    page.wait_for_selector(".tabs a.router-link-active >> text=Agent")
