@@ -1434,6 +1434,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../operate/workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workflows and maintenance windows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../operate/backups/" class="md-nav__link">
         
   
@@ -7546,6 +7574,12 @@
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>Workflows</strong>: steps in order (job templates, plugin actions, waits, and checks that hosts
+  answer again), run by a click or on a schedule, inside a maintenance window if you give one.
+  Each step that is a plan waits for its own approvals, and the run waits with it; a failed or
+  discarded step stops the run unless it may continue. A run outside its window waits, and pauses
+  between steps when the window closes. Jobs of a run carry its workflow and step for the Changes
+  page. <code>workflow.*</code> notifications. See <em>Operating › Workflows and maintenance windows</em>.</li>
 <li><strong>Host agents</strong> (<code>labdex-agent</code>): a systemd service on Linux hosts that keeps one outgoing
   WebSocket connection to labdex, so hosts need no open port. Enrol it from the host's new
   <strong>Agent</strong> tab with a one-time token; labdex keeps only a hash of the host's key, and <strong>Revoke</strong>
