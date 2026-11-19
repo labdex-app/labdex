@@ -140,7 +140,7 @@ body {
 a { color: var(--accent-soft); text-decoration: none; }
 a:hover { text-decoration: underline; }
 /* a link inside a sentence isn't told apart by colour alone */
-p a, li > a:not(.btn):not(.nl):not(.si):not(.rl), dd a, .small > a:not(.btn), .hint a, .lead a, .warnbox a, .errbox a, .empty a, .list-empty a, .note a { text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
+p a, li > a:not(.btn):not(.nl):not(.si):not(.rl), dd a, .small > a:not(.btn), .hint a, .lead a, .warnbox a, .errbox a, .empty a:not(.btn), .list-empty a, .note a { text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
 /* in tables a link is a value like any other: coloured, underlined on hover */
 table a:not(:hover) { text-decoration: none; }
 code, .mono { font-family: var(--mono); font-size: calc(12.5px * var(--text)); }
@@ -206,9 +206,9 @@ a.kpi:hover, button.kpi:hover { border-color: var(--line-strong); text-decoratio
 .kpi b { font: 500 calc(28px * var(--text))/1.15 var(--mono); }
 .kpi b .of { color: var(--faint); }
 .kpi b.amber { color: var(--accent-soft); }
-.kpi b.c-red, .kpi.err b { color: var(--err); }
-.kpi.warn b { color: var(--warn); }
-.kpi.ok b { color: var(--ok); }
+.kpi b.c-red, .kpi.t-err b { color: var(--err); }
+.kpi.t-warn b { color: var(--warn); }
+.kpi.t-ok b { color: var(--ok); }
 .kpi .bar { min-width: 0; height: 4px; }
 .split { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr); gap: 20px; align-items: start; }
 @media (max-width: 1000px) { .split { grid-template-columns: minmax(0, 1fr); } }

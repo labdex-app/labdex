@@ -2,6 +2,7 @@
 // Every host agent at a glance: linked or not, what it may do, its certificate, its latest metrics.
 // One host's agent, its jobs and its discovery are on the host's Agent tab (HostAgent.vue).
 import { computed, ref } from 'vue'
+import { Antenna } from 'lucide-vue-next'
 import { useQuery } from '../query'
 import { ago, stamp, toast } from '../store'
 
@@ -50,7 +51,7 @@ const mode = computed(() => agents.value[0]?.cert?.mode || '')
     </div>
 
     <div class="kpis">
-      <button v-for="[k, label, , tone, sub] in TILES" :key="k" class="kpi" :class="[k, tone, { on: filter === k }]" :aria-pressed="filter === k" @click="filter = filter === k ? '' : k">
+      <button v-for="[k, label, , tone, sub] in TILES" :key="k" class="kpi" :class="[k, tone && `t-${tone}`, { on: filter === k }]" :aria-pressed="filter === k" @click="filter = filter === k ? '' : k">
         <span class="label">{{ label }}</span>
         <b>{{ counts[k] }}</b>
         <div class="bar"><div :style="{ width: `${pct(counts[k], agents.length) || 0}%`, background: BAR[tone] }"></div></div>
@@ -86,7 +87,15 @@ const mode = computed(() => agents.value[0]?.cert?.mode || '')
               <td class="num mono">{{ a.linked && pct(a.metrics?.root_used, a.metrics?.root_total) != null ? `${pct(a.metrics.root_used, a.metrics.root_total)} %` : '—' }}</td>
               <td class="small mono">{{ a.version || '—' }}</td>
             </tr>
-            <tr v-if="!rows.length"><td colspan="9" class="empty">{{ agents.length ? 'Nothing matches.' : 'No agents yet.' }}</td></tr>
+            <tr v-if="!rows.length"><td colspan="9" class="empty">
+              <template v-if="agents.length">Nothing matches.</template>
+              <template v-else>
+                <div class="e-ic"><Antenna :size="18" /></div>
+                <div class="e-t">No agents yet</div>
+                <p>An agent keeps one outgoing connection to labdex, so a host needs no open port. Enrol one on a host's Agent tab.</p>
+                <div class="e-acts"><RouterLink to="/hosts" class="btn">Pick a host</RouterLink>
+                  <a href="https://labdex-app.github.io/labdex/guide/agent/" target="_blank" rel="noopener" class="btn ghost">How agents work</a></div>
+              </template></td></tr>
           </tbody>
         </table>
       </div>

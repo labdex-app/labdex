@@ -4,7 +4,7 @@
 // labdex-patch-report on the hosts and from plugins (patches.py).
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowUpRight } from 'lucide-vue-next'
+import { ArrowUpRight, PackageCheck } from 'lucide-vue-next'
 import Drawer from '../components/Drawer.vue'
 import FilterSelect from '../components/FilterSelect.vue'
 import PatchState from '../components/PatchState.vue'
@@ -62,12 +62,19 @@ const BAR = { err: 'var(--err)', warn: 'var(--warn)', ok: 'var(--ok)', '': 'var(
     </div>
 
     <div class="kpis">
-      <button v-for="c in CARDS" :key="c.k" class="kpi" :class="[c.k, c.tone, { on: state === c.k }]" :aria-pressed="state === c.k" @click="state = state === c.k ? '' : c.k">
+      <button v-for="c in CARDS" :key="c.k" class="kpi" :class="[c.k, c.tone && `t-${c.tone}`, { on: state === c.k }]" :aria-pressed="state === c.k" @click="state = state === c.k ? '' : c.k">
         <span class="label">{{ c.label }}</span>
         <b>{{ data.counts[c.k] ?? 0 }}</b>
         <div class="bar"><div :style="{ width: `${pct(data.counts[c.k] ?? 0)}%`, background: BAR[c.tone] }"></div></div>
         <span class="small muted">{{ c.sub(data.counts[c.k] ?? 0) }}</span>
       </button>
+    </div>
+
+    <div v-if="query.data.value && data.hosts.length && !reported" class="card empty mb-4">
+      <div class="e-ic"><PackageCheck :size="18" /></div>
+      <div class="e-t">No host reports its updates yet</div>
+      <p>Link an agent, run <span class="mono">labdex-patch-report</span> from cron or Ansible, or add a plugin that reports them.</p>
+      <div class="e-acts"><a href="/api/patches/agent" download class="btn">Download labdex-patch-report</a><RouterLink to="/agents" class="btn ghost">Agents</RouterLink></div>
     </div>
 
     <div class="filters">
