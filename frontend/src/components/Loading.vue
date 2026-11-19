@@ -4,14 +4,18 @@
 import { LoaderCircle } from 'lucide-vue-next'
 import { onBeforeUnmount, ref } from 'vue'
 
-defineProps({ label: { type: String, default: 'Loading…' }, inline: { type: Boolean, default: false } })
+// rows: grey bars where the rows of a list will be, instead of the spinner
+defineProps({ label: { type: String, default: 'Loading…' }, inline: { type: Boolean, default: false }, rows: { type: Number, default: 0 } })
 const shown = ref(false)
 const t = window.setTimeout(() => { shown.value = true }, 250)
 onBeforeUnmount(() => window.clearTimeout(t))
 </script>
 
 <template>
-  <component :is="inline ? 'span' : 'div'" class="loading" :class="{ inline, empty: !inline }" role="status">
+  <div v-if="rows" class="skel" role="status" :aria-label="label">
+    <div v-for="n in rows" :key="n" class="skel-row" aria-hidden="true"><span style="width: 18%"></span><span style="width: 12%"></span><span style="width: 22%"></span></div>
+  </div>
+  <component :is="inline ? 'span' : 'div'" v-else class="loading" :class="{ inline, empty: !inline }" role="status">
     <template v-if="shown"><LoaderCircle :size="inline ? 13 : 18" class="spin" />{{ label }}</template>
   </component>
 </template>

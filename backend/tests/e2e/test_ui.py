@@ -70,7 +70,10 @@ def test_hosts_search_open_and_back(page):
     page.fill("input[aria-label=\"Search hosts\"]", "dns")
     page.wait_for_timeout(200)
     assert 0 < rows.count() < total
-    rows.first.click()
+    rows.first.click()  # list-detail: the host shows in a drawer beside the list first
+    page.wait_for_selector(".drawer >> text=srv-vm-dns-01")
+    assert "peek=" in page.url and rows.count() > 0
+    page.click(".drawer >> text=Open host")
     page.wait_for_selector(".glance")
     page.go_back()
     page.wait_for_selector("table tbody tr")
@@ -90,6 +93,62 @@ def test_edit_host_and_see_it_in_the_list(page, server):
     page.wait_for_selector("text=Resolver (e2e) >> visible=true")
 
 
+def test_quick_edit_in_the_drawer_shows_a_diff_and_saves(page, server):
+    page.goto(server + "/hosts?kind=virtual")
+    page.click("td >> text=srv-vm-ha-01")
+    page.click(".drawer >> button:has-text('Edit')")
+    page.wait_for_selector(".drawer >> text=Edit host")
+    page.locator(".drawer").get_by_label("Function").fill("Home automation (e2e)")
+    page.wait_for_selector(".drawer >> text=1 change: function")
+    page.click(".drawer >> text=Preview diff")
+    page.wait_for_selector(".cb-line.add >> text=Home automation (e2e)")
+    assert page.locator(".cb-line.del").count() == 1
+    page.click(".drawer >> button.primary")
+    page.wait_for_selector("td >> text=Home automation (e2e) >> visible=true")
+    page.wait_for_selector(".drawer >> text=No changes yet")
+    assert "edit=1" in page.url  # still editing the same host, with the list updated beside it
+
+
+def test_checks_list_beside_the_finding(page, server):
+    page.goto(server + "/lint")
+    page.wait_for_selector(".list-pane .row-btn")
+    rows = page.locator(".list-pane .row-btn")
+    assert rows.count() > 1
+    second = rows.nth(1).locator(".rb-title").inner_text()
+    rows.nth(1).click()
+    page.wait_for_url(lambda u: "item=" in u)
+    page.wait_for_selector(f".detail-pane .d-title >> text={second}")
+    assert page.locator(".detail-pane >> text=Open").count() >= 1
+
+
+def test_palette_verb_and_host_plans_and_opens_changes(page, server):
+    """Ctrl K "patch <host>": the action comes first; Enter plans it and opens it on Changes."""
+    st = page.evaluate("""async () => {
+        const h = {'Content-Type': 'application/json', 'X-Requested-With': 'labdex'}
+        let r = await fetch('/api/marketplace/install', {method: 'POST', headers: h, body: JSON.stringify({id: 'patching'})})
+        if (r.status >= 300) return 'install ' + r.status
+        r = await fetch('/api/integrations', {method: 'POST', headers: h, body: JSON.stringify({plugin_id: 'patching', name: 'e2e-patching'})})
+        if (r.status !== 201) return 'create ' + r.status + ' ' + await r.text()
+        r = await fetch('/api/integrations/e2e-patching', {method: 'PUT', headers: h, body: JSON.stringify({enabled: true, settings: {ssh_user: 'ansible'}})})
+        return r.status }""")
+    assert st == 200, st
+    page.keyboard.press("Control+k")
+    page.keyboard.type("patch srv-vm-dns")
+    page.wait_for_selector(".pal-g:text-is('Actions') + .pal-r.on >> text=Plan install updates on")
+    page.keyboard.press("Enter")
+    page.wait_for_url(lambda u: "/changes?job=" in u)
+    page.wait_for_selector(".detail-pane >> text=e2e-patching")
+    job = page.url.split("job=")[1].split("&")[0]  # leave Changes empty for the tests after this one
+    page.evaluate(f"""async () => {{
+        for (let n = 0; n < 50; n++) {{
+          const j = await (await fetch('/api/jobs/{job}')).json()
+          if (!['queued', 'running'].includes(j.status)) {{
+            if (j.status === 'planned') await fetch('/api/jobs/{job}/discard', {{method: 'POST', headers: {{'X-Requested-With': 'labdex'}}}})
+            return j.status }}
+          await new Promise((r) => setTimeout(r, 200))
+        }} }}""")
+
+
 def test_change_elsewhere_arrives_live(page, server):
     """Another tab changes a host; the open list updates through the event stream, without reload."""
     page.fill("input[aria-label=\"Search hosts\"]", "sonos")
@@ -104,7 +163,7 @@ def test_change_elsewhere_arrives_live(page, server):
 
 
 @pytest.mark.parametrize("path, marker", [
-    ("/", ".tiles .tile"), ("/networks", "table tbody tr"), ("/aliases", "table tbody tr"), ("/services", ".svc-card"),
+    ("/", ".kpis .kpi"), ("/networks", "table tbody tr"), ("/aliases", "table tbody tr"), ("/services", ".svc-card"),
     ("/admin/approvals", "text=Approval policies"), ("/admin/notifications", "text=Notification channels"),
     ("/lint", "h1"), ("/history", "h1"), ("/integrations", "h1"), ("/zones", "text=Areas and zones"),
     ("/naming", "text=Hostname parts"), ("/dns", "h1"), ("/naming?tab=tags", "text=Tags"), ("/admin/zones", "text=Areas and zones"), ("/features", "h1"),
@@ -211,6 +270,13 @@ def test_rows_open_with_the_keyboard(page, server):
     page.goto(server + "/networks")
     page.wait_for_selector("table tbody tr[role=link]")
     page.focus("table tbody tr[role=link]")
+    page.keyboard.press("Enter")  # the network shows beside the list, and focus moves into it
+    page.wait_for_selector(".drawer:focus")
+    page.keyboard.press("Escape")  # closes it, focus goes back to the row
+    page.wait_for_selector(".drawer", state="detached")
+    assert page.evaluate("document.activeElement.getAttribute('role')") == "link"
+    page.keyboard.press("Enter")
+    page.focus(".drawer >> text=Open network")
     page.keyboard.press("Enter")
     page.wait_for_selector(".tabs >> text=Hosts")
     assert "/networks/" in page.url
@@ -263,7 +329,12 @@ def test_sidebar_marks_detail_pages(page, server):
     page.goto(server + "/topology")  # another section: every section stays in view, one link is current
     page.wait_for_selector(".side a[aria-current=page] >> text=Topology")
     assert page.locator(".side a[aria-current=page]").count() == 1
+    page.wait_for_selector(".side a.nl >> text=Integrations")  # shown once /api/nav has answered
     assert page.locator(".side .grp .nl:visible").count() == page.locator(".side .grp .nl").count()
+    page.goto(server + "/cables")  # an area of several pages: its sidebar entry is current, its pages are tabs
+    page.wait_for_selector(".side a[aria-current=page] >> text=Physical")
+    assert page.locator(".areatabs a[aria-current=page]").inner_text() == "Cables"
+    assert page.locator(".crumbs").inner_text().split() == ["All", "sites", "Physical", "Cables"]
 
 
 def test_topology_views_and_cable_button(page, server):
@@ -292,7 +363,8 @@ def test_zone_page_by_its_id(page, server):
 
 def test_dashboard_cards(page, server):
     page.goto(server + "/")
-    page.wait_for_selector(".ditem .tile")
+    page.wait_for_selector(".kpis .kpi")  # the start page leads with the numbers strip
+    assert page.locator(".ditem .tile").count() == 0  # so its counts card is left out there
     page.click("a:has-text('Dashboard') >> nth=-1")  # "+ Dashboard"
     page.fill(".dlg input", "Links")
     page.click(".dlg-foot >> text=Create")
@@ -382,7 +454,7 @@ def test_bulk_add_interfaces(page, server):
 def test_sidebar_shows_every_section_and_search_finds_zones(page, server):
     page.goto(server + "/hosts")
     page.wait_for_selector("table tbody tr")
-    for label in ("Inventory", "Network", "Automation", "Audit"):  # labels, not toggles: all links stay in view
+    for label in ("Inventory", "Network", "Operate", "Change"):  # labels, not toggles: all links stay in view
         assert page.locator(f".side h2.gh:has-text('{label}')").count() == 1
     assert page.locator(".side a.nl:has-text('Topology')").is_visible() and page.locator(".side a.nl:has-text('Hosts')").is_visible()
     assert page.locator(".side-zones").count() == 0  # zones moved to the search
@@ -514,6 +586,46 @@ def test_patches_page_and_host_card(page, server, tmp_path):
     open_host(page, server, "srv-vm-dns-01")
     page.wait_for_selector(".glance >> text=1 security")
     page.screenshot(path=str(tmp_path / "host-patches.png"))
+
+
+def test_changes_page_lists_plans_beside_the_detail(page, server):
+    page.goto(server + "/changes")
+    page.wait_for_selector(".side a[aria-current=page] >> text=Changes")
+    assert page.locator(".list-pane .chip.on").inner_text().startswith("Open")
+    page.wait_for_selector(".lp-empty >> text=Nothing waiting")  # the example inventory has no integrations
+    page.click(".areatabs >> text=Change sets")
+    page.wait_for_url("**/changesets")
+    assert page.locator(".side a[aria-current=page]").inner_text().startswith("Changes")
+    assert not page.errors
+
+
+def test_pin_a_host_and_hide_a_page(page, server):
+    open_host(page, server, "srv-vm-dns-01")
+    page.click("button.pin")
+    page.wait_for_selector(".side #grp-pins")
+    assert page.locator(".side .grp:has(#grp-pins) a.nl").count() == 1
+    page.goto(server + "/account/sidebar")
+    page.click("label.check:has(input[aria-label='Show Physical in the sidebar'])")
+    page.wait_for_selector(".side a.nl:has-text('Physical')", state="detached")
+    page.click("button:has-text('Unpin')")
+    page.wait_for_selector(".side #grp-pins", state="detached")
+    page.click("button:has-text('Use the default pages')")
+    page.wait_for_selector(".side a.nl:has-text('Physical')")
+    # drag a page by its grip: Services above Hosts
+    rows = page.locator(".pgrp").nth(1).locator("li")
+    rows.nth(2).locator(".grip").drag_to(rows.nth(0))
+    page.wait_for_function("() => document.querySelectorAll('.pgrp')[1].querySelector('li').innerText.includes('Services')")
+    page.click("button:has-text('Use the default pages')")
+    # an administrator's pages become everyone's default
+    page.click("label.check:has(input[aria-label='Show DNS in the sidebar'])")
+    page.wait_for_selector(".side a.nl:has-text('DNS')", state="detached")
+    page.click("button:has-text('Make these pages the default')")
+    page.wait_for_selector(".toast >> text=default for everyone")
+    page.click("button:has-text('Use the default pages')")
+    page.wait_for_selector(".h-tag >> text=pages: the default")
+    assert page.locator(".side a.nl:has-text('DNS')").count() == 0
+    assert page.evaluate("""async () => (await fetch('/api/admin/sidebar-default', {method: 'PUT',
+        headers: {'Content-Type': 'application/json', 'X-Requested-With': 'labdex'}, body: '{}'})).status""") == 200
 
 
 def test_agents_page(page, server, tmp_path):

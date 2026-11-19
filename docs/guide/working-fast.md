@@ -24,15 +24,21 @@ outside a text field, opens one search box for everything:
 - **Networks** by name, by VLAN (`vlan 100`), or by an address inside them: type
   `10.10.100.53` and the network it belongs to shows up too.
 - **Services**, **aliases** (by name or firewall id) and **integrations**.
-- **Actions** of integrations you may run, like *Check drift* or *Sync aliases*: Enter
-  starts it and opens the job.
+- **Actions** of integrations you may run, like *Check drift* or *Sync aliases*. They come
+  first. A plan opens on the Changes page, where it waits for review and approval; a run
+  starts right away and opens the job.
+- **A verb and a host**: `patch web-01` offers *Plan install updates on web-01* (with the
+  host's waiting updates), `deploy web-01` the host actions that match. End the host with
+  `*` to plan for every host that starts with it: `patch web*`.
+- For the best host match, **Edit** (the quick edit beside the Hosts list) and **What
+  breaks if it goes down?**
 - **Pages** and **New host / New VIP / New network**.
 
 - **Tags**: `tag:backup` (or just a word that is a tag) offers the hosts list filtered
   to it.
 
-<kbd>↑</kbd> <kbd>↓</kbd> choose, <kbd>Enter</kbd> opens, <kbd>Esc</kbd> closes. You
-only find what you're allowed to see.
+<kbd>↑</kbd> <kbd>↓</kbd> choose, <kbd>Enter</kbd> opens or runs, <kbd>Esc</kbd> closes.
+Start with `>` to see commands only. You only find what you're allowed to see.
 
 ## Physical, virtual, tags
 
@@ -56,6 +62,19 @@ a host with two tags shows under both. *Only these* narrows the list to one grou
 **Saved searches.** When the search or a filter is set, the *Saved* menu offers *Save this
 search …*: it keeps the search text, filters, tab and grouping under a name, and picking it
 later sets them all again. Searches are yours; an administrator can share one with everyone.
+
+## A host's page
+
+A host opens on its **Overview**: CPU, memory and disk (from its agent, while it is linked),
+updates waiting, how reachable it was, and a strip of the last 48 hours, one cell per hour (red
+when it was down). Below that its guests, then status, addresses, where it sits, patches, details
+and the latest activity. The tabs: *Details* (the form), *Network*, *Services*, *DNS*, *Guests*
+(what runs on it), *Updates* (the packages waiting), *Config* (features and vars for Ansible),
+*Plugins*, *Agent*, *Secrets*, *Runs* and *History*.
+
+The header holds *Shell* (opens `ssh://` and the host's address in your own SSH app; labdex
+runs no shell), *What breaks?*, *Label*, and the plans you may make for this host, like *Plan
+patch run*. A plan waits on Changes for approval.
 
 ## Many hosts at once
 
@@ -110,19 +129,54 @@ dragged somewhere stays there for everyone, and the hint says who moved it last.
 *Arrange again* starts over (after asking). People who only view can drag nodes for a
 moment, but the map goes back when they reload.
 
-## The sidebar
+**What breaks?** on the map: switch it on, then click a host. It turns red, what goes down
+with it or can't be reached any more turns amber, the rest fades, and the panel beside lists
+them with the reason and the services that go with them. *The full picture* opens the What
+breaks? page for that host.
 
-Every page is in view, under its section (Inventory, Network, Automation, Audit), and a
-page under a list (a host) marks the list (Hosts). To go to a host, zone, network or
-alias, use the search (<kbd>Ctrl</kbd> <kbd>K</kbd>) or the Zones page. *Collapse* at the
-bottom, or <kbd>Ctrl</kbd> <kbd>B</kbd>, shrinks the sidebar to icons and back. Pages
-that plugins add live as tabs on their integration (Automation → Plugins → the
-integration), not in the sidebar.
+## The sidebar, top bar and status bar
+
+The sidebar starts with the **site** switcher (when there is more than one site), then
+Overview and Inbox, then four groups: Inventory, Network, Operate and Change. An entry that
+stands for several pages shows them as tabs at the top of the page: Inbox (checks,
+discovery), Networks (networks, zones), Physical (racks, cables, labels), Topology (map,
+what breaks) and Firewall (zone policy, aliases). A page under a list (a host) marks the
+list (Hosts). Vault and Naming are in the menu under your name, and every page is one
+search away (<kbd>Ctrl</kbd> <kbd>K</kbd>). The arrow at the top, or <kbd>Ctrl</kbd>
+<kbd>B</kbd>, shrinks the sidebar to icons and back. Pages that plugins add live as tabs on
+their integration (Change → Integrations → the integration), not in the sidebar.
+
+The **star** next to the breadcrumb pins what's on screen to your sidebar, under Overview
+and Inbox: a host (with its live dot), a network, a zone, a plan, any page, or a list with
+filters (a saved view). *Your sidebar* in the menu under your name reorders (drag a row by its grip, or use the arrows) and unpins them,
+and hides or reorders pages; hidden pages stay in the search. This is kept for you only, on
+the server, so it follows you to other browsers. Until you change the pages, they follow the
+default: administrators set it with *Make these pages the default*, and *Use the default
+pages* goes back to it (your pins stay).
+
+On Hosts and Networks a click on a row shows that host or network in a panel on the
+right, beside the list, with what you need most often and a button to its full page; a
+double click goes straight to the page, and <kbd>Esc</kbd> closes the panel. The address
+keeps the open panel (`?peek=…`), so a link or a reload brings it back.
+
+**Edit** in a host's panel turns it into a short form: name, kind, site, zone, status, fun
+name, function, features, tags and notes. **Preview diff** shows the host's lines in its
+site file before and after, and **YAML** shows the whole entry; *Edit YAML* lets you change
+it as text (left-out fields take their defaults, like a file from git; cables stay on the host
+page), with the same *Preview diff* before saving. Saving works like saving on
+the host page: the change is checked, recorded in Activity and, when the site has a git
+repository, written to it (*Save and commit*). Interfaces, services and cables are edited on
+the host page.
+
+The top bar says where you are (site, area, page, item) and holds the search box. The status
+bar at the foot shows whether the page is live (changes arrive as they happen), the git
+commit and sync time of each site that has a repository, how many agents are linked, and
+whether the vault is sealed.
 
 ## Light or dark, and the text size
 
 The menu under your name has **Theme**: Auto (follows your system), Light or Dark, and
-**Text**: Compact (14 px, the old size), Comfortable (15 px, the default) or Large
+**Text**: Compact (13 px), Comfortable (14 px, the default) or Large
 (16 px). Both are kept in this browser. The search box knows them too: type `light`, `dark`
 or `large text`.
 

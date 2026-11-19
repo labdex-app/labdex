@@ -7,13 +7,52 @@ import { ago, stamp } from '../store'
 import PortMap from './PortMap.vue'
 import WidgetGrid from './WidgetGrid.vue'
 import ZoneChip from './ZoneChip.vue'
+import HistoryList from './HistoryList.vue'
+import HealthStrip from './HealthStrip.vue'
+import HostGuests from './HostGuests.vue'
 
-defineProps({ host: { type: Object, required: true } })
+const props = defineProps({ host: { type: Object, required: true } })
 const emit = defineEmits(['tab'])
+const gb = (b) => (b >= 2 ** 40 ? `${(b / 2 ** 40).toFixed(1).replace(/\.0$/, '')} TB` : `${Math.round(b / 2 ** 30)} GB`)
+const u = () => props.host.usage || {}
 </script>
 
 <template>
   <div class="hostdash">
+    <!-- the numbers: use from the host's agent, updates, and how reachable it was -->
+    <section class="card flush hstats">
+      <div class="cells">
+        <div class="cell"><span class="label">CPU</span>
+          <b v-if="u().cpu != null">{{ Math.round(u().cpu) }}<small>%</small></b><b v-else class="faint">—</b>
+          <span v-if="u().cpus" class="small faint">{{ u().cpus }} cores</span></div>
+        <div class="cell"><span class="label">Memory</span>
+          <b v-if="u().mem != null">{{ Math.round(u().mem) }}<small>%</small></b><b v-else class="faint">—</b>
+          <span v-if="u().mem_total" class="small faint">of {{ gb(u().mem_total) }}</span></div>
+        <div class="cell"><span class="label">Disk</span>
+          <b v-if="u().disk != null">{{ Math.round(u().disk) }}<small>%</small></b><b v-else class="faint">—</b>
+          <span v-if="u().disk_total" class="small faint">of {{ gb(u().disk_total) }} on /</span></div>
+        <div class="cell"><span class="label">Updates</span>
+          <b>{{ host.patches?.state === 'unknown' ? '—' : host.patches?.pending || 0 }}</b>
+          <span v-if="host.patches?.security" class="small c-warn">{{ host.patches.security }} security</span></div>
+        <div class="cell"><span class="label">Reachable</span>
+          <b v-if="host.health?.up_pct != null">{{ host.health.up_pct }}<small>%</small></b><b v-else class="faint">—</b>
+          <span class="small faint">48 h</span></div>
+      </div>
+      <div class="health">
+        <div class="h-head"><span class="label">Health · 48 h</span><span class="grow"></span><span class="label">now</span></div>
+        <HealthStrip v-if="host.health?.hours?.length" :hours="host.health.hours" />
+        <p v-else class="small faint m-0">No history yet: it starts when a monitoring plugin reports this host.</p>
+      </div>
+      <p v-if="!host.usage" class="small faint m-0 note">CPU, memory and disk come from the host's agent.
+        <a href="#" @click.prevent="emit('tab', 'agent')">{{ host.agent ? 'Its agent isn\'t linked right now.' : 'Link one' }}</a></p>
+    </section>
+
+    <section v-if="host.guests?.length" class="card flush mb-4">
+      <div class="sect-head pad"><h2>Guests</h2><span class="small faint">{{ host.guests.length }} on this host</span><span class="grow"></span>
+        <a v-if="host.guests.length > 5" href="#" @click.prevent="emit('tab', 'guests')">All {{ host.guests.length }}</a></div>
+      <HostGuests :host="host.name" :limit="5" />
+    </section>
+
     <div class="glance">
       <div class="card">
         <h3>Status</h3>
@@ -61,6 +100,19 @@ const emit = defineEmits(['tab'])
         </dl>
         <p v-else class="small faint m-0 mt-2">Nothing reports updates for this host. <RouterLink to="/patches">How</RouterLink></p>
       </div>
+      <div class="card">
+        <h3>Details</h3>
+        <dl class="kv small">
+          <template v-if="host.function"><dt>function</dt><dd>{{ host.function }}</dd></template>
+          <template v-if="host.vendor || host.model"><dt>model</dt><dd>{{ [host.vendor, host.model].filter(Boolean).join(' ') }}</dd></template>
+          <template v-if="host.patches?.os"><dt>os</dt><dd>{{ host.patches.os }}</dd></template>
+          <template v-if="host.agent"><dt>agent</dt><dd class="mono">{{ host.agent.version || 'enrolled' }}{{ host.agent.mtls ? ' · mTLS' : '' }}{{ host.agent.linked ? '' : ' · not linked' }}</dd></template>
+          <template v-if="host.features?.length"><dt>features</dt><dd class="mono">{{ host.features.join(', ') }}</dd></template>
+          <template v-if="host.tags?.length"><dt>tags</dt><dd>{{ host.tags.join(', ') }}</dd></template>
+          <dt>status</dt><dd>{{ host.status }}</dd>
+        </dl>
+      </div>
+      <HistoryList type="host" :name="host.name" :limit="4" title="Activity" />
       <div v-if="host.links?.length" class="card">
         <h3>Open</h3>
         <div class="links"><a v-for="l in host.links" :key="l.url" :href="l.url" target="_blank" rel="noopener" class="btn small">{{ l.name }}</a></div>
@@ -72,6 +124,18 @@ const emit = defineEmits(['tab'])
 </template>
 
 <style scoped>
+.hstats { margin: 0 0 16px; }
+.c-warn { color: var(--warn); }
+.cells { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-bottom: 1px solid var(--line); }
+.cell { display: flex; flex-direction: column; gap: 4px; padding: 14px 18px; border-left: 1px solid var(--line); min-width: 0; }
+.cell:first-child { border-left: 0; }
+.cell b { font: 500 calc(22px * var(--text))/1.2 var(--mono); }
+.cell b small { font-size: calc(12px * var(--text)); color: var(--muted); font-weight: 400; margin-left: 2px; }
+.health { padding: 12px 18px 14px; }
+.h-head { display: flex; margin-bottom: 8px; }
+.note { padding: 0 18px 12px; }
+.pad { padding: 14px 18px; margin: 0; }
+@media (max-width: 760px) { .cells { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cell:nth-child(odd) { border-left: 0; } .cell { border-top: 1px solid var(--line); } }
 .glance { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin-bottom: 16px; }
 .glance .card { margin: 0; min-width: 0; }
 .glance h3 { margin-top: 0; }

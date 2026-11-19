@@ -15,6 +15,8 @@ plugin code in the browser:
     {"kind": "list", "items": [{"label": "…", "value": "…", "tone": "…", "link": "…"}]}
     {"kind": "table", "columns": ["…"], "rows": [["…", 1]]}
     {"kind": "sparkline", "points": [1.0, 2.5, …], "value": 2.5, "unit": "%", "sub": "last 24 h", "min": 0, "max": 100}
+    {"kind": "heartbeat", "beats": ["up", "up", "down", "warn", "unknown", …], "value": 99.4, "unit": "%", "sub": "reachable, 24 h"}
+    {"kind": "meter", "value": 91, "max": 128, "unit": "GB", "tone": "ok|warn|err|"}
 
 Anything else, or a field of the wrong type, is dropped. Results are cached for the
 widget's `refresh` seconds (default 60) and each call gets a few seconds.
@@ -30,7 +32,7 @@ from flask import current_app
 
 from .models import Integration, db
 
-KINDS = ("stat", "status", "list", "table", "sparkline")
+KINDS = ("stat", "status", "list", "table", "sparkline", "heartbeat", "meter")
 TONES = ("", "ok", "warn", "err")
 STATES = ("up", "down", "warn", "unknown")
 TIMEOUT = 8
@@ -94,6 +96,18 @@ def clean(d) -> dict:
             if v is not None:
                 out[key] = v
         out["unit"] = _s(d.get("unit"), 12)
+    elif k == "heartbeat":  # oldest first; each beat one check
+        out["beats"] = [b if b in STATES else "unknown" for b in (d.get("beats") or [])[-120:]]
+        v = _num(d.get("value"))
+        if v is not None:
+            out["value"] = v
+        out["unit"] = _s(d.get("unit"), 12)
+    elif k == "meter":
+        v, m = _num(d.get("value")), _num(d.get("max"))
+        out["value"] = v if v is not None else 0
+        out["max"] = m if m is not None and m > 0 else 100
+        out["unit"] = _s(d.get("unit"), 12)
+        out["tone"] = d.get("tone") if d.get("tone") in TONES else ""
     return out
 
 

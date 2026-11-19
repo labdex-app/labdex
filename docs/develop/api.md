@@ -41,6 +41,11 @@ takes a host or network name (`/api/hosts/<name>`, `/api/networks/<name>`, …) 
 | POST, DELETE | `/api/lint/accept` | Accept a finding `{code, kind, ref, reason}` / count it again (administrators) |
 | GET · GET · POST | `/api/history` · `/api/history/<id>` · `/api/history/<id>/revert` | Audit log with diffs |
 | GET, POST · PUT, DELETE | `/api/searches` · `/api/searches/<uid>` | Saved Hosts searches, yours and shared ones |
+| PATCH | `/api/hosts/<name>` | Change some fields (name, kind, site, zone, status, function, fun_names, tags, features, notes); `dry_run: true` returns the site-file YAML before and after |
+| GET | `/api/hosts/<name>/yaml` | The host as its site file lists it, and the git branch and path it goes to |
+| GET | `/api/workloads` | Every Compose stack of the compose integrations you may see |
+| GET, PUT | `/api/workloads/<integration>/<host>/<name>` | One stack with its compose file; PUT `{compose, dry_run}` changes it (integration admin) |
+| PUT | `/api/hosts/<name>/yaml` | Replace the host with its entry as YAML (`{yaml, dry_run}`); cables stay. A dry run answers the file's lines before and after |
 | POST | `/api/hosts/bulk` | One change to many hosts: status, runs on, tags, features, zone, integration, delete |
 | GET | `/api/hosts/<name>/label.svg` · `/api/cables/label.svg?host=&port=` | Printable labels with a QR code (`size=62x29`, `50x25`, `89x36`) |
 | POST | `/api/admin/import/external` | Add networks and hosts from NetBox, phpIPAM or CSV (`apply: false` previews) |
@@ -58,6 +63,9 @@ takes a host or network name (`/api/hosts/<name>`, `/api/networks/<name>`, …) 
 | GET, POST · PUT, DELETE · GET | `/api/naming/pools` · `/api/naming/pools/<name>` · `/api/naming/fun-suggest?category=&zone=&pool=` | Fun name pools, unused suggestions |
 | GET · POST | `/api/about` · `/api/about/update-check` · `/api/about/update` | Version, schema, database, plugins, changelog; check for a release now; the new-release bar (administrators) |
 | GET | `/api/nav` | Sidebar: zone tree with live status, which pages to show |
+| GET, PUT, DELETE | `/api/me/sidebar` | Your sidebar: `pins` [{to, kind, label, key}], `hidden` and `order` (page paths); only for you. `from_default`: the pages follow the default; DELETE goes back to it |
+| GET, PUT | `/api/admin/sidebar-default` | Default pages for everyone (`hidden`, `order`; administrators) |
+| GET | `/api/statusbar` | Status bar: per site the git commit (short), sync time, branch and file, linked agents of all you may see, vault state |
 | GET | `/api/events[?job=<id>]` | Server-Sent Events: plan count, `revision` on every change, job status and output |
 | POST · POST · DELETE | `/api/plugins/upload` · `/api/plugins/stage/<token>/confirm` · `/api/plugins/<id>` | Install, confirm, remove |
 | GET · POST | `/api/plugin-repos` (`/preview`) | Signed repositories |

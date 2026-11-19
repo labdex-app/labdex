@@ -503,6 +503,24 @@ def bundle(a: Agent, sha: str) -> bytes | None:
     return path.read_bytes() if path.exists() else None
 
 
+def usage(now=None) -> dict[str, dict]:
+    """By host: CPU, memory and root disk use in percent from each linked agent's last heartbeat.
+    Only the latest values; the time series go to VictoriaMetrics (/api/agents/metrics)."""
+    now = now or utcnow()
+    out = {}
+    for a in db.session.scalars(db.select(Agent).where(Agent.revoked_at.is_(None))):
+        m = a.metrics or {}
+        if not m or not linked(a, now):
+            continue
+        mt, ma = m.get("mem_total") or 0, m.get("mem_available")
+        rt, ru = m.get("root_total") or 0, m.get("root_used")
+        out[a.host] = {"cpu": m.get("cpu_percent"), "cpus": (a.facts or {}).get("cpus") or None,
+                       "mem": round(100 * (mt - ma) / mt, 1) if mt and ma is not None else None, "mem_total": mt or None,
+                       "disk": round(100 * ru / rt, 1) if rt and ru is not None else None, "disk_total": rt or None,
+                       "load1": m.get("load1"), "uptime": m.get("uptime"), "at": m.get("at")}
+    return out
+
+
 # ----------------------------------------------------------------------------- views
 def to_dict(a: Agent, now=None) -> dict:
     now = now or utcnow()

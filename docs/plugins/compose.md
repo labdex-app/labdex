@@ -17,6 +17,12 @@ repository for now.
 
 ## Stacks
 
+**Workloads** (in the sidebar under Operate) lists every stack of every Compose integration you
+may see, with its host, services and last deploy. Pick one to read or change its compose file:
+*Diff* shows the change before *Save*, which changes labdex only (recorded in Activity as an
+update of the integration; comments in the *Stacks* text are not kept). *Plan deploy* plans that
+one stack, and the plan waits on Changes for an approval like any other.
+
 *Stacks* is a YAML list. Each stack names the host it runs on, its compose file and, if it needs
 one, its environment:
 

@@ -1,10 +1,27 @@
 # Plans and approvals
 
 Anything that changes another system is a **plan** first: the plugin computes the
-changes (each with before and after) and stops. You review it on the job page or the
-Dashboard and approve or discard it.
+changes (each with before and after) and stops. You review it on the **Changes** page
+(or the Dashboard) and approve or discard it.
 
-The job page groups the changes by kind. An update shows only the fields that change,
+## The Changes page
+
+Changes (sidebar, under Change) lists every plan, newest first, with how many things it
+adds, changes and removes; *Open*, *Applied*, *Failed* and *All* filter it, and the site
+switcher narrows it to one site. The selected plan shows beside the list with four steps:
+
+| Step | Done when |
+| --- | --- |
+| Plan | the plugin has worked out the changes |
+| Review | the approvals the policy asks for are given (*Go-ahead* says how many are missing) |
+| Apply | the changes are applied (an approved plan waits here for its delay or window) |
+| Verify | a fresh plan of the same action finds nothing to change |
+
+After an apply, **Plan again to verify** runs the same action as a new plan; when the
+target matches the inventory it ends at once with every step done. *Open alone* opens the
+plan on its own page (`/jobs/<id>`), as links from history and notifications do.
+
+A plan groups the changes by kind. An update shows only the fields that change,
 before and after. While you may still approve, you can **untick** changes you don't want:
 the approval applies the rest, the job log says who left out what, and the plan keeps
 them marked. (An Ansible run is one change and can't be applied in part.)

@@ -8,8 +8,37 @@ export const state = reactive({
   nav: null, // /api/nav: tree, modules, what to show
   lint: null, // { error, warning, info }
   pending: 0, // plans waiting for review
-  toast: null, // { text, kind }
+  toast: null, // { text, kind, sub?, to? }
+  live: false, // the event stream is open: the status bar's "live"
+  bar: null, // /api/statusbar: git sync per site, agents, vault
+  site: readSite(), // the site switcher: '' is every site
+  sidebar: { pins: [], hidden: [], order: [], from_default: true }, // /api/me/sidebar: only for this user
 })
+
+export async function loadSidebar() {
+  try { state.sidebar = await api.get('/api/me/sidebar') } catch { /* an API token has no sidebar */ }
+}
+export async function saveSidebar(next) {
+  const before = state.sidebar
+  // changing pages makes them yours; changing pins alone keeps following the default pages
+  state.sidebar = { ...before, ...next, from_default: 'hidden' in next || 'order' in next ? false : before.from_default } // at once; put back if the server says no
+  try { state.sidebar = await api.put('/api/me/sidebar', state.sidebar) } catch (e) { state.sidebar = before; toast(e.message, 'error') }
+}
+export const isPinned = (to) => state.sidebar.pins.some((p) => p.to === to)
+export function togglePin(pin) {
+  const pins = isPinned(pin.to) ? state.sidebar.pins.filter((p) => p.to !== pin.to) : [...state.sidebar.pins, pin]
+  return saveSidebar({ pins })
+}
+
+function readSite() { try { return localStorage.getItem('labdex-site') || '' } catch { return '' } }
+export function setSite(code) {
+  state.site = code || ''
+  try { localStorage.setItem('labdex-site', state.site) } catch { /* */ }
+}
+
+export async function refreshBar() {
+  try { state.bar = await api.get('/api/statusbar') } catch { /* keep the last one */ }
+}
 
 export async function loadAuth() {
   state.auth = await api.get('/api/auth/status')
@@ -49,22 +78,23 @@ function openStream() {
   if (es) es.close()
   if (typeof EventSource === 'undefined') return
   es = new EventSource(watched ? `/api/events?job=${watched.id}` : '/api/events')
+  es.onopen = () => { state.live = true }
   es.addEventListener('pending', (e) => {
     const n = JSON.parse(e.data).count
     if (n !== state.pending) { state.pending = n; loadNav() }
   })
   es.addEventListener('revision', (e) => {
     const rev = JSON.parse(e.data).rev
-    if (lastRev !== null && rev !== lastRev) { invalidate(); refreshLint(); loadNav() }
+    if (lastRev !== null && rev !== lastRev) { invalidate(); refreshLint(); loadNav(); refreshBar() }
     lastRev = rev
   })
   es.addEventListener('job', (e) => watched?.onJob(JSON.parse(e.data)))
   es.addEventListener('log', (e) => watched?.onLog(JSON.parse(e.data).text))
   es.addEventListener('bye', () => { es.close(); setTimeout(openStream, 200) })
-  es.onerror = () => { es.close(); es = null; setTimeout(() => { if (!es && state.auth?.user) openStream() }, 3000) }
+  es.onerror = () => { state.live = false; es.close(); es = null; setTimeout(() => { if (!es && state.auth?.user) openStream() }, 3000) }
 }
 export function startEvents() { if (!es) openStream() }
-export function stopEvents() { es?.close(); es = null; lastRev = null; clearQueries() }
+export function stopEvents() { es?.close(); es = null; state.live = false; lastRev = null; clearQueries() }
 export function watchJob(id, onJob, onLog) { watched = { id, onJob, onLog }; openStream() }
 export function unwatchJob(id) { if (watched?.id === id) { watched = null; openStream() } }
 
@@ -77,8 +107,8 @@ export function can(type, action) {
 export const me = () => state.auth?.user
 
 let timer
-export function toast(text, kind = 'ok') {
-  state.toast = { text, kind }
+export function toast(text, kind = 'ok', more = {}) {
+  state.toast = { text, kind, ...more }
   clearTimeout(timer)
   timer = setTimeout(() => { state.toast = null }, kind === 'error' ? 5000 : 2200)
 }

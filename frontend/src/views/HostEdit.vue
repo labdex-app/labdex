@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { getCached, setQueryData, useQuery } from '../query'
 import { api, ApiError } from '../api'
 import {
-  AppWindow, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Box, Cable, EthernetPort, ListPlus, Lock, MapPin, Merge, Pencil, Plus, RotateCcw, Route, Tag, Trash2, Waypoints, Wifi,
+  AppWindow, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Box, Cable, EthernetPort, ListPlus, Lock, MapPin, Merge, PackageCheck, Pencil, Plus, QrCode, RotateCcw, Route, SquareTerminal, Tag, Trash2, Unplug, Waypoints, Wifi,
 } from 'lucide-vue-next'
 import { confirm } from '../confirm'
 import ChipInput from '../components/ChipInput.vue'
@@ -19,21 +19,57 @@ import HostPicker from '../components/HostPicker.vue'
 import RunList from '../components/RunList.vue'
 import HostAgent from '../components/HostAgent.vue'
 import HostDashboard from '../components/HostDashboard.vue'
+import HostGuests from '../components/HostGuests.vue'
+import HostUpdates from '../components/HostUpdates.vue'
 import SecretList from '../components/SecretList.vue'
 import { stringify as toYaml } from 'yaml'
 import ZoneChip from '../components/ZoneChip.vue'
-import { ago, changed, stamp, state, tagColour, toast, zoneHex } from '../store'
+import { ago, changed, isPinned, stamp, state, tagColour, toast, zoneHex } from '../store'
 import CableExtras from '../components/CableExtras.vue'
 import PortMap from '../components/PortMap.vue'
 import CableTrace from '../components/CableTrace.vue'
 import ColourPicker from '../components/ColourPicker.vue'
 import HostIcon from '../components/HostIcon.vue'
+import MenuButton from '../components/MenuButton.vue'
 import { ICONS } from '../icons'
 
 const props = defineProps({ name: { type: String, required: true } })
 const router = useRouter()
 const route = useRoute()
 const isNew = computed(() => props.name === 'new')
+const LIVE_CLASS = { up: 'ok', down: 'err', degraded: 'warn' }
+const live = computed(() => derived.value?.health?.live)
+const pinnedHere = computed(() => isPinned(route.path))
+const gitOf = computed(() => (state.bar?.sites || []).find((x) => x.code === derived.value?.site)?.git || null)
+// plans for this host (a patch run first): they open on Changes, where they wait for approval
+const planning = ref(false)
+const plans = computed(() => (derived.value?.plan_actions || []).map((a) => ({ ...a, title: a.plugin === 'patching' && a.action === 'patch' ? 'Plan patch run' : `Plan: ${a.label}` })))
+const mainPlan = computed(() => plans.value.find((a) => a.plugin === 'patching' && a.action === 'patch') || null)
+const otherPlans = computed(() => plans.value.filter((a) => a !== mainPlan.value).map((a) => ({ label: `${a.label} (${a.integration})`, run: () => plan(a) })))
+async function plan(a) {
+  planning.value = true
+  try {
+    const enc = encodeURIComponent
+    const job = a.host
+      ? await api.post(`/api/hosts/${enc(a.host)}/modules/${enc(a.integration)}/actions/${enc(a.action)}`, {})
+      : await api.post(`/api/integrations/${enc(a.integration)}/actions/${enc(a.action)}`, { params: a.params })
+    router.push(`/changes?job=${job.id}`)
+  } catch (e) { toast(e.message, 'error') } finally { planning.value = false }
+}
+// the address people know the host by: the primary interface's, else the first one
+const primaryAddr = computed(() => {
+  const ifs = (derived.value?.interfaces || []).filter((i) => i.ip4 || i.ip6)
+  const i = ifs.find((x) => x.primary) || ifs[0]
+  return i ? i.ip4 || i.ip6 : ''
+})
+
+// Shell opens the address in the person's own SSH app; labdex never runs a shell itself
+const sshUrl = computed(() => {
+  if (isNew.value || !primaryAddr.value || derived.value?.kind === 'vip') return ''
+  const svc = (derived.value.services || []).find((x) => /ssh/i.test(`${x.name} ${x.scheme || ''}`))
+  const a = primaryAddr.value.includes(':') ? `[${primaryAddr.value}]` : primaryAddr.value
+  return `ssh://${a}${svc?.port && Number(svc.port) !== 22 ? `:${svc.port}` : ''}`
+})
 
 const blank = () => ({
   name: '', site: route.query.site || state.meta.sites?.[0]?.code || 'home', fun: '', zone: '', zone_pinned: false, kind: 'device', vip_protocol: '', vip_members: [],
@@ -199,12 +235,15 @@ function setTab(t) {
 }
 const errIn = (prefix) => Object.keys(errors.value).some((k) => k.startsWith(prefix))
 const tabs = computed(() => [
-  ...(isNew.value ? [] : [{ id: 'dashboard', label: 'Dashboard' }]),
-  { id: 'overview', label: 'Overview', err: ['name', 'fun', 'zone', 'status', 'function', 'runs_on', 'hardware'].some((k) => errors.value[k]) },
+  ...(isNew.value ? [] : [{ id: 'dashboard', label: 'Overview' }]),
+  { id: 'overview', label: isNew.value ? 'Overview' : 'Details', err: ['name', 'fun', 'zone', 'status', 'function', 'runs_on', 'hardware'].some((k) => errors.value[k]) },
   { id: 'network', label: 'Network', count: form.interfaces.length, err: errIn('interfaces') },
   { id: 'services', label: 'Services', count: form.services.length, err: errIn('services') },
   { id: 'dns', label: 'DNS', count: form.records.length, err: errIn('records') || !!errors.value.fun_no_dns },
-  { id: 'ansible', label: 'Ansible', count: form.features.length, err: !!(errors.value.features || errors.value.vars) },
+  ...(isNew.value || !derived.value?.guests?.length ? [] : [{ id: 'guests', label: 'Guests', count: derived.value.guests.length }]),
+  ...(isNew.value ? [] : [{ id: 'updates', label: 'Updates', count: derived.value?.patches?.pending || 0 }]),
+  // features and vars: what Ansible and the generators get for this host
+  { id: 'ansible', label: 'Config', count: form.features.length, err: !!(errors.value.features || errors.value.vars) },
   ...(isNew.value ? [] : [{ id: 'integrations', label: 'Plugins' }, { id: 'agent', label: 'Agent' }, { id: 'secrets', label: 'Secrets' }, { id: 'runs', label: 'Runs' }, { id: 'history', label: 'History' }]),
 ])
 // <category>-<type>-<role>-<nn> from the lists under Naming
@@ -520,28 +559,45 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
         <button class="btn small primary" @click="draft.restore()">Restore them</button>
         <button class="btn small ghost" @click="draft.discard()">Discard</button>
       </div>
-      <div class="page-head">
-        <RouterLink to="/hosts" class="btn ghost small">← Hosts</RouterLink>
-        <h1>
-          <template v-if="isNew">New host</template>
+      <!-- the object header: what it is, its state, where it sits, and its actions on one row -->
+      <div class="objhead">
+        <span class="oh-icon" aria-hidden="true"><HostIcon v-if="derived" :host="derived" :size="24" /></span>
+        <div class="oh-main">
+          <div class="label">Host<template v-if="derived?.kind && derived.kind !== 'device'"> · {{ derived.kind }}</template><template v-if="derived?.function"> · {{ derived.function }}</template></div>
+          <h1>
+            <template v-if="isNew">New host</template>
+            <template v-else>
+              <span class="mono oh-name">{{ derived?.name || name }}</span>
+              <span v-if="live && live !== 'unknown'" class="oh-live" :class="LIVE_CLASS[live]"><span class="dot" :class="LIVE_CLASS[live]"></span>{{ live }}</span>
+              <span v-if="pinnedHere" class="oh-pin">★ pinned</span>
+            </template>
+          </h1>
+          <div v-if="!isNew && derived" class="oh-tags">
+            <span v-if="derived.fun" class="h-tag">fun <b>{{ derived.fun }}</b></span>
+            <span v-if="(state.meta.sites || []).length > 1" class="h-tag">site <b>{{ derived.site }}</b></span>
+            <ZoneChip v-if="form.zone" :zone="form.zone" />
+            <span v-if="primaryAddr" class="h-tag"><b>{{ primaryAddr }}</b></span>
+            <span v-if="derived.runs_on" class="h-tag">on <b>{{ derived.runs_on }}</b></span>
+            <span v-if="derived.rack" class="h-tag">rack <b>{{ derived.rack }}<template v-if="derived.rack_unit"> U{{ derived.rack_unit }}</template></b></span>
+            <span v-if="gitOf" class="h-tag" :title="`Saving writes to ${gitOf.path} on ${gitOf.branch}`">git <b>{{ gitOf.branch }} · {{ gitOf.path }}</b></span>
+          </div>
+        </div>
+        <div class="oh-acts">
+          <a v-if="sshUrl" :href="sshUrl" class="btn" :title="`Opens ${sshUrl} in your SSH app; labdex itself has no shell`"><SquareTerminal :size="15" /> Shell</a>
+          <RouterLink v-if="!isNew && derived?.name" :to="{ path: '/impact', query: { host: derived.name } }" class="btn"
+            title="What breaks if this host goes down"><Unplug :size="15" /> What breaks?</RouterLink>
+          <RouterLink v-if="!isNew && derived?.name" :to="{ path: '/labels', query: { what: 'hosts', host: derived.name } }" class="btn"
+            title="Print a label with a QR code for this host"><QrCode :size="15" /> Label</RouterLink>
+          <MenuButton v-if="!isNew && otherPlans.length" :items="otherPlans" label="Plan" :small="false" title="Plan an action for this host" />
+          <button v-if="!isNew && mainPlan" class="btn primary" :disabled="planning" @click="plan(mainPlan)"><PackageCheck :size="15" /> {{ planning ? 'Planning…' : mainPlan.title }}</button>
+          <span v-if="readOnly" class="lock" title="Your roles don't allow changing this host">🔒 read-only for you</span>
           <template v-else>
-            <span v-if="derived?.fun" class="fun" style="font-size: calc(22px * var(--text))">{{ derived.fun }}</span>
-            <span class="mono" :class="{ muted: derived?.fun }" style="margin-left: 10px; font-size: calc(16px * var(--text))">{{ derived?.name || name }}</span>
+            <button v-if="!isNew" class="btn danger" @click="remove">Delete</button>
+            <button class="btn primary" :disabled="busy || (!dirty && !isNew)" @click="save">
+              {{ busy ? 'Saving…' : isNew ? 'Create host' : dirty ? 'Save changes' : 'Saved' }}
+            </button>
           </template>
-        </h1>
-        <ZoneChip v-if="form.zone" :zone="form.zone" />
-        <span class="grow"></span>
-        <RouterLink v-if="!isNew && derived?.name" :to="{ path: '/impact', query: { host: derived.name } }" class="btn ghost small"
-          title="What breaks if this host goes down">Impact</RouterLink>
-        <RouterLink v-if="!isNew && derived?.name" :to="{ path: '/labels', query: { what: 'hosts', host: derived.name } }" class="btn ghost small"
-          title="Print a label with a QR code for this host">Label</RouterLink>
-        <span v-if="readOnly" class="lock" title="Your roles don't allow changing this host">🔒 read-only for you</span>
-        <template v-else>
-          <button v-if="!isNew" class="btn danger" @click="remove">Delete</button>
-          <button class="btn primary" :disabled="busy || (!dirty && !isNew)" @click="save">
-            {{ busy ? 'Saving…' : isNew ? 'Create host' : dirty ? 'Save changes' : 'Saved' }}
-          </button>
-        </template>
+        </div>
       </div>
       <nav class="tabs" aria-label="Host sections">
         <a v-for="t in tabs" :key="t.id" href="#" :class="{ 'router-link-active': tab === t.id }" :aria-current="tab === t.id ? 'page' : undefined" @click.prevent="setTab(t.id)">
@@ -1035,6 +1091,11 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
           </div>
       </div>
 
+      <section v-if="!isNew && derived && tab === 'guests'" class="card flush">
+        <div class="sect-head pad-h"><h2>Guests</h2><span class="small faint">what runs on {{ derived.name }}</span></div>
+        <HostGuests :host="derived.name" />
+      </section>
+      <HostUpdates v-if="!isNew && derived && tab === 'updates'" :host="derived" />
       <div v-if="!isNew && derived" v-show="tab === 'integrations'">
         <HostModules :host="derived.name" :key="`m${saved}`" />
       </div>
@@ -1232,6 +1293,16 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
 </template>
 
 <style scoped>
+.pad-h { padding: 14px 18px; margin: 0; }
+.objhead { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+.oh-icon { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--card); color: var(--muted); }
+.oh-main { flex: 1; min-width: 0; }
+.oh-main h1 { margin: 2px 0 6px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.oh-name { font-size: calc(22px * var(--text)); font-weight: 600; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.oh-live { display: inline-flex; align-items: center; gap: 6px; font: 500 calc(12px * var(--text)) var(--mono); text-transform: uppercase; color: var(--muted); }
+.oh-pin { font-size: calc(12px * var(--text)); color: var(--accent-soft); font-weight: 500; }
+.oh-tags { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.oh-acts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .ifgroup { margin: 12px 0 6px; font-weight: 600; }
 .ifgroup:first-of-type { margin-top: 0; }
 .bulkprev { margin: 0; overflow-wrap: anywhere; }

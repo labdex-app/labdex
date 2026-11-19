@@ -85,6 +85,20 @@ const key = (w) => `${w.integration}/${w.id}`
           </svg>
         </template>
 
+        <template v-else-if="w.data.kind === 'heartbeat'">
+          <div class="wnum"><template v-if="w.data.value != null">{{ fmt(w.data.value) }}<span v-if="w.data.unit" class="wunit">{{ w.data.unit }}</span></template></div>
+          <div class="beats" role="img" :aria-label="`${w.label}: ${w.data.beats.filter((b) => b === 'up').length} of ${w.data.beats.length} checks up`">
+            <span v-for="(b, n) in w.data.beats" :key="n" class="beat" :class="`b-${b}`" :title="b"></span>
+          </div>
+        </template>
+
+        <template v-else-if="w.data.kind === 'meter'">
+          <div class="meter" role="meter" :aria-valuenow="w.data.value" aria-valuemin="0" :aria-valuemax="w.data.max" :aria-label="w.label">
+            <span :class="`m-${w.data.tone || 'info'}`" :style="{ width: `${Math.min(100, (100 * w.data.value) / w.data.max)}%` }"></span>
+          </div>
+          <div class="mono mval">{{ fmt(w.data.value) }} / {{ fmt(w.data.max) }}<template v-if="w.data.unit"> {{ w.data.unit }}</template></div>
+        </template>
+
         <div v-if="w.data?.sub" class="small faint wsub">{{ w.data.sub }}</div>
       </div>
     </div>
@@ -103,16 +117,26 @@ const key = (w) => `${w.integration}/${w.id}`
 .widget.wide { grid-column: span 2; }
 @media (max-width: 640px) { .widget.wide { grid-column: auto; } }
 .whead { display: flex; align-items: baseline; gap: 8px; }
-.wlabel { font-size: calc(13px * var(--text)); font-weight: 500; color: var(--muted); flex: 1; min-width: 0; }
+.wlabel { font: 500 calc(11px * var(--text)) var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); flex: 1; min-width: 0; }
 .wsrc { font-size: calc(11px * var(--text)); color: var(--faint); font-family: var(--mono); }
-.wnum { font-size: calc(26px * var(--text)); font-weight: 650; line-height: 1.15; font-variant-numeric: tabular-nums; }
-.wunit { font-size: calc(13px * var(--text)); font-weight: 500; color: var(--muted); margin-left: 4px; }
+.wnum { font: 600 calc(26px * var(--text))/1.15 var(--mono); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.wunit { font-size: calc(13px * var(--text)); font-weight: 500; color: var(--muted); margin-left: 2px; }
 .wlist { display: flex; flex-direction: column; gap: 3px; max-height: 220px; overflow: auto; }
 .wlist li { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .wtable th, .wtable td { padding: 4px 8px; }
 .spark { width: 100%; height: 44px; display: block; cursor: crosshair; }
-.sline { fill: none; stroke: var(--accent); stroke-width: 2; }
-.sarea { fill: var(--accent-faint); stroke: none; }
-.sdot { fill: var(--accent); stroke: var(--card); stroke-width: 2; }
+.sline { fill: none; stroke: var(--info); stroke-width: 1.5; }
+.sarea { fill: color-mix(in srgb, var(--info) 8%, transparent); stroke: none; }
+.sdot { fill: var(--info); stroke: var(--card); stroke-width: 2; }
+/* heartbeat: one bar per check, colour and height both say the state */
+.beats { display: flex; gap: 2px; height: 22px; align-items: flex-end; }
+.beat { flex: 1; min-width: 2px; height: 100%; border-radius: 2px; background: var(--ok); }
+.beat.b-warn { background: var(--warn); height: 80%; }
+.beat.b-down { background: var(--err); height: 60%; }
+.beat.b-unknown { background: var(--line-strong); height: 40%; }
+.meter { height: 6px; border-radius: 99px; background: color-mix(in srgb, var(--ink) 8%, transparent); overflow: hidden; margin-top: 8px; }
+.meter span { display: block; height: 100%; border-radius: 99px; background: var(--info); }
+.meter .m-ok { background: var(--ok); } .meter .m-warn { background: var(--warn); } .meter .m-err { background: var(--err); }
+.mval { font-size: calc(13px * var(--text)); }
 .wsub { margin-top: auto; }
 </style>

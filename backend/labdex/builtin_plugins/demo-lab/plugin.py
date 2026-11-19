@@ -73,6 +73,18 @@ class Plugin(Base):
         pts = [round(base + 20 * abs(math.sin((now - i + base) / 7)), 1) for i in range(36)][::-1]
         return {"kind": "sparkline", "points": pts, "value": pts[-1], "unit": "%", "min": 0, "max": 100, "sub": "CPU, last 3 hours (made up)"}
 
+    def widget_reach(self, host):
+        now = int(time.time()) // 1800
+        sick = host["name"] == self._sick()
+        beats = ["down" if sick and i < 2 else "warn" if (_h(f"{host['name']}{now - i}") % 23) == 0 else "up" for i in range(48)][::-1]
+        up = sum(b == "up" for b in beats) + 0.5 * sum(b == "warn" for b in beats)
+        return {"kind": "heartbeat", "beats": beats, "value": round(100 * up / len(beats), 1), "unit": "%", "sub": "every 30 minutes, 24 h (made up)"}
+
+    def widget_memory(self, host):
+        total = 8 * (1 + _h(host["name"]) % 4)
+        used = round(total * (0.35 + (_h(host["name"] + "m") % 50) / 100), 1)
+        return {"kind": "meter", "value": used, "max": total, "unit": "GB", "tone": "warn" if used / total > 0.8 else "", "sub": "made up"}
+
     # ----------------------------------------------------------------- page
     def page_lab(self, args):
         have = self.ctx.state.get("records") or {}

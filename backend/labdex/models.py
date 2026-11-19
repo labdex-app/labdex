@@ -597,6 +597,7 @@ class User(db.Model):
     active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
     last_login: Mapped[datetime | None] = mapped_column()
+    prefs: Mapped[dict | None] = mapped_column(JSONValue, nullable=True)  # {"sidebar": {pins, hidden, order}}
 
     groups: Mapped[list[Group]] = relationship(secondary=user_groups, back_populates="members")
     tokens: Mapped[list[ApiToken]] = relationship(back_populates="user", cascade="all, delete-orphan")
@@ -1036,6 +1037,15 @@ class HostHealth(db.Model):
     host: Mapped[str] = mapped_column(String(63), primary_key=True)
     state: Mapped[str] = mapped_column(String(8), default="unknown")
     since: Mapped[datetime] = mapped_column(default=utcnow)
+
+
+class HostHealthEvent(db.Model):
+    """A change of a host's combined state, kept for a week for the 48 h strip on the host page."""
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    host: Mapped[str] = mapped_column(String(63), index=True)
+    state: Mapped[str] = mapped_column(String(8))
+    at: Mapped[datetime] = mapped_column(default=utcnow, index=True)
 
 
 class ZonePolicy(db.Model):

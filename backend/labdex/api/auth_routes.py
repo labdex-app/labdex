@@ -243,3 +243,111 @@ def admin_sso():
                              "confidential": bool(c["client_secret"]), "redirect_uri": oidc.redirect_uri(), "autocreate": bool(c["autocreate"]),
                              "groups_claim": c["groups_claim"] or "groups", "admin_groups": c["admin_groups"] or "", "only": bool(c["only"])},
                     "header": current_app.config.get("LABDEX_SSO_HEADER") or ""})
+
+
+# -------------------------------------------------------------------- your sidebar
+SIDEBAR_KINDS = {"host", "network", "zone", "service", "page", "view", "change"}
+MAX_PINS = 30
+
+
+def _default_sidebar() -> dict:
+    """The pages an administrator chose for everyone: {hidden, order}. Pins stay personal."""
+    import json
+    from .. import naming
+    try:
+        d = json.loads(naming.get_setting("sidebar_default") or "{}")
+    except ValueError:
+        d = {}
+    return {"hidden": list(d.get("hidden") or []), "order": list(d.get("order") or [])}
+
+
+def _sidebar(u: User) -> dict:
+    s = (u.prefs or {}).get("sidebar")
+    pins = list((s or {}).get("pins") or [])
+    if s is None or s.get("follows_default"):  # pages never changed (or reset): the default pages
+        return {"pins": pins, **_default_sidebar(), "from_default": True}
+    return {"pins": pins, "hidden": list(s.get("hidden") or []), "order": list(s.get("order") or []), "from_default": False}
+
+
+def _path_ok(v) -> bool:
+    return isinstance(v, str) and v.startswith("/") and not v.startswith("//") and len(v) <= 300 and "\\" not in v
+
+
+def _clean_pages(data: dict, errors: list) -> dict:
+    lists = {}
+    for k in ("hidden", "order"):
+        v = data.get(k) or []
+        if not isinstance(v, list) or not all(_path_ok(x) for x in v) or len(v) > 100:
+            errors.append({"field": k, "message": "a list of page paths"})
+        lists[k] = list(dict.fromkeys(v)) if isinstance(v, list) else []
+    return lists
+
+
+@bp.get("/me/sidebar")
+def my_sidebar():
+    """Your sidebar: pinned items, hidden pages and page order (only for you). Until you change it,
+    the pages follow the default an administrator set (`from_default`: true)."""
+    if g.principal.user is None:
+        return err(403, "only a signed-in user has a sidebar")
+    return jsonify(_sidebar(g.principal.user))
+
+
+@bp.put("/me/sidebar")
+def save_my_sidebar():
+    """Save your pins, hidden pages and page order. Paths are app paths ("/hosts/…"); labels are shown as text.
+    With "from_default": true only the pins are kept and the pages keep following the default."""
+    u = g.principal.user
+    if u is None:
+        return err(403, "only a signed-in user has a sidebar")
+    data = body()
+    errors = []
+    pins = []
+    for n, p in enumerate(data.get("pins") or []):
+        if not isinstance(p, dict) or not _path_ok(p.get("to")) or p.get("kind") not in SIDEBAR_KINDS:
+            errors.append({"field": f"pins[{n}]", "message": "a pin needs a path starting with / and a known kind"})
+            continue
+        pins.append({"to": p["to"], "kind": p["kind"], "label": str(p.get("label") or p["to"])[:80], "key": str(p.get("key") or "")[:128]})
+    if len(pins) > MAX_PINS:
+        errors.append({"field": "pins", "message": f"at most {MAX_PINS} pins"})
+    lists = _clean_pages(data, errors)
+    if errors:
+        return err(422, "validation failed", errors)
+    mine = {"pins": pins, "follows_default": True} if data.get("from_default") is True else {"pins": pins, **lists}
+    u.prefs = {**(u.prefs or {}), "sidebar": mine}
+    db.session.commit()
+    return jsonify(_sidebar(u))
+
+
+@bp.delete("/me/sidebar")
+def reset_my_sidebar():
+    """Forget your hidden pages and order: the pages follow the default again. Your pins stay."""
+    u = g.principal.user
+    if u is None:
+        return err(403, "only a signed-in user has a sidebar")
+    pins = ((u.prefs or {}).get("sidebar") or {}).get("pins") or []
+    u.prefs = {**(u.prefs or {}), "sidebar": {"pins": pins, "follows_default": True}}
+    db.session.commit()
+    return jsonify(_sidebar(u))
+
+
+@bp.get("/admin/sidebar-default")
+def sidebar_default():
+    """The default pages for everyone who hasn't changed their own: {hidden, order}."""
+    rbac.require_admin()
+    return jsonify(_default_sidebar())
+
+
+@bp.put("/admin/sidebar-default")
+def save_sidebar_default():
+    """Set the default pages (hidden and order) for everyone who hasn't changed their own sidebar."""
+    import json
+    rbac.require_admin()
+    errors = []
+    lists = _clean_pages(body(), errors)
+    if errors:
+        return err(422, "validation failed", errors)
+    before = _default_sidebar()
+    store.save_settings({"sidebar_default": json.dumps(lists)})
+    audit.record("update", "setting", "sidebar_default", before, lists, summary="default sidebar for everyone")
+    db.session.commit()
+    return jsonify(lists)

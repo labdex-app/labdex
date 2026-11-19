@@ -4,7 +4,7 @@ import { onMounted, ref } from 'vue'
 import { api, enc } from '../api'
 import { ago } from '../store'
 
-const props = defineProps({ type: String, name: String, limit: { type: Number, default: 8 } })
+const props = defineProps({ type: String, name: String, limit: { type: Number, default: 8 }, title: { type: String, default: 'History' } })
 const events = ref(null)
 
 onMounted(async () => {
@@ -18,7 +18,7 @@ onMounted(async () => {
 
 <template>
   <div v-if="events" class="card">
-    <h3>History</h3>
+    <h3>{{ title }}</h3>
     <ul v-if="events.length" class="plain">
       <li v-for="e in events" :key="e.id" class="hl">
         <RouterLink :to="`/history/${e.id}`" class="op" :class="`op-${e.action}`">{{ e.action }}</RouterLink>

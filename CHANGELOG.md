@@ -2,6 +2,73 @@
 
 ## Unreleased
 
+- **New look (Blueprint), step one: the frame.** Geist and Geist Mono replace the Red Hat fonts; a
+  quiet light and dark palette (light and dark designed alike, following the system unless you pick
+  one in the user menu); a faint dot grid behind the page; rounder corners (cards 10 px, buttons and
+  inputs 8 px, tags 6 px, filter chips round); amber only on the buttons that plan, approve or
+  apply. The sidebar has a site switcher at the top, then Overview and Inbox, then four groups
+  (Inventory, Network, Operate, Change) with fewer entries: Inbox (checks and discovery), Physical (racks, cables, labels),
+  Firewall (zone policy, aliases) and Networks (with zones) show their pages as tabs. The top bar
+  is a breadcrumb and the Ctrl K box; a status bar at the foot shows the live connection, each
+  site's git commit and sync time, linked agents and the vault. The app icon is the flat line
+  lantern. Every old address still works.
+- **Changes page**: every plan in a list with what it adds, changes and removes, and the
+  selected one beside it with a Plan, Review, Apply, Verify stepper, add/change/destroy counts
+  and the approvals still missing. **Plan again to verify** re-plans an applied action; an empty
+  plan means the target matches. Plans in `/api/jobs` now carry `ops` and `site`.
+- **List and detail** on Hosts and Networks: a click shows the item in a panel beside the list
+  (addresses, services, links; prefixes, DHCP, usage) with *Open host* or *Open network* for
+  everything else; a double click opens the page at once, Esc closes the panel.
+- **Your sidebar**: the star in the top bar pins what's on screen (a host with its live dot, a
+  network, a zone, a plan, a page or a filtered list) under Overview and Inbox. *Your sidebar*
+  (user menu) reorders or unpins them, and hides or reorders pages; hidden pages stay in Ctrl K.
+  Kept per user on the server (`GET`/`PUT /api/me/sidebar`, migration `0043_user_prefs`).
+- **Overview** (was Dashboard) leads with four numbers (hosts online, needs attention, updates
+  waiting, changes to review), a Sites table (git source, hosts, status, updates, open plans,
+  last apply), Needs attention with one action per row, and Activity. Your cards follow below;
+  the counts card is left out on the start page. `/api/dashboard` adds `sites` and `counts.updates`.
+- **Host page header**: the host's icon, name, live state and pin mark on one line, with its
+  function, site, zone, address, hypervisor and rack as tags below, and What breaks?, Label,
+  Delete and Save on the right. The first tab is now *Overview*; the form tab is *Details*.
+- **Quick edit beside the Hosts list**: *Edit* in a host's panel opens a short form (name,
+  kind, site, zone, status, fun name, function, features, tags, notes) with a YAML view and
+  **Preview diff**, a line diff of the host's entry in its site file. It saves like the host
+  page (checked, in Activity, and to the site's git repository when it has one). New:
+  `PATCH /api/hosts/<name>` (with `dry_run`) and `GET /api/hosts/<name>/yaml`. YAML and diffs
+  are coloured by token in both themes.
+- **Inbox › Checks** is a list and detail: findings on the left (All, Errors, Warnings, Info,
+  Accepted), the picked one beside them with its object, the other findings on that object,
+  *Open* and *Accept…*.
+- **Ctrl K, actions first**: actions lead the results, and "a verb and a host" (`patch web-01`,
+  `patch web*`) offers that host action, or a plan limited to those hosts, with the host's
+  patch state. Plans open on Changes for review; nothing is applied from the box. The best
+  host match also offers *Edit* (quick edit) and *What breaks?*; `>` shows commands only; the
+  box shows the site in use. `/api/search` returns these as `action` results with `params`
+  or `host`.
+- **New sign-in and first run**: sign in beside a short description of labdex, with single
+  sign-on as a second button (or the only one with `LABDEX_OIDC_ONLY`). A new labdex opens
+  a set-up in five steps: the first administrator, the first site with its git source (saved
+  and synced once), plugins from the Marketplace, import, and how to enrol agents. Every step
+  after the first can be skipped.
+- **Charts**: two new widget kinds for plugins, `heartbeat` (one bar per check; colour and
+  height both show the state) and `meter` (used of total). Sparklines are a thin blue line;
+  widget labels are mono capitals and values mono. The demo adds made-up *Reachable* and
+  *Memory* host widgets. A stale health source says when it last reported in plain time.
+- **States, phones and text size**: running and failed plans get their own shapes (a half
+  moon, a cross) besides their colours; lists that are loading show grey bars where the
+  rows will be; an empty Hosts list says what to do next. On a phone, Changes and Checks
+  show the list, then the picked item with a way back. Text sizes are 13, 14 (the new
+  default) and 16 px.
+- **Overview and host page, more of the mockups**: Overview gets *Refresh*, Needs attention
+  sorted worst first, and Activity filtered to All, Applies or Failures. A host's header shows
+  the site's git branch and file, and **Plan patch run** (amber) when a Patching integration
+  applies to it, plus a *Plan* menu for its other plan actions; each opens the plan on Changes
+  for approval. The host's Overview tab adds Details and Activity cards. Host details carry
+  `plan_actions`; the status bar's git entry carries `branch` and `path`. Segmented controls
+  share one style.
+- **Default sidebar**: administrators make their hidden pages and order the default for
+  everyone who hasn't changed their own (`/api/admin/sidebar-default`). *Use the default pages*
+  goes back to it and keeps your pins.
 - **Patching Kubernetes nodes:** with the new *Kubernetes nodes* settings, the Patching plugin
   drains a host that is a cluster node before it patches it, waits until the node is Ready again
   and uncordons it, one node at a time. A drain a PodDisruptionBudget holds back past the timeout
@@ -59,6 +126,30 @@
   the hosts, plans a diff, waits for a person's approval whatever the policy says, then writes
   `compose.yaml` and `.env` with Ansible and runs `docker compose up -d`. Only folders labdex
   wrote are changed; removing stacks is off by default. See *Plugins › Compose stacks*.
+- **CPU, memory and disk** from the host's agent (its last heartbeat, while it is linked): a row of
+  numbers on the host page (CPU, memory, disk, updates, reachable), columns on the hosts list,
+  CPU and memory in the Guests table, and the Sites table's *Capacity* view (each site's average).
+  The Sites table switches between Health, Drift and Capacity. `usage` on `/api/hosts` and
+  `/api/hosts/<name>`, `sites[].usage` on `/api/dashboard`.
+- **48 h health strip** on the host page: one cell per hour, the worst combined state in it, and
+  *Reachable* as the share of known time it was up. Changes of the combined state are kept for a
+  week (migration `0044_host_health_events`); the strip starts when a monitoring plugin reports.
+- **Host tabs**: *Guests* (what runs on it, with state, address, use and updates), *Updates* (the
+  packages waiting, security first), and *Config* (was Ansible: features and vars). *Shell* opens
+  the host's address in your own SSH app (`ssh://`); labdex runs no shell.
+- **Overview**: *Plan changes* opens the search box on the plans you may make (type `plan` in
+  Ctrl K for the same); Needs attention orders by impact or newest.
+- **Quick edit as YAML**: *Edit YAML* in the host drawer changes the host's entry as text, with
+  *Preview diff* first (`PUT /api/hosts/<name>/yaml`, with `dry_run`). Left-out fields take their
+  defaults; cables are changed on the host page.
+- **Workloads** (Operate): every Compose stack in one list, the picked one beside it with its
+  compose file (edit, *Diff*, *Save*), services and last deploy. *Plan deploy* plans that stack;
+  it waits on Changes for an approval. `GET /api/workloads`, `GET`/`PUT
+  /api/workloads/<integration>/<host>/<name>`.
+- **What breaks? on the map**: switched on, a click on a host marks it red and what goes down
+  or is cut off with it amber, with the reasons and services in a panel beside the map.
+- **Your sidebar**: drag pins and pages by their grip to reorder them; the arrows stay for the
+  keyboard.
 - **Proxmox VE** plugin: start and stop linked guests to match the inventory, set their cores and
   memory, and take snapshots (also before each change). Each is its own switch, off by default,
   and every run waits for a person's approval. See *Plugins › Compute and network*.

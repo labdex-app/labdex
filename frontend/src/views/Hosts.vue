@@ -1,5 +1,5 @@
 <script setup>
-import { Bookmark, Pencil, Plus, Tag, Trash2, X } from 'lucide-vue-next'
+import { Bookmark, Pencil, Plus, Server, Tag, Trash2, X } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, ApiError } from '../api'
@@ -13,14 +13,28 @@ import Modal from '../components/Modal.vue'
 import Copy from '../components/Copy.vue'
 import FilterSelect from '../components/FilterSelect.vue'
 import HostIcon from '../components/HostIcon.vue'
+import HostPeek from '../components/HostPeek.vue'
+import HostQuickEdit from '../components/HostQuickEdit.vue'
 import TagChip from '../components/TagChip.vue'
 import ZoneChip from '../components/ZoneChip.vue'
+import Usage from '../components/Usage.vue'
 import { can, changed, state, tagColour, toast } from '../store'
 import Loading from '../components/Loading.vue'
 
 const route = useRoute()
 const router = useRouter()
 const query = useQuery('/api/hosts', { onError: (e) => toast(e.message, 'error') })
+// list-detail: a click shows the host in a drawer beside the list (?peek=<uid>); a double click,
+// or "Open host" in the drawer, opens its page
+const peeked = computed(() => route.query.peek ? (query.data.value || []).find((h) => h.uid === route.query.peek || h.name === route.query.peek) : null)
+// ?edit=1 turns the drawer into the quick edit form
+function peek(h) { const { edit: _, ...rest } = route.query; router.replace({ query: { ...rest, peek: h.uid || h.name } }) }
+function unpeek() { const { peek: _, edit: __, ...rest } = route.query; router.replace({ query: rest }) }
+function quickEdit(on) { const { edit: _, ...rest } = route.query; router.replace({ query: on ? { ...rest, edit: '1' } : rest }) }
+async function quickSaved(h) {
+  await query.refresh()
+  if (route.query.peek !== h.uid) router.replace({ query: { ...route.query, peek: h.uid } })
+}
 const hosts = computed(() => query.data.value || [])
 const loading = computed(() => query.loading.value && !query.data.value)
 const q = ref(String(route.query.q || ''))
@@ -59,6 +73,8 @@ const cat = (h) => (h.name_ok ? h.name.split('-')[0] : 'unnamed')
 const uniq = (arr) => [...new Set(arr.filter(Boolean))]
 
 // monitoring sources that report on any host get a column each
+// CPU, memory and disk columns appear once any host's agent reports them
+const hasUsage = computed(() => hosts.value.some((h) => h.usage))
 const sources = computed(() => [...new Set(hosts.value.flatMap((h) => Object.keys(h.live_sources || {})))].sort())
 const LIVE = { up: 'up', down: 'down', unknown: 'no data' }
 
@@ -255,7 +271,7 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
 </script>
 
 <template>
-  <div class="page">
+  <div class="page" :class="{ peeking: peeked }">
     <div class="page-head">
       <h1>Hosts</h1>
       <span class="sub">{{ visible.length }} of {{ inTab.length }}</span>
@@ -301,17 +317,19 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
               <th class="sortable" @click="sortBy('zone')">Zone</th>
               <th class="hide-s">Addresses</th>
               <th class="sortable hide-p" @click="sortBy('status')">Status</th>
+              <template v-if="hasUsage"><th class="hide-s use">CPU</th><th class="hide-s use">Memory</th><th class="hide-s use">Disk</th></template>
               <th v-for="src in sources" :key="src" class="srccol hide-s" :title="`Status from ${src}`">{{ src }}</th>
               <th class="hide-s">Links</th>
             </tr>
           </thead>
           <tbody>
             <template v-for="r in rows" :key="r.key">
-            <tr v-if="r.head" class="grph"><td :colspan="(editable ? 7 : 6) + sources.length">
+            <tr v-if="r.head" class="grph"><td :colspan="(editable ? 7 : 6) + sources.length + (hasUsage ? 3 : 0)">
               <b :class="{ mono: groupBy !== 'status' }">{{ r.label || NOGROUP[groupBy] }}</b> <span class="faint small">{{ r.n }}</span>
               <a v-if="r.label && groupBy === 'tag'" href="#" class="small ml-2" @click.prevent="addTerm('tag', r.label)">only these</a></td></tr>
-            <tr v-else v-rowlink class="click" :class="{ sel: picked.has(r.h.name) }" @mouseenter="hover(r.h)"
-                @click="router.push(`/hosts/${r.h.uid || r.h.name}`)">
+            <tr v-else v-rowlink class="click" :class="{ sel: picked.has(r.h.name), peek: peeked && peeked.name === r.h.name }" @mouseenter="hover(r.h)"
+                :aria-expanded="peeked && peeked.name === r.h.name ? 'true' : 'false'"
+                @click="peek(r.h)" @dblclick="router.push(`/hosts/${r.h.uid || r.h.name}`)">
               <td v-if="editable" class="pick" @click.stop="pick(r.h, r.idx, $event)">
                 <input type="checkbox" :checked="picked.has(r.h.name)" :aria-label="`Select ${r.h.name}`" @click.stop="pick(r.h, r.idx, $event)"></td>
               <td>
@@ -348,6 +366,9 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
               </td>
               <td class="nowrap hide-p"><span class="ldot" :class="r.h.live" :title="`${LIVE[r.h.live] || r.h.live}${Object.keys(r.h.live_sources || {}).length ? '' : ' (from Discovery)'}`"></span>
                 <span class="status" :class="`s-${r.h.status}`">{{ r.h.status }}</span></td>
+              <template v-if="hasUsage"><td class="hide-s"><Usage :value="r.h.usage?.cpu ?? null" label="CPU" /></td>
+                <td class="hide-s"><Usage :value="r.h.usage?.mem ?? null" label="memory" /></td>
+                <td class="hide-s"><Usage :value="r.h.usage?.disk ?? null" label="disk" /></td></template>
               <td v-for="src in sources" :key="src" class="srccol hide-s"><span v-if="r.h.live_sources?.[src]" class="ldot" :class="r.h.live_sources[src]" :title="`${src}: ${r.h.live_sources[src]}`"></span></td>
               <td class="nowrap hide-s">
                 <a v-for="l in r.h.links" :key="l.url" :href="l.url" target="_blank" rel="noopener" class="small mr-2"
@@ -356,15 +377,23 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
             </tr>
             </template>
             <tr v-if="!loading && !visible.length">
-              <td :colspan="(editable ? 7 : 6) + sources.length" class="empty">
+              <td :colspan="(editable ? 7 : 6) + sources.length + (hasUsage ? 3 : 0)" class="empty">
                 <template v-if="hosts.length">Nothing here matches<template v-if="elsewhere.length">, but
                   <template v-for="(t, n) in elsewhere" :key="t">{{ n ? ' and ' : '' }}<a href="#" @click.prevent="setTab(t)">{{ counts[t] }} in {{ TAB_LABEL[t] }}</a></template> do</template>.</template>
-                <template v-else>No hosts yet. <RouterLink to="/hosts/new">Add one</RouterLink> or import an inventory under Settings.</template>
+                <template v-else>
+                  <div class="e-ic"><Server :size="18" /></div>
+                  <div class="e-t">No hosts{{ state.site ? ' on this site' : '' }} yet</div>
+                  <p>Import them from another tool or a file, or add the first one by hand.</p>
+                  <div v-if="can('host', 'edit')" class="e-acts">
+                    <RouterLink to="/hosts/new" class="btn primary">Add host</RouterLink>
+                    <RouterLink to="/admin/import" class="btn">Import</RouterLink>
+                  </div>
+                </template>
               </td>
             </tr>
           </tbody>
         </table>
-        <Loading v-if="loading && !visible.length" />
+        <Loading v-if="loading && !visible.length" :rows="6" label="Loading hosts" />
       </div>
       <div v-if="visible.length > shown" class="more">
         <button class="btn" @click="shown += PAGE">Show {{ Math.min(PAGE, visible.length - shown) }} more</button>
@@ -411,6 +440,8 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
         <button class="btn primary" :disabled="busy || (bulk.runs === 'set' && !bulk.runs_on)" @click="saveBulk">Change {{ picked.size }} host{{ picked.size === 1 ? '' : 's' }}</button>
       </template>
     </Modal>
+    <HostQuickEdit v-if="peeked && route.query.edit" :key="`e${peeked.uid}`" :host="peeked" @close="quickEdit(false)" @saved="quickSaved" />
+    <HostPeek v-else-if="peeked" :key="peeked.name" :host="peeked" @close="unpeek" @edit="quickEdit(true)" />
   </div>
 </template>
 
@@ -422,6 +453,10 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
 .pick { width: 34px; padding-right: 0 !important; cursor: default; }
 .pick input { cursor: pointer; }
 tr.sel td { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+tr.peek td { background: var(--accent-faint); }
+tr.peek td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+/* the drawer covers the right: the list makes room on screens wide enough for both */
+@media (min-width: 1200px) { .page.peeking { padding-right: 524px; } }
 .bulkbar { position: sticky; top: 8px; z-index: 5; display: flex; align-items: center; gap: 10px; padding: 8px 12px; margin-bottom: 10px;
   background: var(--card); border: 1px solid var(--accent); border-radius: var(--r-box); box-shadow: 0 8px 24px var(--shadow); }
 @media (max-width: 640px) { .g2 { grid-template-columns: minmax(0, 1fr); } .hide-s { display: none; } }
@@ -432,4 +467,5 @@ tr.sel td { background: color-mix(in srgb, var(--accent) 9%, transparent); }
 .ldot.up { background: var(--ok); opacity: 1; }
 .ldot.down { background: var(--err); opacity: 1; }
 .srccol { text-align: center; font-size: calc(11px * var(--text)); white-space: nowrap; }
+th.use { width: 120px; }
 </style>

@@ -5,17 +5,17 @@ import { ref } from 'vue'
 const KEY = 'labdex-theme'
 const read = () => { try { return localStorage.getItem(KEY) || 'system' } catch { return 'system' } }
 export const theme = ref(read()) // system | light | dark
-const media = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null
+const media = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null
 // what's showing now, for code that draws with colours (the topology)
-export const shown = ref('dark')
+export const shown = ref('light')
 
 export function applyTheme(t = theme.value) {
   const el = document.documentElement
   if (t === 'light' || t === 'dark') el.dataset.theme = t
   else delete el.dataset.theme
-  shown.value = t === 'system' ? (media?.matches ? 'light' : 'dark') : t
+  shown.value = t === 'system' ? (media?.matches ? 'dark' : 'light') : t
   const meta = document.querySelector('meta[name="color-scheme"]')
-  if (meta) meta.content = t === 'system' ? 'dark light' : t
+  if (meta) meta.content = t === 'system' ? 'light dark' : t
 }
 
 export function setTheme(t) {
@@ -27,7 +27,7 @@ export function setTheme(t) {
 media?.addEventListener?.('change', () => { if (theme.value === 'system') applyTheme('system') })
 
 // text size: every font size in the UI is a 14px-base size times --text
-const SIZES = { compact: 1, comfortable: 15 / 14, large: 16 / 14 }
+const SIZES = { compact: 13 / 14, comfortable: 1, large: 16 / 14 } // 13, 14 (the default) and 16 px
 const TKEY = 'labdex-text'
 const readSize = () => { try { const v = localStorage.getItem(TKEY); return v in SIZES ? v : 'comfortable' } catch { return 'comfortable' } }
 export const textSize = ref(readSize()) // compact | comfortable | large
