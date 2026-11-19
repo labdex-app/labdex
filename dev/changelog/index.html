@@ -7574,6 +7574,11 @@
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>Drift</strong>: a plan action on a schedule is the drift check. When a scheduled plan finds changes
+  after one that found none, <code>drift.found</code> goes out once; when it finds none again,
+  <code>drift.cleared</code>. <code>GET /api/drift</code> lists every plan action as <code>in_sync</code>, <code>drift</code> (with the
+  number of changes and since when), <code>applied</code>, <code>failed</code> or <code>unchecked</code>. See <em>Plans and
+  approvals › Drift</em>.</li>
 <li><strong>Workflows</strong>: steps in order (job templates, plugin actions, waits, and checks that hosts
   answer again), run by a click or on a schedule, inside a maintenance window if you give one.
   Each step that is a plan waits for its own approvals, and the run waits with it; a failed or

@@ -925,6 +925,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#drift" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Drift
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1977,6 +1988,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#drift" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Drift
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2054,6 +2076,25 @@ schedule). A policy sets:</p>
 run past midnight). An approved plan waits as <em>approved</em> until its delay has passed and
 its window is open; the worker applies it then.</p>
 <p>On the command line <code>labdex action &lt;integration&gt; &lt;action&gt; --apply</code> applies at once.</p>
+<h2 id="drift">Drift<a class="headerlink" href="#drift" title="Permanent link">&para;</a></h2>
+<p>A plan with no changes means the system matches labdex; a plan with changes means it differs,
+because someone changed it by hand or labdex changed and wasn't applied yet. Give a plan action a
+schedule (its <em>Run every</em> setting on the integration, <code>1440</code> for nightly) and that plan becomes
+the drift check:</p>
+<ul>
+<li>When a scheduled plan finds changes after one that found none, labdex sends <code>drift.found</code>
+  once. It doesn't repeat it every night while the system still differs.</li>
+<li>When a scheduled plan finds nothing again, it sends <code>drift.cleared</code>.</li>
+<li>A plan that fails says nothing either way; <code>job.failed</code> covers it.</li>
+</ul>
+<p>Pick the events for a channel under <em>Notifications</em>. <code>GET /api/drift</code> lists every plan action
+of every integration with its state: <code>in_sync</code>, <code>drift</code> (with <code>changes</code> and <code>since</code>, the first
+plan in a row that found changes), <code>applied</code> (labdex wrote it, the next check says whether it
+held), <code>failed</code> or <code>unchecked</code>, and <code>schedule_minutes</code> (0 = no drift check scheduled).</p>
+<p><strong>Applying low-risk changes by themselves:</strong> an approval policy with <code>approvals: 0</code> for, say,
+<code>integrations: [dns-*]</code> applies those plans as soon as they are made. Drift found there is put
+right without anyone, and <code>drift.found</code> still tells you it happened. Plans of actions marked
+<code>approval: always</code> (Patching, Compose stacks, Proxmox guest changes) always wait for a person.</p>
 
 
 
