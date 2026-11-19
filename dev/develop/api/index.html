@@ -2009,7 +2009,7 @@ takes a host or network name (<code>/api/hosts/&lt;name&gt;</code>, <code>/api/n
 <tr>
 <td>GET, PUT · POST, PUT, DELETE</td>
 <td><code>/api/topology?view=physical\|l3</code> · <code>/api/topology/layout</code>, <code>/api/topology/cables[/&lt;id&gt;]</code></td>
-<td>The pictures, their shared arrangement, cables drawn on the map (both ends may be one host, on different ports); <code>PUT …/cables/&lt;id&gt;</code> <code>{medium, speed, notes}</code> changes one</td>
+<td>The pictures (hosts carry <code>live</code>: up, down or unknown; cables an <code>lldp</code> check <code>{state: seen|other|unseen, sees, source, protocol}</code> when switches report neighbours), their shared arrangement, cables drawn on the map (both ends may be one host, on different ports); <code>PUT …/cables/&lt;id&gt;</code> <code>{medium, speed, notes}</code> changes one</td>
 </tr>
 <tr>
 <td>GET, POST, PUT, DELETE</td>

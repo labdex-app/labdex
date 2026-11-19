@@ -7552,6 +7552,13 @@
 <li><strong>Proxmox VE</strong> plugin: start and stop linked guests to match the inventory, set their cores and
   memory, and take snapshots (also before each change). Each is its own switch, off by default,
   and every run waits for a person's approval. See <em>Plugins › Compute and network</em>.</li>
+<li><strong>Topology shows what's live.</strong> Each host has a dot in its corner, green when a status source
+  or Discovery says it's up and red when it's down; a host or hypervisor that is down also gets a
+  red dashed border. Cables say what the switches see (LLDP/CDP, UniFi): <em>seen as on record</em>,
+  <em>check the patch</em> (a yellow halo on the map) or <em>not seen on this port</em>. A strip above the map
+  lists the hosts that are down and the cables to check; click one to go to it. Cables can also be
+  coloured by medium (copper, fiber, DAC, Wi-Fi). <code>GET /api/topology</code> gives hosts a <code>live</code> state
+  and cables an <code>lldp</code> check.</li>
 </ul>
 <h2 id="1260">1.26.0<a class="headerlink" href="#1260" title="Permanent link">&para;</a></h2>
 <ul>
