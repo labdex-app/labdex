@@ -6,6 +6,12 @@
   drains a host that is a cluster node before it patches it, waits until the node is Ready again
   and uncordons it, one node at a time. A drain a PodDisruptionBudget holds back past the timeout
   stops the run and leaves the node cordoned. See *Plugins › Patching*.
+- **Workflows**: steps in order (job templates, plugin actions, waits, and checks that hosts
+  answer again), run by a click or on a schedule, inside a maintenance window if you give one.
+  Each step that is a plan waits for its own approvals, and the run waits with it; a failed or
+  discarded step stops the run unless it may continue. A run outside its window waits, and pauses
+  between steps when the window closes. Jobs of a run carry its workflow and step for the Changes
+  page. `workflow.*` notifications. See *Operating › Workflows and maintenance windows*.
 - **Host agents** (`labdex-agent`): a systemd service on Linux hosts that keeps one outgoing
   WebSocket connection to labdex, so hosts need no open port. Enrol it from the host's new
   **Agent** tab with a one-time token; labdex keeps only a hash of the host's key, and **Revoke**
@@ -22,6 +28,17 @@
   `LABDEX_AGENT_MTLS` (`optional` by default, or `required`, `off`); behind a reverse proxy the
   certificate comes in `LABDEX_AGENT_CERT_HEADER` from `LABDEX_TRUSTED_PROXIES`.
 - The image runs gunicorn with 64 threads (was 16): each connected agent holds one.
+- Agent install, tried end to end on Debian 12 with systemd: the agent now brings its
+  libraries along (nothing from PyPI, no venv on hosts), `install.sh` installs packages only when
+  they are missing, falls back to Python without `curl`, and takes `--uninstall [--purge]`. The
+  service no longer turns on hardening that makes systemd set `NoNewPrivileges` by itself, which
+  stopped every sudo rule; a capability bounding set takes its place. `patch.apply` stops when
+  `apt-get update` couldn't fetch, and Ansible installed with pip is found. New guide: *A first
+  agent, read-only*.
+- **Agents** page: every host's agent with its link, last contact, root, writes, client
+  certificate and latest metrics, with tiles to filter.
+- `backend/tools/agent_rehearsal.py` rehearses the agent's install, revoke and uninstall in a
+  throwaway systemd container against a local labdex with client certificates required.
 - **Kubernetes workloads & Flux** plugin (read-only, one per cluster): Deployments, StatefulSets
   and DaemonSets with ready against wanted replicas, Flux Kustomizations and HelmReleases with
   their Ready state, applied revision and source, and the Git, OCI and Helm sources, on a Cluster
@@ -40,6 +57,13 @@
 - **Proxmox VE** plugin: start and stop linked guests to match the inventory, set their cores and
   memory, and take snapshots (also before each change). Each is its own switch, off by default,
   and every run waits for a person's approval. See *Plugins › Compute and network*.
+- **Topology shows what's live.** Each host has a dot in its corner, green when a status source
+  or Discovery says it's up and red when it's down; a host or hypervisor that is down also gets a
+  red dashed border. Cables say what the switches see (LLDP/CDP, UniFi): *seen as on record*,
+  *check the patch* (a yellow halo on the map) or *not seen on this port*. A strip above the map
+  lists the hosts that are down and the cables to check; click one to go to it. Cables can also be
+  coloured by medium (copper, fiber, DAC, Wi-Fi). `GET /api/topology` gives hosts a `live` state
+  and cables an `lldp` check.
 
 ## 1.26.0
 

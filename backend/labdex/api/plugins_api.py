@@ -52,6 +52,9 @@ def job_dict(j: Job, full=False) -> dict:
          "finished_at": j.finished_at.isoformat() + "Z" if j.finished_at else None,
          "changes": len(j.plan or []), "result": j.result, "worker": j.worker, "hosts": [h.host for h in j.hosts],
          "template": _template_name(j.template_id)}
+    if j.workflow_run_id:
+        from .. import workflows
+        d["workflow"] = workflows.job_note(j)
     if j.mode == "plan":
         from .. import approvals
         d.update({"approvals": list(j.approvals or []), "needed": approvals.needed(j) if j.policy else None,

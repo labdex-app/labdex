@@ -17,6 +17,7 @@ export const router = createRouter({
     { path: '/aliases', component: () => import('./views/Aliases.vue'), meta: { title: 'Aliases' } },
     { path: '/services', component: () => import('./views/Services.vue'), meta: { title: 'Services' } },
     { path: '/patches', component: () => import('./views/Patches.vue'), meta: { title: 'Patches' } },
+    { path: '/agents', component: () => import('./views/Agents.vue'), meta: { title: 'Agents' } },
     { path: '/dns', component: () => import('./views/Dns.vue'), meta: { title: 'DNS' } },
     { path: '/discovery', component: () => import('./views/Discovery.vue'), meta: { title: 'Discovery' } },
     { path: '/plugins', component: () => import('./views/Plugins.vue'), meta: { title: 'Plugins' } },

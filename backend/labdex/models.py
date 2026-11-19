@@ -830,6 +830,7 @@ class Job(db.Model):
     replaces: Mapped[int | None] = mapped_column()  # the plan this one superseded
     apply_after: Mapped[datetime | None] = mapped_column()  # approved: not before (delay, change window)
     template_id: Mapped[int | None] = mapped_column(ForeignKey("job_template.id", ondelete="SET NULL"))
+    workflow_run_id: Mapped[int | None] = mapped_column(ForeignKey("workflow_run.id", ondelete="SET NULL"), index=True)
 
     integration: Mapped[Integration | None] = relationship()
     hosts: Mapped[list[JobHost]] = relationship(cascade="all, delete-orphan", order_by="JobHost.host")
@@ -931,6 +932,49 @@ class JobTemplate(db.Model):
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
 
     integration: Mapped[Integration] = relationship()
+
+
+class Workflow(db.Model):
+    """Steps in order (job templates, plugin actions, waits, health checks), run by a click or on a
+    schedule, inside a maintenance window if it has one. Each step that changes something is a
+    plan with the usual approvals."""
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(64), unique=True)
+    description: Mapped[str] = mapped_column(String(200), default="")
+    steps: Mapped[list] = mapped_column(JSONList, default=list)
+    schedule: Mapped[str] = mapped_column(String(8), default="")  # '', every, weekly
+    every_minutes: Mapped[int] = mapped_column(default=0)
+    days: Mapped[list] = mapped_column(JSONList, default=list)
+    at: Mapped[str] = mapped_column(String(5), default="")  # HH:MM (weekly)
+    timezone: Mapped[str] = mapped_column(String(64), default="UTC")
+    window_id: Mapped[int | None] = mapped_column(ForeignKey("change_window.id", ondelete="SET NULL"))
+    enabled: Mapped[bool] = mapped_column(default=True)
+    next_run_at: Mapped[datetime | None] = mapped_column()
+    last_run_at: Mapped[datetime | None] = mapped_column()
+    created_by: Mapped[str] = mapped_column(String(128), default="")
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+
+    window: Mapped[ChangeWindow | None] = relationship()
+
+
+class WorkflowRun(db.Model):
+    """One run of a workflow: where it is and what each step did. The steps are copied at the
+    start, so editing the workflow doesn't change a run under way."""
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    workflow_id: Mapped[int | None] = mapped_column(ForeignKey("workflow.id", ondelete="SET NULL"), index=True)
+    name: Mapped[str] = mapped_column(String(64), default="")  # the workflow's name when it started
+    status: Mapped[str] = mapped_column(String(16), default="running", index=True)
+    # running → waiting (on an approval or the window) → succeeded | failed | cancelled
+    step: Mapped[int] = mapped_column(default=0)
+    steps: Mapped[list] = mapped_column(JSONList, default=list)  # [{…the step…, state: {status, job_id, …}}]
+    window: Mapped[dict | None] = mapped_column(JSONValue)  # the maintenance window when it started
+    trigger: Mapped[str] = mapped_column(String(16), default="manual")
+    created_by: Mapped[str] = mapped_column(String(128), default="")
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, index=True)
+    finished_at: Mapped[datetime | None] = mapped_column()
+    note: Mapped[str] = mapped_column(String(300), default="")
 
 
 class PluginRepository(db.Model):

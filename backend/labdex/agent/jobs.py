@@ -18,6 +18,7 @@ import threading
 
 from .protocol import BadJob
 
+SEARCH_PATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 SYSTEMD_RUN = ("systemd-run", "--quiet", "--wait", "--pipe", "--collect")
 APT_OPTS = ("-o", "Dpkg::Options::=--force-confdef", "-o", "Dpkg::Options::=--force-confold")
 
@@ -39,7 +40,7 @@ _SUDOERS_SPECIAL = str.maketrans({c: "\\" + c for c in ",:=\\"})
 def _resolve(argv: tuple[str, ...]) -> list[str] | None:
     """Absolute paths for the program and, for systemd-run, the program it starts."""
     out = list(argv)
-    first = shutil.which(out[0], path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
+    first = shutil.which(out[0], path=SEARCH_PATH)
     if not first:
         return None
     out[0] = first
@@ -52,6 +53,17 @@ def _resolve(argv: tuple[str, ...]) -> list[str] | None:
     return out
 
 
+def _apt_fetch_failed(output: str) -> bool:
+    return any(line.startswith(("Err:", "E: ", "W: Failed to fetch", "W: Some index files failed")) for line in output.splitlines())
+
+
+def _missing(argv: tuple[str, ...]) -> str:
+    """The program of a PRIVILEGED line that this host lacks (systemd-run itself, or what it starts)."""
+    if not shutil.which(argv[0], path=SEARCH_PATH):
+        return argv[0]
+    return next((a for a in argv[1:] if not a.startswith("-")), argv[0])
+
+
 def sudoers(user: str, allow: set[str]) -> str:
     """The sudo rules for this host: every read-only line, and the write lines of switched-on capabilities."""
     lines = ["# labdex-agent: written by `labdex-agent sudoers`; the agent runs nothing else with sudo.",
@@ -61,7 +73,7 @@ def sudoers(user: str, allow: set[str]) -> str:
             continue
         full = _resolve(argv)
         if full is None:
-            lines.append(f"# {name}: {argv[0]} is not installed here")
+            lines.append(f"# {name}: {_missing(argv)} is not installed here")
             continue
         lines.append(f"{user} ALL=(root) NOPASSWD: " + " ".join(a.translate(_SUDOERS_SPECIAL) for a in full))
     return "\n".join(lines) + "\n"
@@ -94,7 +106,7 @@ class Runner:
         return self.run(full if self.root else ["sudo", "-n", *full], timeout)
 
     def has(self, program: str) -> bool:
-        return shutil.which(program, path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin") is not None
+        return shutil.which(program, path=SEARCH_PATH) is not None
 
 
 class Context:
@@ -147,6 +159,9 @@ def job_patch_apply(params: dict, ctx: Context) -> dict:
             steps.append({"step": name, "code": code, "output": (out + err)[-4000:]})
             if code != 0:
                 return {"ok": False, "steps": steps, "error": f"{name} failed ({code})"}
+            if name == "apt_update" and _apt_fetch_failed(out + err):
+                # apt-get update exits 0 when a mirror can't be reached: don't upgrade from stale lists
+                return {"ok": False, "steps": steps, "error": "apt_update couldn't fetch every package list (see its output)"}
         after = patch_report.collect(refresh=False)
         rebooting = False
         if params.get("reboot") and after.get("reboot"):
