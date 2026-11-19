@@ -3,6 +3,7 @@
 Runs only with LABDEX_PERF=1 (CI does). Budgets are generous for slow CI
 runners; each request is timed warm (second call), the way users see it.
 """
+import gc
 import os
 import sys
 import time
@@ -43,18 +44,39 @@ def big(app):
     return c
 
 
+def _full_collections():
+    """Time Python's full garbage collections. One costs ~100 ms with 1000 hosts loaded and
+    lands in whichever request sets it off, so a slow number with one is noise, not the route."""
+    spans = []
+
+    def cb(phase, info):
+        if info["generation"] == 2:
+            if phase == "start":
+                spans.append(time.perf_counter())
+            else:
+                spans[-1] = (time.perf_counter() - spans[-1]) * 1000
+    return spans, cb
+
+
 def test_budget_1000_hosts(big):
     results, over = {}, []
-    for path, budget in BUDGET_MS.items():
-        assert big.get(path).status_code == 200, path  # warm the per-revision caches
-        t = time.perf_counter()
-        r = big.get(path)
-        ms = (time.perf_counter() - t) * 1000
-        assert r.status_code == 200
-        results[path] = ms
-        if ms > budget:
-            over.append(f"{path}: {ms:.0f} ms > {budget} ms")
-    print("\n" + "\n".join(f"{ms:8.1f} ms  {p}" for p, ms in results.items()))
+    spans, cb = _full_collections()
+    gc.callbacks.append(cb)
+    try:
+        for path, budget in BUDGET_MS.items():
+            assert big.get(path).status_code == 200, path  # warm the per-revision caches
+            n = len(spans)
+            t = time.perf_counter()
+            r = big.get(path)
+            ms = (time.perf_counter() - t) * 1000
+            assert r.status_code == 200
+            gcs = f" (incl. full gc {sum(spans[n:]):.0f} ms)" if len(spans) > n else ""
+            results[path] = (ms, gcs)
+            if ms > budget:
+                over.append(f"{path}: {ms:.0f} ms > {budget} ms{gcs}")
+    finally:
+        gc.callbacks.remove(cb)
+    print("\n" + "\n".join(f"{ms:8.1f} ms  {p}{gcs}" for p, (ms, gcs) in results.items()))
     assert not over, over
     # unchanged answers revalidate to an empty 304
     tag = big.get("/api/hosts").headers["ETag"]
