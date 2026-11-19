@@ -2,7 +2,7 @@
 // Racks as elevations: the front and the rear side by side, unit 1 at the bottom. Click a free
 // unit to put a host or a panel there (patch panel, cable management, blank …); a host's ⋯ moves
 // it or takes it out, a panel opens its settings. Full-depth things show on both sides.
-import { MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-vue-next'
+import { Boxes, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
@@ -123,7 +123,7 @@ const setSite = (v) => { site.value = v; router.replace({ query: v ? { site: v }
   <div class="page wide">
     <div class="page-head">
       <h1>Racks</h1>
-      <span class="sub">{{ all.length }} rack{{ all.length === 1 ? '' : 's' }}</span>
+      <span class="h-tag">{{ all.length }} rack{{ all.length === 1 ? '' : 's' }}</span>
       <span class="grow"></span>
       <button v-if="canEdit" class="btn primary" @click="newRack"><Plus :size="15" /> Rack</button>
     </div>
@@ -132,7 +132,12 @@ const setSite = (v) => { site.value = v; router.replace({ query: v ? { site: v }
       <RouterLink v-if="route.query.rack" to="/racks" class="btn small ghost">All racks</RouterLink>
     </div>
 
-    <p v-if="q.data.value && !all.length" class="empty">No racks yet. {{ canEdit ? 'Add one, then click a unit to put a host in it.' : '' }}</p>
+    <div v-if="q.data.value && !all.length" class="card empty">
+      <div class="e-ic"><Boxes :size="18" /></div>
+      <div class="e-t">No racks yet</div>
+      <p>{{ canEdit ? 'Add one, then click a unit to put a host in it.' : 'An administrator or an editor of hosts adds them.' }}</p>
+      <div v-if="canEdit" class="e-acts"><button class="btn primary" @click="newRack"><Plus :size="15" /> Rack</button></div>
+    </div>
 
     <section v-for="[s, list] in bySite" :key="s" class="site">
       <h2 v-if="s || bySite.length > 1" class="sitename">{{ s || 'No site' }}</h2>

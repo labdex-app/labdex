@@ -39,9 +39,9 @@ const hostLink = (r) => `/hosts/${r.uid || r.host}`
 <template>
   <div class="page">
     <div class="page-head">
-      <h1>Impact</h1>
-      <span class="sub">What breaks if these go down: after a failure, or before you take something down for maintenance.</span>
+      <h1>What breaks?</h1>
     </div>
+    <p class="page-lead">What breaks if these go down: after a failure, or before you take something down for maintenance.</p>
 
     <div class="card pick">
       <span class="small muted">If these go down:</span>

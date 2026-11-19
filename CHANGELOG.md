@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **The rest of the pages in the new look.** KPI cards (Updates, Agents; Discovery and *What
+  breaks?* counts look the same); page heads are the title, a mono tag and the actions, with what
+  the page is for on one line under them; titles match the sidebar (Updates, Activity,
+  Integrations, Automation, What breaks?). **Updates** and **Activity** are list and detail: a click
+  shows the host's packages, or the change and its diff, beside the list; a double click opens it.
+  Empty states with a next step on Agents, Physical, Discovery and Updates.
 - **An image of `main` on every push:** `ghcr.io/labdex-app/labdex:dev` follows the newest commit and
   `:sha-<commit>` keeps each one, for amd64 and arm64, signed. `latest` stays the newest release.
 - **New look (Blueprint), step one: the frame.** Geist and Geist Mono replace the Red Hat fonts; a

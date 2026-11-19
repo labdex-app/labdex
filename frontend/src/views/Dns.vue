@@ -44,7 +44,7 @@ const paged = computed(() => filtered.value.slice(page.value * SIZE, (page.value
   <div class="page">
     <div class="page-head">
       <h1>DNS</h1>
-      <span class="sub">{{ d ? `${d.generated.length} generated records in ${d.zones.length} zone${d.zones.length === 1 ? '' : 's'}` : '' }}</span>
+      <span v-if="d" class="h-tag">{{ d.generated.length }} records · {{ d.zones.length }} zone{{ d.zones.length === 1 ? '' : 's' }}</span>
       <span class="grow"></span>
       <input v-model="q" type="search" placeholder="Search names, values, hosts" style="max-width: 300px" aria-label="Search records">
       <button class="btn small" :disabled="query.loading.value" @click="query.refresh()">Refresh</button>

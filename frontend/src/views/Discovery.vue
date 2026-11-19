@@ -1,5 +1,5 @@
 <script setup>
-import { X } from 'lucide-vue-next'
+import { Radar, X } from 'lucide-vue-next'
 import WhereIs from '../components/WhereIs.vue'
 import FilterSelect from '../components/FilterSelect.vue'
 import { onActivated, onMounted, reactive, ref, watch } from 'vue'
@@ -108,12 +108,12 @@ function go(p) { f.page = p; load() }
   <div class="page">
     <div class="page-head">
       <h1>Discovery</h1>
-      <span class="sub">What's actually there, compared with the inventory.</span>
       <span class="grow"></span>
       <RouterLink v-for="s in scanners" :key="s.name" :to="`/integrations/${s.name}`" class="btn small">
         {{ s.name }} <span v-if="s.last_job" class="faint">· {{ ago(s.last_job.created_at) }}</span>
       </RouterLink>
     </div>
+    <p class="page-lead">What's actually there, compared with the inventory.</p>
 
     <div v-if="summary" class="stats">
       <button :class="['stat', summary.undocumented ? 'warn' : '']" @click="setStatus('undocumented')"><b>{{ summary.undocumented }}</b><span>ports not in the inventory</span></button>
@@ -228,9 +228,14 @@ function go(p) { f.page = p; load() }
           </tbody>
         </table>
         <Loading v-if="!data.items.length && loading" />
+        <div v-else-if="!summary?.open && !summary?.unknown_hosts" class="empty">
+          <div class="e-ic"><Radar :size="18" /></div>
+          <div class="e-t">Nothing discovered yet</div>
+          <p>Scans and leases fill this page: nmap, OPNsense (ARP, DHCP leases) or Technitium (records).</p>
+          <div v-if="can('integration', 'admin')" class="e-acts"><RouterLink to="/plugins?tab=market" class="btn primary">Find a plugin</RouterLink></div>
+        </div>
         <div v-else-if="!data.items.length" class="empty">
           {{ { services: 'Nothing to review here.', unknown: 'Every address seen is in the inventory.', macs: 'No MACs to fill in: every interface that was seen has one, or none was seen with a MAC.' }[tab] || 'Every declared service on a scanned host answered.' }}
-          <template v-if="!summary?.open && !summary?.unknown_hosts && can('integration', 'admin')"><br>Nothing discovered yet: add nmap, OPNsense (ARP, DHCP leases) or Technitium (records) under <RouterLink to="/plugins">Plugins</RouterLink>.</template>
         </div>
       </div>
     </div>

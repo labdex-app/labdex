@@ -83,11 +83,11 @@ const dot = (i) => (!i.enabled ? 'off' : i.last_status === 'failed' ? 'bad' : 'o
 <template>
   <div class="page">
     <div class="page-head">
-      <h1>Plugins</h1>
-      <span class="sub">What talks to your firewall, DNS, monitoring and hosts, and what makes files and pages. Each instance of a plugin has its own settings.</span>
+      <h1>Integrations</h1>
       <span class="grow"></span>
       <RouterLink v-if="state.meta.is_admin" to="/admin/plugins" class="btn small ghost">Repositories and upload</RouterLink>
     </div>
+    <p class="page-lead">What talks to your firewall, DNS, monitoring and hosts, and what makes files and pages. Each instance of a plugin has its own settings.</p>
 
     <nav class="tabs" aria-label="Plugins">
       <a href="#" :class="{ 'router-link-active': tab === 'installed' }" :aria-current="tab === 'installed' ? 'page' : undefined" @click.prevent="setTab('installed')">

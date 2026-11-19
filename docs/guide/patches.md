@@ -1,6 +1,6 @@
 # Patches
 
-The **Patches** page shows, for every host, which updates are waiting, how many of them are security
+The **Updates** page (Operate › Updates) shows, for every host, which updates are waiting, how many of them are security
 updates, whether it needs a reboot, and when it was last patched. A host's dashboard has the same
 in its *Patches* card.
 
@@ -34,7 +34,7 @@ to the channels that subscribed to it.
 ## labdex-patch-report
 
 A single Python 3 file with only the standard library, so it runs on a bare VM. Download it from
-your labdex (the link is on the Patches page) and give it an [API token](rbac.md) of a user who may
+your labdex (the link is on the Updates page) and give it an [API token](rbac.md) of a user who may
 edit the host:
 
 ```console

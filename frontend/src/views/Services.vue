@@ -39,7 +39,7 @@ const counts = computed(() => ({
   <div class="page">
     <div class="page-head">
       <h1>Services</h1>
-      <span class="sub">{{ visible.length }} of {{ services.length }}</span>
+      <span class="h-tag">{{ visible.length }}/{{ services.length }}</span>
       <span class="grow"></span>
       <input v-model="q" type="search" placeholder="Search services, hosts, addresses" style="max-width: 300px" aria-label="Search services">
       <div class="seg" role="group" aria-label="View">

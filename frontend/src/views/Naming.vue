@@ -18,7 +18,7 @@ const q = ref('')
   <div class="page">
     <div class="page-head">
       <h1>Naming</h1>
-      <span class="sub">hostnames, fun names and tags</span>
+      <span class="h-tag">hostnames · fun names · tags</span>
       <span class="grow"></span>
       <input v-model="q" type="search" :placeholder="tab === 'pools' ? 'Search pools and names' : tab === 'tags' ? 'Search tags' : 'Search codes and labels'" style="max-width: 260px" aria-label="Search">
       <span v-if="!state.meta.is_admin" class="lock">🔒 only administrators change these lists</span>

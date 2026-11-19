@@ -96,7 +96,7 @@ the window, not the moment you approve.
 ## Read patch state
 
 *Read patch state* runs `labdex-patch-report --dry-run` on every host over SSH and shows the
-result on the Patches page, without installing anything there and without root. It's an
+result on the Updates page, without installing anything there and without root. It's an
 alternative to the cron job on each host, and can run on a schedule (*Schedule* in the settings).
 
 ## Leaving hosts out

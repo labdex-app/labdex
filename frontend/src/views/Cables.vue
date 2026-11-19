@@ -70,7 +70,8 @@ const swatch = (c) => CABLE_COLOURS.find((x) => x.name === c)?.hex || (/^#[0-9a-
   <div class="page wide">
     <div class="page-head">
       <h1>Cables</h1>
-      <span class="sub">{{ all.length }} cable{{ all.length === 1 ? '' : 's' }}{{ all.filter((c) => !c.label).length ? `, ${all.filter((c) => !c.label).length} without a label` : '' }}</span>
+      <span class="h-tag">{{ all.length }} cable{{ all.length === 1 ? '' : 's' }}</span>
+      <span v-if="all.filter((c) => !c.label).length" class="h-tag warn">{{ all.filter((c) => !c.label).length }} without a label</span>
       <span class="grow"></span>
       <template v-if="tab === 'list'">
       <input v-model="search" type="search" placeholder="Label, host, port, colour …" style="max-width: 260px" aria-label="Search cables">

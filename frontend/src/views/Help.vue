@@ -36,7 +36,8 @@ async function copyReport() {
 
 <template>
   <div class="page">
-    <div class="page-head"><h1>Help</h1><span class="sub">Where to read up, and how to ask</span></div>
+    <div class="page-head"><h1>Help</h1></div>
+    <p class="page-lead">Where to read up, and how to ask.</p>
     <div class="hgrid">
       <a :href="docs" target="_blank" rel="noopener" class="card hcard">
         <BookOpen :size="20" /><div><b>Documentation</b><p>Installing, the inventory, zones and policy, plugins, backups, the API.</p></div></a>
