@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **An image of `main` on every push:** `ghcr.io/labdex-app/labdex:dev` follows the newest commit and
+  `:sha-<commit>` keeps each one, for amd64 and arm64, signed. `latest` stays the newest release.
 - **New look (Blueprint), step one: the frame.** Geist and Geist Mono replace the Red Hat fonts; a
   quiet light and dark palette (light and dark designed alike, following the system unless you pick
   one in the user menu); a faint dot grid behind the page; rounder corners (cards 10 px, buttons and

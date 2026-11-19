@@ -20,6 +20,10 @@ is written. Put labdex behind your reverse proxy over HTTPS.
     Release images are signed with cosign (keyless, GitHub Actions OIDC) and carry an
     SBOM. See [Security](../operate/security.md#verifying-a-release).
 
+!!! note "Trying what's next"
+    `ghcr.io/labdex-app/labdex:dev` is the newest commit on `main`, rebuilt on every push.
+    It is not a release: keep `:1` (or a version) for the lab you rely on.
+
 ## Docker Compose
 
 The repository's `docker-compose.yml` starts labdex, and with
