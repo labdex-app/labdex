@@ -2093,6 +2093,31 @@ takes a host or network name (<code>/api/hosts/&lt;name&gt;</code>, <code>/api/n
 <td>Saved Hosts searches, yours and shared ones</td>
 </tr>
 <tr>
+<td>PATCH</td>
+<td><code>/api/hosts/&lt;name&gt;</code></td>
+<td>Change some fields (name, kind, site, zone, status, function, fun_names, tags, features, notes); <code>dry_run: true</code> returns the site-file YAML before and after</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/hosts/&lt;name&gt;/yaml</code></td>
+<td>The host as its site file lists it, and the git branch and path it goes to</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/workloads</code></td>
+<td>Every Compose stack of the compose integrations you may see</td>
+</tr>
+<tr>
+<td>GET, PUT</td>
+<td><code>/api/workloads/&lt;integration&gt;/&lt;host&gt;/&lt;name&gt;</code></td>
+<td>One stack with its compose file; PUT <code>{compose, dry_run}</code> changes it (integration admin)</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td><code>/api/hosts/&lt;name&gt;/yaml</code></td>
+<td>Replace the host with its entry as YAML (<code>{yaml, dry_run}</code>); cables stay. A dry run answers the file's lines before and after</td>
+</tr>
+<tr>
 <td>POST</td>
 <td><code>/api/hosts/bulk</code></td>
 <td>One change to many hosts: status, runs on, tags, features, zone, integration, delete</td>
@@ -2176,6 +2201,21 @@ takes a host or network name (<code>/api/hosts/&lt;name&gt;</code>, <code>/api/n
 <td>GET</td>
 <td><code>/api/nav</code></td>
 <td>Sidebar: zone tree with live status, which pages to show</td>
+</tr>
+<tr>
+<td>GET, PUT, DELETE</td>
+<td><code>/api/me/sidebar</code></td>
+<td>Your sidebar: <code>pins</code> [{to, kind, label, key}], <code>hidden</code> and <code>order</code> (page paths); only for you. <code>from_default</code>: the pages follow the default; DELETE goes back to it</td>
+</tr>
+<tr>
+<td>GET, PUT</td>
+<td><code>/api/admin/sidebar-default</code></td>
+<td>Default pages for everyone (<code>hidden</code>, <code>order</code>; administrators)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/statusbar</code></td>
+<td>Status bar: per site the git commit (short), sync time, branch and file, linked agents of all you may see, vault state</td>
 </tr>
 <tr>
 <td>GET</td>

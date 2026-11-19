@@ -797,6 +797,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#a-hosts-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A host's page
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#many-hosts-at-once" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -841,10 +852,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-sidebar" class="md-nav__link">
+  <a href="#the-sidebar-top-bar-and-status-bar" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The sidebar
+        The sidebar, top bar and status bar
       
     </span>
   </a>
@@ -2077,6 +2088,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#a-hosts-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A host's page
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#many-hosts-at-once" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2121,10 +2143,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-sidebar" class="md-nav__link">
+  <a href="#the-sidebar-top-bar-and-status-bar" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The sidebar
+        The sidebar, top bar and status bar
       
     </span>
   </a>
@@ -2194,8 +2216,14 @@ outside a text field, opens one search box for everything:</p>
 <li><strong>Networks</strong> by name, by VLAN (<code>vlan 100</code>), or by an address inside them: type
   <code>10.10.100.53</code> and the network it belongs to shows up too.</li>
 <li><strong>Services</strong>, <strong>aliases</strong> (by name or firewall id) and <strong>integrations</strong>.</li>
-<li><strong>Actions</strong> of integrations you may run, like <em>Check drift</em> or <em>Sync aliases</em>: Enter
-  starts it and opens the job.</li>
+<li><strong>Actions</strong> of integrations you may run, like <em>Check drift</em> or <em>Sync aliases</em>. They come
+  first. A plan opens on the Changes page, where it waits for review and approval; a run
+  starts right away and opens the job.</li>
+<li><strong>A verb and a host</strong>: <code>patch web-01</code> offers <em>Plan install updates on web-01</em> (with the
+  host's waiting updates), <code>deploy web-01</code> the host actions that match. End the host with
+  <code>*</code> to plan for every host that starts with it: <code>patch web*</code>.</li>
+<li>For the best host match, <strong>Edit</strong> (the quick edit beside the Hosts list) and <strong>What
+  breaks if it goes down?</strong></li>
 <li>
 <p><strong>Pages</strong> and <strong>New host / New VIP / New network</strong>.</p>
 </li>
@@ -2204,8 +2232,8 @@ outside a text field, opens one search box for everything:</p>
   to it.</p>
 </li>
 </ul>
-<p><kbd>↑</kbd> <kbd>↓</kbd> choose, <kbd>Enter</kbd> opens, <kbd>Esc</kbd> closes. You
-only find what you're allowed to see.</p>
+<p><kbd>↑</kbd> <kbd>↓</kbd> choose, <kbd>Enter</kbd> opens or runs, <kbd>Esc</kbd> closes.
+Start with <code>&gt;</code> to see commands only. You only find what you're allowed to see.</p>
 <h2 id="physical-virtual-tags">Physical, virtual, tags<a class="headerlink" href="#physical-virtual-tags" title="Permanent link">&para;</a></h2>
 <p>The Hosts page has three tabs: <strong>Physical</strong> (machines and appliances), <strong>Virtual</strong>
 (anything that runs on another host, plus VMs and containers by their name) and
@@ -2243,6 +2271,16 @@ a host with two tags shows under both. <em>Only these</em> narrows the list to o
 <p><strong>Saved searches.</strong> When the search or a filter is set, the <em>Saved</em> menu offers <em>Save this
 search …</em>: it keeps the search text, filters, tab and grouping under a name, and picking it
 later sets them all again. Searches are yours; an administrator can share one with everyone.</p>
+<h2 id="a-hosts-page">A host's page<a class="headerlink" href="#a-hosts-page" title="Permanent link">&para;</a></h2>
+<p>A host opens on its <strong>Overview</strong>: CPU, memory and disk (from its agent, while it is linked),
+updates waiting, how reachable it was, and a strip of the last 48 hours, one cell per hour (red
+when it was down). Below that its guests, then status, addresses, where it sits, patches, details
+and the latest activity. The tabs: <em>Details</em> (the form), <em>Network</em>, <em>Services</em>, <em>DNS</em>, <em>Guests</em>
+(what runs on it), <em>Updates</em> (the packages waiting), <em>Config</em> (features and vars for Ansible),
+<em>Plugins</em>, <em>Agent</em>, <em>Secrets</em>, <em>Runs</em> and <em>History</em>.</p>
+<p>The header holds <em>Shell</em> (opens <code>ssh://</code> and the host's address in your own SSH app; labdex
+runs no shell), <em>What breaks?</em>, <em>Label</em>, and the plans you may make for this host, like <em>Plan
+patch run</em>. A plan waits on Changes for approval.</p>
 <h2 id="many-hosts-at-once">Many hosts at once<a class="headerlink" href="#many-hosts-at-once" title="Permanent link">&para;</a></h2>
 <p>On the hosts list, tick the hosts (<kbd>Shift</kbd>-click ticks a range; the box in
 the header ticks every host the filters show). The bar that appears offers:</p>
@@ -2288,16 +2326,46 @@ hosts, with history. In the side panel of a host, the bin next to a cable remove
 dragged somewhere stays there for everyone, and the hint says who moved it last.
 <em>Arrange again</em> starts over (after asking). People who only view can drag nodes for a
 moment, but the map goes back when they reload.</p>
-<h2 id="the-sidebar">The sidebar<a class="headerlink" href="#the-sidebar" title="Permanent link">&para;</a></h2>
-<p>Every page is in view, under its section (Inventory, Network, Automation, Audit), and a
-page under a list (a host) marks the list (Hosts). To go to a host, zone, network or
-alias, use the search (<kbd>Ctrl</kbd> <kbd>K</kbd>) or the Zones page. <em>Collapse</em> at the
-bottom, or <kbd>Ctrl</kbd> <kbd>B</kbd>, shrinks the sidebar to icons and back. Pages
-that plugins add live as tabs on their integration (Automation → Plugins → the
-integration), not in the sidebar.</p>
+<p><strong>What breaks?</strong> on the map: switch it on, then click a host. It turns red, what goes down
+with it or can't be reached any more turns amber, the rest fades, and the panel beside lists
+them with the reason and the services that go with them. <em>The full picture</em> opens the What
+breaks? page for that host.</p>
+<h2 id="the-sidebar-top-bar-and-status-bar">The sidebar, top bar and status bar<a class="headerlink" href="#the-sidebar-top-bar-and-status-bar" title="Permanent link">&para;</a></h2>
+<p>The sidebar starts with the <strong>site</strong> switcher (when there is more than one site), then
+Overview and Inbox, then four groups: Inventory, Network, Operate and Change. An entry that
+stands for several pages shows them as tabs at the top of the page: Inbox (checks,
+discovery), Networks (networks, zones), Physical (racks, cables, labels), Topology (map,
+what breaks) and Firewall (zone policy, aliases). A page under a list (a host) marks the
+list (Hosts). Vault and Naming are in the menu under your name, and every page is one
+search away (<kbd>Ctrl</kbd> <kbd>K</kbd>). The arrow at the top, or <kbd>Ctrl</kbd>
+<kbd>B</kbd>, shrinks the sidebar to icons and back. Pages that plugins add live as tabs on
+their integration (Change → Integrations → the integration), not in the sidebar.</p>
+<p>The <strong>star</strong> next to the breadcrumb pins what's on screen to your sidebar, under Overview
+and Inbox: a host (with its live dot), a network, a zone, a plan, any page, or a list with
+filters (a saved view). <em>Your sidebar</em> in the menu under your name reorders (drag a row by its grip, or use the arrows) and unpins them,
+and hides or reorders pages; hidden pages stay in the search. This is kept for you only, on
+the server, so it follows you to other browsers. Until you change the pages, they follow the
+default: administrators set it with <em>Make these pages the default</em>, and <em>Use the default
+pages</em> goes back to it (your pins stay).</p>
+<p>On Hosts and Networks a click on a row shows that host or network in a panel on the
+right, beside the list, with what you need most often and a button to its full page; a
+double click goes straight to the page, and <kbd>Esc</kbd> closes the panel. The address
+keeps the open panel (<code>?peek=…</code>), so a link or a reload brings it back.</p>
+<p><strong>Edit</strong> in a host's panel turns it into a short form: name, kind, site, zone, status, fun
+name, function, features, tags and notes. <strong>Preview diff</strong> shows the host's lines in its
+site file before and after, and <strong>YAML</strong> shows the whole entry; <em>Edit YAML</em> lets you change
+it as text (left-out fields take their defaults, like a file from git; cables stay on the host
+page), with the same <em>Preview diff</em> before saving. Saving works like saving on
+the host page: the change is checked, recorded in Activity and, when the site has a git
+repository, written to it (<em>Save and commit</em>). Interfaces, services and cables are edited on
+the host page.</p>
+<p>The top bar says where you are (site, area, page, item) and holds the search box. The status
+bar at the foot shows whether the page is live (changes arrive as they happen), the git
+commit and sync time of each site that has a repository, how many agents are linked, and
+whether the vault is sealed.</p>
 <h2 id="light-or-dark-and-the-text-size">Light or dark, and the text size<a class="headerlink" href="#light-or-dark-and-the-text-size" title="Permanent link">&para;</a></h2>
 <p>The menu under your name has <strong>Theme</strong>: Auto (follows your system), Light or Dark, and
-<strong>Text</strong>: Compact (14 px, the old size), Comfortable (15 px, the default) or Large
+<strong>Text</strong>: Compact (13 px), Comfortable (14 px, the default) or Large
 (16 px). Both are kept in this browser. The search box knows them too: type <code>light</code>, <code>dark</code>
 or <code>large text</code>.</p>
 <h2 id="keyboard-and-phone">Keyboard and phone<a class="headerlink" href="#keyboard-and-phone" title="Permanent link">&para;</a></h2>

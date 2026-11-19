@@ -2034,6 +2034,11 @@ repository for now.</p>
 <li>Docker with the Compose plugin (<code>docker compose</code>) and Python 3 on the hosts.</li>
 </ul>
 <h2 id="stacks">Stacks<a class="headerlink" href="#stacks" title="Permanent link">&para;</a></h2>
+<p><strong>Workloads</strong> (in the sidebar under Operate) lists every stack of every Compose integration you
+may see, with its host, services and last deploy. Pick one to read or change its compose file:
+<em>Diff</em> shows the change before <em>Save</em>, which changes labdex only (recorded in Activity as an
+update of the integration; comments in the <em>Stacks</em> text are not kept). <em>Plan deploy</em> plans that
+one stack, and the plan waits on Changes for an approval like any other.</p>
 <p><em>Stacks</em> is a YAML list. Each stack names the host it runs on, its compose file and, if it needs
 one, its environment:</p>
 <div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">grafana</span>

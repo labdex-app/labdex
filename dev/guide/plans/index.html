@@ -904,6 +904,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#the-changes-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Changes page
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#approval-policies" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1967,6 +1978,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#the-changes-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Changes page
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#approval-policies" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2021,9 +2043,42 @@
 
 <h1 id="plans-and-approvals">Plans and approvals<a class="headerlink" href="#plans-and-approvals" title="Permanent link">&para;</a></h1>
 <p>Anything that changes another system is a <strong>plan</strong> first: the plugin computes the
-changes (each with before and after) and stops. You review it on the job page or the
-Dashboard and approve or discard it.</p>
-<p>The job page groups the changes by kind. An update shows only the fields that change,
+changes (each with before and after) and stops. You review it on the <strong>Changes</strong> page
+(or the Dashboard) and approve or discard it.</p>
+<h2 id="the-changes-page">The Changes page<a class="headerlink" href="#the-changes-page" title="Permanent link">&para;</a></h2>
+<p>Changes (sidebar, under Change) lists every plan, newest first, with how many things it
+adds, changes and removes; <em>Open</em>, <em>Applied</em>, <em>Failed</em> and <em>All</em> filter it, and the site
+switcher narrows it to one site. The selected plan shows beside the list with four steps:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Done when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plan</td>
+<td>the plugin has worked out the changes</td>
+</tr>
+<tr>
+<td>Review</td>
+<td>the approvals the policy asks for are given (<em>Go-ahead</em> says how many are missing)</td>
+</tr>
+<tr>
+<td>Apply</td>
+<td>the changes are applied (an approved plan waits here for its delay or window)</td>
+</tr>
+<tr>
+<td>Verify</td>
+<td>a fresh plan of the same action finds nothing to change</td>
+</tr>
+</tbody>
+</table>
+<p>After an apply, <strong>Plan again to verify</strong> runs the same action as a new plan; when the
+target matches the inventory it ends at once with every step done. <em>Open alone</em> opens the
+plan on its own page (<code>/jobs/&lt;id&gt;</code>), as links from history and notifications do.</p>
+<p>A plan groups the changes by kind. An update shows only the fields that change,
 before and after. While you may still approve, you can <strong>untick</strong> changes you don't want:
 the approval applies the rest, the job log says who left out what, and the plan keeps
 them marked. (An Ansible run is one change and can't be applied in part.)</p>

@@ -1909,6 +1909,19 @@
 
 
 <h1 id="first-steps">First steps<a class="headerlink" href="#first-steps" title="Permanent link">&para;</a></h1>
+<p>On a new labdex the first page is a set-up in five steps. Only the first must happen there:</p>
+<ol>
+<li><strong>Administrator</strong>: the first account.</li>
+<li><strong>Sites</strong>: the site labdex started with, its name and optionally its git repository, branch
+   and how changes go there (a merge request for every change, or a commit). <em>Save site</em>
+   syncs once: an empty labdex reads the file from git; if the file isn't there yet, labdex
+   writes it. A token for a private repository goes in the vault, then on the Sites page.</li>
+<li><strong>Plugins</strong>: the Marketplace; each plugin says what it may do before it's installed.</li>
+<li><strong>Import</strong>: networks and hosts from NetBox, phpIPAM or CSV files, with a preview first.</li>
+<li><strong>Agents</strong>: how a host enrols its agent from its Agent tab.</li>
+</ol>
+<p><em>Skip for now</em> and <em>Next</em> move on; each step has its own page for later.</p>
+<p>Then:</p>
 <ol>
 <li><strong>Zones.</strong> Under Zones create your areas (<code>DC</code> datacenter, <code>CA</code> campus, …); each
    gets a default zone. Add the zones you need inside them (<code>DC_TC</code>, <code>CA_UT</code>) with a
@@ -1919,9 +1932,10 @@
    sits in a zone.</li>
 <li><strong>Hosts.</strong> Add hosts with interfaces (the next free address is suggested) and
    services (port, protocol, link, who may reach them).</li>
-<li><strong>Lint.</strong> The Lint page tells you what breaks your conventions. A finding that is fine
-   on purpose can be accepted with a reason (administrators): it stays listed, but stops
-   counting in <code>labdex lint</code> and on the dashboard.</li>
+<li><strong>Checks.</strong> <em>Inbox › Checks</em> lists what breaks your conventions; pick a finding to see it
+   beside the list with the other findings on the same object. A finding that is fine on
+   purpose can be accepted with a reason (administrators): it stays listed under <em>Accepted</em>,
+   but stops counting in <code>labdex lint</code> and on the Overview.</li>
 <li><strong>Policy.</strong> Fill in the zone matrix: which zone may reach which, on which ports.</li>
 <li><strong>Plugins.</strong> Add an instance of OPNsense, Technitium and others under Plugins,
    then run their actions. Changes come as plans you review on the Dashboard.</li>

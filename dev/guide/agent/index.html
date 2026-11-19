@@ -2475,6 +2475,9 @@ for every job it accepted, refused or finished, without the job's output.</p>
 <p><code>GET /api/agents/metrics</code> returns each connected agent's latest heartbeat in the Prometheus text
 format, as <code>labdex_agent_*</code> with <code>host</code> and <code>agent</code> labels. Point VictoriaMetrics at it with an API
 token. labdex itself keeps no history of these numbers.</p>
+<p>The latest values also show in labdex while the agent is linked: CPU, memory and disk use (<code>/</code>)
+on the host page, as columns on the hosts list and in a host's Guests table, and as each site's
+average under <em>Capacity</em> in the Overview's Sites table. Hosts without a linked agent show a dash.</p>
 <h2 id="on-the-host">On the host<a class="headerlink" href="#on-the-host" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code>systemctl<span class="w"> </span>status<span class="w"> </span>labdex-agent
 labdex-agent<span class="w"> </span>health<span class="w">                 </span><span class="c1"># exit 0 while labdex answered in the last two minutes</span>

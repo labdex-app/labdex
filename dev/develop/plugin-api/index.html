@@ -2391,8 +2391,9 @@ custom, as the firewall sees them), <code>custom_aliases()</code>, <code>dns_rec
 <h2 id="widgets">Widgets<a class="headerlink" href="#widgets" title="Permanent link">&para;</a></h2>
 <p><code>stat</code> (<code>value</code>, <code>unit</code>, <code>tone</code>), <code>status</code> (<code>items</code>: <code>label</code>, <code>state</code> up/down/warn/
 unknown, <code>detail</code>), <code>list</code> (<code>items</code>: <code>label</code>, <code>value</code>, <code>tone</code>), <code>table</code> (<code>columns</code>,
-<code>rows</code>), <code>sparkline</code> (<code>points</code>, <code>value</code>, <code>unit</code>, <code>min</code>, <code>max</code>). Each can have <code>sub</code> and
-<code>link</code>. labdex draws them: no plugin code runs in the browser.</p>
+<code>rows</code>), <code>sparkline</code> (<code>points</code>, <code>value</code>, <code>unit</code>, <code>min</code>, <code>max</code>), <code>heartbeat</code> (<code>beats</code>:
+up/down/warn/unknown per check, oldest first, the last 120 shown; <code>value</code>, <code>unit</code>) and
+<code>meter</code> (<code>value</code>, <code>max</code>, <code>unit</code>, <code>tone</code>). Each can have <code>sub</code> and <code>link</code>. labdex draws them: no plugin code runs in the browser.</p>
 <h2 id="events">Events<a class="headerlink" href="#events" title="Permanent link">&para;</a></h2>
 <p>Hooks see inventory events: <code>host.created|updated|deleted</code>, <code>network.created|updated|deleted</code>,
 <code>alias.created|updated|deleted</code>, <code>feature.updated|deleted</code>, <code>hostmodule.updated</code>,
