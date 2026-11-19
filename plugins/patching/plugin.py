@@ -5,10 +5,17 @@ that has something waiting; nothing touches a host before a person approved the 
 runs one generated play: upgrade with the host's package manager, reboot if needed and allowed,
 then run labdex-patch-report on the host and report its answer back. run_report does only the
 last part.
+
+Hosts that are Kubernetes nodes (with the Kubernetes settings filled in) are patched one at a
+time after the others: cordon, evict the pods (PodDisruptionBudgets respected), patch and maybe
+reboot, wait until the node is Ready, uncordon. A node that can't be drained or doesn't come back
+stops the run and stays cordoned, so a person looks at it.
 """
 import json
+import os
 import shutil
 import tempfile
+import time
 from pathlib import Path
 
 from labdex.plugins.base import Change, Plugin as Base, PluginError
@@ -61,6 +68,93 @@ def report_play(report_dir: str) -> list[dict]:
 
 
 class Plugin(Base):
+    # ---------------------------------------------------------------- kubernetes
+    def _kube(self):
+        """An API client for node maintenance, or None when no cluster is set."""
+        s = self.settings
+        if not (s.get("kube_url") or "").strip():
+            return None
+        verify = bool(s.get("kube_verify_tls", True))
+        if verify and (s.get("kube_ca_pem") or "").strip():
+            fd, path = tempfile.mkstemp(prefix="labdex-k8s-ca-", suffix=".pem")
+            with os.fdopen(fd, "w") as f:
+                f.write(s["kube_ca_pem"].strip() + "\n")
+            verify = path
+        return self.ctx.http(s["kube_url"].rstrip("/") + "/", verify=verify, timeout=15,
+                             headers={"Authorization": f"Bearer {s.get('kube_token', '')}"})
+
+    def _nodes(self, http, hosts: list[dict]) -> dict[str, str]:
+        """host name → node name, for the hosts that are nodes of the cluster."""
+        names = {h["name"] for h in hosts}
+        by_ip = {i.get("ip4"): h["name"] for h in hosts for i in h.get("interfaces") or [] if i.get("ip4")}
+        match = self.ctx.match_host()
+        out = {}
+        for n in (http.get("api/v1/nodes").json() or {}).get("items") or []:
+            node = n["metadata"]["name"]
+            ips = [a.get("address") for a in (n.get("status") or {}).get("addresses") or [] if a.get("type") == "InternalIP"]
+            host = node if node in names else next((by_ip[ip] for ip in ips if ip in by_ip), None) or match(node)
+            if host in names:
+                out[host] = node
+        return out
+
+    def _sleep(self, seconds: float) -> None:
+        time.sleep(seconds)
+
+    def _cordon(self, http, node: str, on: bool) -> None:
+        http.request("PATCH", f"api/v1/nodes/{node}", json={"spec": {"unschedulable": True if on else None}},
+                     headers={"Content-Type": "application/merge-patch+json"})
+
+    def _evictable(self, http, node: str) -> list[dict]:
+        pods = (http.get("api/v1/pods", params={"fieldSelector": f"spec.nodeName={node}"}).json() or {}).get("items") or []
+        out = []
+        for p in pods:
+            meta = p.get("metadata") or {}
+            if any(o.get("kind") == "DaemonSet" for o in meta.get("ownerReferences") or []):
+                continue  # runs on every node anyway
+            if "kubernetes.io/config.mirror" in (meta.get("annotations") or {}):
+                continue  # static pods belong to the kubelet
+            if (p.get("status") or {}).get("phase") in ("Succeeded", "Failed"):
+                continue
+            out.append(p)
+        return out
+
+    def _drain(self, http, node: str) -> None:
+        from labdex.plugins.base import PluginError as Err
+        self._cordon(http, node, True)
+        self.log(f"{node}: cordoned")
+        deadline = time.monotonic() + int(self.settings.get("drain_timeout") or 300)
+        while True:
+            pods = self._evictable(http, node)
+            if not pods:
+                self.log(f"{node}: drained")
+                return
+            held = []
+            for p in pods:
+                meta = p["metadata"]
+                body = {"apiVersion": "policy/v1", "kind": "Eviction", "metadata": {"name": meta["name"], "namespace": meta["namespace"]}}
+                try:
+                    http.post(f"api/v1/namespaces/{meta['namespace']}/pods/{meta['name']}/eviction", json=body)
+                except Err as exc:
+                    if "HTTP 429" not in str(exc) and "HTTP 404" not in str(exc):
+                        raise
+                    if "HTTP 429" in str(exc):
+                        held.append(f"{meta['namespace']}/{meta['name']}")
+            if time.monotonic() > deadline:
+                raise Err(f"{node}: couldn't drain it in time ({', '.join(held) or 'pods still terminating'}); "
+                          "it stays cordoned")
+            self._sleep(5)
+
+    def _wait_ready(self, http, node: str) -> None:
+        deadline = time.monotonic() + int(self.settings.get("reboot_timeout") or 900)
+        while True:
+            n = http.get(f"api/v1/nodes/{node}").json() or {}
+            ready = any(c.get("type") == "Ready" and c.get("status") == "True" for c in (n.get("status") or {}).get("conditions") or [])
+            if ready:
+                return
+            if time.monotonic() > deadline:
+                raise PluginError(f"{node}: not Ready after patching; it stays cordoned")
+            self._sleep(10)
+
     # ---------------------------------------------------------------- hosts
     def _machines(self) -> list[dict]:
         """The hosts this integration applies to, without VIPs and hosts set to be left alone."""
@@ -162,6 +256,8 @@ class Plugin(Base):
                 raise PluginError(f"not covered by this integration: {', '.join(sorted(unknown))}")
             hosts = [h for h in hosts if h["name"] in only]
         states = self.ctx.inventory.patches()
+        http = self._kube()
+        nodes = self._nodes(http, hosts) if http is not None else {}
         changes = []
         for h in hosts:
             s = states.get(h["name"]) or {"state": "unknown", "pending": 0, "security": 0, "reboot": False}
@@ -178,9 +274,12 @@ class Plugin(Base):
             else:
                 what = "no recent report: installs whatever is waiting"
             reboot = ("reboots if needed" if may else why) if mode == "if_needed" else ("needs a reboot; reboots are off" if s["reboot"] else "")
-            changes.append(Change("ansible", "patch", h["name"], "; ".join(x for x in (what, reboot) if x),
+            node = nodes.get(h["name"])
+            drain = f"Kubernetes node {node}: drained first, uncordoned once Ready" if node else ""
+            changes.append(Change("ansible", "patch", h["name"], "; ".join(x for x in (what, reboot, drain) if x),
                                   {"pending": s["pending"], "security": s["security"], "reboot": s["reboot"]},
-                                  {"reboot": may}, {"hosts": [h["name"]], "reboot": may}))
+                                  {"reboot": may, **({"node": node} if node else {})},
+                                  {"hosts": [h["name"]], "reboot": may, **({"node": node} if node else {})}))
         if not changes:
             self.log("no host has updates waiting" + ("" if only else " (hosts without a recent report are left out)"))
         return changes
@@ -194,13 +293,45 @@ class Plugin(Base):
         if not names:
             raise PluginError("none of the planned hosts is covered by this integration any more")
         reboot_hosts = [n for c in changes if c.data.get("reboot") for n in c.data["hosts"] if n in by_name]
+        planned_nodes = {n: c.data["node"] for c in changes if c.data.get("node") for n in c.data["hosts"] if n in by_name}
+        http = self._kube() if planned_nodes else None
+        if planned_nodes and http is None:
+            raise PluginError("the plan drains Kubernetes nodes, but the Kubernetes settings are gone; plan again")
+        others = [n for n in names if n not in planned_nodes]
+        patched, reported, changed = [], [], 0
+        if others:
+            res, rep = self._run(by_name, others, reboot_hosts)
+            reported += rep
+            changed += res.changed
+            if not res.ok:
+                raise PluginError(f"the patch run stopped (rc={res.rc}, failed={res.failed}, unreachable={res.unreachable}); "
+                                  f"reported back: {', '.join(reported) or 'none'}; hosts after the failing one weren't touched"
+                                  + ("; no Kubernetes node was touched" if planned_nodes else ""))
+            patched += others
+        for host in [n for n in names if n in planned_nodes]:  # one node at a time
+            node = planned_nodes[host]
+            try:
+                self._drain(http, node)
+            except PluginError as exc:
+                raise PluginError(f"{exc}; patched so far: {', '.join(patched) or 'none'}") from None
+            res, rep = self._run(by_name, [host], reboot_hosts)
+            reported += rep
+            changed += res.changed
+            if not res.ok:
+                raise PluginError(f"patching {host} failed (failed={res.failed}, unreachable={res.unreachable}); node {node} stays cordoned; "
+                                  f"patched so far: {', '.join(patched) or 'none'}")
+            self._wait_ready(http, node)
+            self._cordon(http, node, False)
+            self.log(f"{node}: Ready and schedulable again")
+            patched.append(host)
+        return {"patched": patched, "reboot_allowed": reboot_hosts, "changed": changed, "reported": reported,
+                "nodes": [planned_nodes[n] for n in patched if n in planned_nodes]}
+
+    def _run(self, by_name, names, reboot_hosts):
         s = self.settings
         with tempfile.TemporaryDirectory(prefix="labdex-patch-") as tmp:
-            play = patch_play(serial=int(s.get("serial") or 1), autoremove=bool(s.get("autoremove")), reboot_hosts=reboot_hosts,
+            play = patch_play(serial=int(s.get("serial") or 1), autoremove=bool(s.get("autoremove")),
+                              reboot_hosts=[n for n in reboot_hosts if n in names],
                               reboot_timeout=int(s.get("reboot_timeout") or 900), report_dir=tmp)
             res = self.ctx.ansible(inline=play, inventory_override=self._inventory([by_name[n] for n in names]), limit=",".join(names))
-            reported = self._report_back(Path(tmp), names)
-        if not res.ok:
-            raise PluginError(f"the patch run stopped (rc={res.rc}, failed={res.failed}, unreachable={res.unreachable}); "
-                              f"reported back: {', '.join(reported) or 'none'}; hosts after the failing one weren't touched")
-        return {"patched": names, "reboot_allowed": reboot_hosts, "changed": res.changed, "reported": reported}
+            return res, self._report_back(Path(tmp), names)

@@ -51,6 +51,41 @@ for it, except:
 
 The plan says for each host whether it would be rebooted and why not.
 
+### Kubernetes nodes
+
+When some of the hosts are nodes of a Kubernetes cluster, fill in *Kubernetes nodes* in the
+settings (API server, a bearer token, the cluster CA). A host counts as a node when the node has its
+name or one of its IP addresses. Then:
+
+- the plan says so for each node (*drained first, uncordoned once Ready*); planning only reads
+  the node list;
+- the other hosts are patched first, in one play; then the nodes, **one at a time**: cordon,
+  evict its pods (DaemonSet pods, static pods and finished pods stay), patch and reboot it as
+  above, wait until it is `Ready` again, uncordon;
+- a pod a PodDisruptionBudget holds back is tried again until *Wait for a drain* runs out. Then
+  the run stops, and the node **stays cordoned** with nothing installed, so you can look at it.
+  The same goes for a node that isn't `Ready` within the reboot timeout. Uncordon it yourself
+  (`kubectl uncordon <node>`) once it's fine.
+
+Give the token its own service account, with only what draining needs:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: labdex-patching
+rules:
+  - apiGroups: [""]
+    resources: [nodes]
+    verbs: [get, list, patch]
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [list]
+  - apiGroups: [""]
+    resources: [pods/eviction]
+    verbs: [create]
+```
+
 ### On a schedule
 
 Save *Install updates* as a [job template](../operate/templates.md), for example every Sunday at
