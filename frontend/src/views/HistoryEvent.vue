@@ -32,7 +32,7 @@ async function revert() {
   <div class="page">
     <template v-if="e">
       <div class="page-head">
-        <RouterLink to="/history" class="btn ghost small">← History</RouterLink>
+        <RouterLink to="/history" class="btn ghost small">← Activity</RouterLink>
         <h1><span class="op" :class="`op-${e.action}`" style="font-size: calc(18px * var(--text))">{{ e.action }}</span> <span class="faint">{{ e.object_type }}</span> <span class="mono">{{ e.object_name }}</span></h1>
         <span class="grow"></span>
         <button v-if="e.revertible" class="btn" @click="revert">Revert this change</button>

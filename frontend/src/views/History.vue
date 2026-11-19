@@ -1,11 +1,15 @@
 <script setup>
+// Activity: every change, who made it, and the way back. A click shows the change beside the list
+// (?peek=<id>) with its diff; its own page has the snapshots and Revert.
 import FilterSelect from '../components/FilterSelect.vue'
-import { computed, onActivated, onMounted, ref } from 'vue'
+import { computed, onActivated, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import { ago, stamp, toast } from '../store'
 import Diff from '../components/Diff.vue'
 import Loading from '../components/Loading.vue'
+import Drawer from '../components/Drawer.vue'
+import { ArrowUpRight } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -71,12 +75,26 @@ function apply() {
   load()
 }
 
+const peekId = computed(() => route.query.peek || '')
+const peeked = ref(null)
+watch(peekId, async (id) => {
+  peeked.value = null
+  if (!id) return
+  try { peeked.value = await api.get(`/api/history/${id}`) } catch (err) { toast(err.message, 'error') }
+}, { immediate: true })
+function peek(e) {
+  const { peek: _, ...rest } = route.query
+  router.replace({ query: String(e.id) === peekId.value ? rest : { ...rest, peek: String(e.id) } })
+}
+function unpeek() { const { peek: _, ...rest } = route.query; router.replace({ query: rest }) }
+
 const link = (e) => ({ host: `/hosts/${e.object_name}`, network: `/networks/${e.object_name}`, integration: `/integrations/${e.object_name}` }[e.object_type])
 </script>
 
 <template>
-  <div class="page">
-    <div class="page-head"><h1>History</h1><span class="sub">Every change, who made it, and the way back.</span></div>
+  <div class="page" :class="{ peeking: peekId }">
+    <div class="page-head"><h1>Activity</h1><span v-if="!net" class="h-tag">{{ events.length }}{{ more ? '+' : '' }} change{{ events.length === 1 ? '' : 's' }}</span></div>
+    <p class="page-lead">Every change, who made it, and the way back.</p>
 
     <div class="filters">
       <FilterSelect :model-value="net" label="Net change since" :options="SINCE" @update:model-value="setNet" />
@@ -118,7 +136,8 @@ const link = (e) => ({ host: `/hosts/${e.object_name}`, network: `/networks/${e.
         <table>
           <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Object</th><th>Change</th></tr></thead>
           <tbody>
-            <tr v-for="e in events" :key="e.id" class="click" v-rowlink @click="router.push(`/history/${e.id}`)">
+            <tr v-for="e in events" :key="e.id" class="click" :class="{ peek: String(e.id) === peekId }" v-rowlink
+                :aria-expanded="String(e.id) === peekId ? 'true' : 'false'" @click="peek(e)" @dblclick="router.push(`/history/${e.id}`)">
               <td class="small nowrap" :title="stamp(e.ts)">{{ ago(e.ts) }}</td>
               <td class="small">{{ e.actor }} <span v-if="e.actor_kind !== 'user'" class="tag">{{ e.actor_kind }}</span></td>
               <td><span class="op" :class="`op-${e.action}`">{{ e.action }}</span></td>
@@ -134,5 +153,24 @@ const link = (e) => ({ host: `/hosts/${e.object_name}`, network: `/networks/${e.
       </div>
     </div>
     <div v-if="more && !net" style="text-align: center; margin-top: 14px"><button class="btn" :disabled="loading" @click="load(true)">Older</button></div>
+
+    <Drawer v-if="peekId" :key="peekId" :label="peeked ? `${peeked.action} · ${peeked.object_type}` : 'Change'" :title="peeked?.object_name || ''" @close="unpeek">
+      <template v-if="peeked">
+        <div class="small muted mb-2">{{ stamp(peeked.ts) }} · {{ peeked.actor }} ({{ peeked.actor_kind }})<span v-if="peeked.ip"> · from {{ peeked.ip }}</span></div>
+        <p class="mt-0">{{ peeked.summary }}</p>
+        <Diff :rows="peeked.diff" />
+      </template>
+      <Loading v-else />
+      <template #foot>
+        <RouterLink :to="`/history/${peekId}`" class="btn">Open<ArrowUpRight :size="14" /></RouterLink>
+        <span v-if="peeked?.revertible" class="small faint">Revert it from its own page.</span>
+      </template>
+    </Drawer>
   </div>
 </template>
+
+<style scoped>
+tr.peek td { background: var(--accent-faint); }
+tr.peek td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+@media (min-width: 1200px) { .page.peeking { padding-right: 524px; } }
+</style>
