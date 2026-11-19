@@ -370,3 +370,13 @@ def discard_job(job_id):
     data = request.get_json(silent=True) or {}
     jobs.discard(j, g.principal.label, str(data.get("comment") or ""))
     return jsonify(job_dict(j, full=True))
+
+
+# ------------------------------------------------------------------------ drift
+@bp.get("/drift")
+def drift_state():
+    """Every plan action: matches labdex, differs (drift), failed, or not checked yet."""
+    if not g.principal.can_any("integration", "view"):
+        return err(403, "you lack integration:view")
+    from .. import drift
+    return jsonify(drift.state(lambda name: g.principal.can("integration", "view", _facts(name))))

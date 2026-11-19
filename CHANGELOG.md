@@ -69,6 +69,15 @@
 - **Default sidebar**: administrators make their hidden pages and order the default for
   everyone who hasn't changed their own (`/api/admin/sidebar-default`). *Use the default pages*
   goes back to it and keeps your pins.
+- **Patching Kubernetes nodes:** with the new *Kubernetes nodes* settings, the Patching plugin
+  drains a host that is a cluster node before it patches it, waits until the node is Ready again
+  and uncordons it, one node at a time. A drain a PodDisruptionBudget holds back past the timeout
+  stops the run and leaves the node cordoned. See *Plugins › Patching*.
+- **Drift**: a plan action on a schedule is the drift check. When a scheduled plan finds changes
+  after one that found none, `drift.found` goes out once; when it finds none again,
+  `drift.cleared`. `GET /api/drift` lists every plan action as `in_sync`, `drift` (with the
+  number of changes and since when), `applied`, `failed` or `unchecked`. See *Plans and
+  approvals › Drift*.
 - **Workflows**: steps in order (job templates, plugin actions, waits, and checks that hosts
   answer again), run by a click or on a schedule, inside a maintenance window if you give one.
   Each step that is a plan waits for its own approvals, and the run waits with it; a failed or
