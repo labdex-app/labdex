@@ -71,12 +71,13 @@ async function remove() {
 <template>
   <div class="page">
     <div class="page-head">
-      <h1>Features</h1>
-      <span class="sub">What runs on a host, as a tree. Children inherit and override their parents' variables.</span>
+      <h1>Automation</h1>
+      <span class="h-tag">features</span>
       <span class="grow"></span>
       <RouterLink v-for="r in runners" :key="r.name" :to="`/integrations/${r.name}`" class="btn small">Runner: {{ r.name }}</RouterLink>
       <button v-if="canEdit" class="btn primary" @click="create()"><Plus :size="15" /> Feature</button>
     </div>
+    <p class="page-lead">What runs on a host, as a tree. Children inherit and override their parents' variables.</p>
 
     <div class="split">
       <div class="card flush">

@@ -90,10 +90,10 @@ const print = () => window.print()
   <div class="page wide">
     <div class="page-head no-print">
       <h1>Labels</h1>
-      <span class="sub">With a QR code: scanning one opens the host, cable or rack in labdex.</span>
       <span class="grow"></span>
       <button class="btn primary" :disabled="!items.length" @click="print"><Printer :size="15" /> Print {{ items.length }} label{{ items.length === 1 ? '' : 's' }}</button>
     </div>
+    <p class="page-lead no-print">With a QR code: scanning one opens the host, cable or rack in labdex.</p>
 
     <div class="layout">
       <aside class="card controls no-print">

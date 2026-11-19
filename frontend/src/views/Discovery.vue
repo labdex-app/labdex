@@ -108,12 +108,12 @@ function go(p) { f.page = p; load() }
   <div class="page">
     <div class="page-head">
       <h1>Discovery</h1>
-      <span class="sub">What's actually there, compared with the inventory.</span>
       <span class="grow"></span>
       <RouterLink v-for="s in scanners" :key="s.name" :to="`/integrations/${s.name}`" class="btn small">
         {{ s.name }} <span v-if="s.last_job" class="faint">· {{ ago(s.last_job.created_at) }}</span>
       </RouterLink>
     </div>
+    <p class="page-lead">What's actually there, compared with the inventory.</p>
 
     <div v-if="summary" class="stats">
       <button :class="['stat', summary.undocumented ? 'warn' : '']" @click="setStatus('undocumented')"><b>{{ summary.undocumented }}</b><span>ports not in the inventory</span></button>

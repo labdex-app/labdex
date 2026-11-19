@@ -141,13 +141,7 @@ const SEV = { err: 'err', warn: 'warn', info: 'info' }
 </template>
 
 <style scoped>
-.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
-.kpi { display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-box); color: var(--ink); }
-.kpi:hover { border-color: var(--line-strong); text-decoration: none; }
-.kpi b { font: 500 calc(28px * var(--text))/1.15 var(--mono); }
-.kpi b .of { color: var(--faint); }
-.kpi b.amber { color: var(--accent-soft); }
-.kpi .bar { min-width: 0; height: 4px; }
+.kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 0; }
 .pad { padding: 14px 18px; margin: 0; }
 th.use { width: 130px; }
 .h-tag.bad { color: var(--err); border-color: var(--err); }

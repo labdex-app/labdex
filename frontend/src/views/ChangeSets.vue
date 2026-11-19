@@ -68,10 +68,10 @@ const remove = () => run(async () => {
   <div class="page">
     <div class="page-head">
       <h1>Change sets</h1>
-      <span class="sub">A batch of changes, reviewed as one unit: preview the effect on lint, firewall aliases and DNS, then apply all of it or none.</span>
       <span class="grow"></span>
       <button class="btn primary" @click="fresh"><Plus :size="15" /> New change set</button>
     </div>
+    <p class="page-lead">A batch of changes, reviewed as one unit: preview the effect on lint, firewall aliases and DNS, then apply all of it or none.</p>
 
     <div class="cs-layout">
       <div class="card">

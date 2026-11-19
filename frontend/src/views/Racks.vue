@@ -123,7 +123,7 @@ const setSite = (v) => { site.value = v; router.replace({ query: v ? { site: v }
   <div class="page wide">
     <div class="page-head">
       <h1>Racks</h1>
-      <span class="sub">{{ all.length }} rack{{ all.length === 1 ? '' : 's' }}</span>
+      <span class="h-tag">{{ all.length }} rack{{ all.length === 1 ? '' : 's' }}</span>
       <span class="grow"></span>
       <button v-if="canEdit" class="btn primary" @click="newRack"><Plus :size="15" /> Rack</button>
     </div>

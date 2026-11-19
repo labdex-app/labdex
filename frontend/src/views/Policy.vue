@@ -52,8 +52,9 @@ const count = computed(() => (d.value?.cells || []).length)
   <div class="page">
     <div class="page-head">
       <h1>Zone policy</h1>
-      <span class="sub">{{ count }} allowed zone pair{{ count === 1 ? '' : 's' }}. Anything not listed is denied.</span>
+      <span class="h-tag">{{ count }} allowed pair{{ count === 1 ? '' : 's' }}</span>
     </div>
+    <p class="page-lead">Anything not listed is denied.</p>
     <nav class="tabs" aria-label="Policy">
       <a href="#" :class="{ 'router-link-active': tab === 'matrix' }" :aria-current="tab === 'matrix' ? 'page' : undefined" @click.prevent="setTab('matrix')">Matrix</a>
       <a href="#" :class="{ 'router-link-active': tab === 'firewalls' }" :aria-current="tab === 'firewalls' ? 'page' : undefined" @click.prevent="setTab('firewalls')">

@@ -191,6 +191,25 @@ b, strong { font-weight: 600; }
 .page-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; min-height: 36px; }
 .page-head .sub { color: var(--muted); }
 .page-head input[type=search] { max-width: 280px; }
+.page-head .h-tag { align-self: center; }
+.h-tag.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); }
+/* one line under a page's head on what the page is for; the head itself stays title, tag, actions */
+.page-lead { margin: -12px 0 18px; color: var(--muted); max-width: 80ch; }
+/* KPI cards (f01): mono label, big mono number, a thin bar, one line under it. A <button class="kpi">
+   filters the page and shows .on while it does. */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 18px; }
+.kpi { display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-box);
+  color: var(--ink); font: inherit; text-align: left; min-width: 0; }
+button.kpi { cursor: pointer; }
+a.kpi:hover, button.kpi:hover { border-color: var(--line-strong); text-decoration: none; }
+.kpi.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.kpi b { font: 500 calc(28px * var(--text))/1.15 var(--mono); }
+.kpi b .of { color: var(--faint); }
+.kpi b.amber { color: var(--accent-soft); }
+.kpi b.c-red, .kpi.err b { color: var(--err); }
+.kpi.warn b { color: var(--warn); }
+.kpi.ok b { color: var(--ok); }
+.kpi .bar { min-width: 0; height: 4px; }
 .split { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr); gap: 20px; align-items: start; }
 @media (max-width: 1000px) { .split { grid-template-columns: minmax(0, 1fr); } }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-box); padding: 18px 20px; min-width: 0; overflow-wrap: anywhere; }
@@ -369,10 +388,11 @@ ul.plain li { padding: 3px 0; word-break: break-all; }
 .diff td { padding: 4px 10px; word-break: break-all; }
 .diff .del { color: var(--err); background: color-mix(in srgb, var(--err) 8%, transparent); }
 .diff .add { color: var(--ok); background: color-mix(in srgb, var(--ok) 8%, transparent); }
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
-.stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-box); padding: 12px 16px; }
-.stat b { display: block; font: 500 calc(24px * var(--text))/1.25 var(--mono); font-variant-numeric: tabular-nums; }
-.stat span { color: var(--muted); font-size: calc(12px * var(--text)); }
+/* small counts in a row, the KPI cards' look without the bar (Discovery, What breaks?) */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 18px; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-box); padding: 16px 18px; display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 6px; }
+.stat b { display: block; font: 500 calc(28px * var(--text))/1.15 var(--mono); font-variant-numeric: tabular-nums; }
+.stat span { font: 500 calc(11px * var(--text))/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
 .stat.warn b { color: var(--warn); } .stat.err b { color: var(--err); } .stat.ok b { color: var(--ok); } .stat.info b { color: var(--accent-soft); }
 .lock { color: var(--faint); font-size: calc(12px * var(--text)); display: inline-flex; gap: 5px; align-items: center; }
 fieldset.bare { border: 0; padding: 0; margin: 0; min-width: 0; }

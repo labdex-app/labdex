@@ -50,7 +50,7 @@ const PERM_LABEL = { host: 'Hosts', network: 'Networks', alias: 'Aliases', integ
 
 <template>
   <div class="page">
-    <div class="page-head"><h1>{{ user.display_name }}</h1><span v-if="user.username !== user.display_name" class="sub mono">{{ user.username }}</span></div>
+    <div class="page-head"><h1>{{ user.display_name }}</h1><span v-if="user.username !== user.display_name" class="h-tag">{{ user.username }}</span></div>
     <div class="split">
       <div>
         <div class="card">

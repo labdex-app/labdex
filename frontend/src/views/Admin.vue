@@ -161,7 +161,7 @@ const me = computed(() => state.auth.user.username)
 
 <template>
   <div class="page">
-    <div class="page-head"><h1>Settings</h1><span class="sub">labdex {{ state.meta.version }}</span></div>
+    <div class="page-head"><h1>Settings</h1><span class="h-tag">labdex {{ state.meta.version }}</span></div>
     <div class="adm">
     <nav class="subnav" aria-label="Admin sections">
       <template v-for="[g, items] in GROUPS" :key="g">
