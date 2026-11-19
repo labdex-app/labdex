@@ -7574,6 +7574,10 @@
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>Patching Kubernetes nodes:</strong> with the new <em>Kubernetes nodes</em> settings, the Patching plugin
+  drains a host that is a cluster node before it patches it, waits until the node is Ready again
+  and uncordons it, one node at a time. A drain a PodDisruptionBudget holds back past the timeout
+  stops the run and leaves the node cordoned. See <em>Plugins › Patching</em>.</li>
 <li><strong>Drift</strong>: a plan action on a schedule is the drift check. When a scheduled plan finds changes
   after one that found none, <code>drift.found</code> goes out once; when it finds none again,
   <code>drift.cleared</code>. <code>GET /api/drift</code> lists every plan action as <code>in_sync</code>, <code>drift</code> (with the

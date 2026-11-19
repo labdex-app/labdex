@@ -1221,6 +1221,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#kubernetes-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kubernetes nodes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#on-a-schedule" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2040,6 +2051,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#kubernetes-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kubernetes nodes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#on-a-schedule" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2160,6 +2182,37 @@ for it, except:</p>
 <li>a host whose <em>Never reboot this host</em> setting is on.</li>
 </ul>
 <p>The plan says for each host whether it would be rebooted and why not.</p>
+<h3 id="kubernetes-nodes">Kubernetes nodes<a class="headerlink" href="#kubernetes-nodes" title="Permanent link">&para;</a></h3>
+<p>When some of the hosts are nodes of a Kubernetes cluster, fill in <em>Kubernetes nodes</em> in the
+settings (API server, a bearer token, the cluster CA). A host counts as a node when the node has its
+name or one of its IP addresses. Then:</p>
+<ul>
+<li>the plan says so for each node (<em>drained first, uncordoned once Ready</em>); planning only reads
+  the node list;</li>
+<li>the other hosts are patched first, in one play; then the nodes, <strong>one at a time</strong>: cordon,
+  evict its pods (DaemonSet pods, static pods and finished pods stay), patch and reboot it as
+  above, wait until it is <code>Ready</code> again, uncordon;</li>
+<li>a pod a PodDisruptionBudget holds back is tried again until <em>Wait for a drain</em> runs out. Then
+  the run stops, and the node <strong>stays cordoned</strong> with nothing installed, so you can look at it.
+  The same goes for a node that isn't <code>Ready</code> within the reboot timeout. Uncordon it yourself
+  (<code>kubectl uncordon &lt;node&gt;</code>) once it's fine.</li>
+</ul>
+<p>Give the token its own service account, with only what draining needs:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rbac.authorization.k8s.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterRole</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">labdex-patching</span>
+<span class="nt">rules</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">apiGroups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">""</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">resources</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">nodes</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">verbs</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">get</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">list</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">patch</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">apiGroups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">""</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">resources</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">pods</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">verbs</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">list</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">apiGroups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">""</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">resources</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">pods/eviction</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">verbs</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">create</span><span class="p p-Indicator">]</span>
+</code></pre></div>
 <h3 id="on-a-schedule">On a schedule<a class="headerlink" href="#on-a-schedule" title="Permanent link">&para;</a></h3>
 <p>Save <em>Install updates</em> as a <a href="../../operate/templates/">job template</a>, for example every Sunday at
 03:00 with <em>Reboot: if_needed</em>. The plan is made on time and waits for an approval (the
