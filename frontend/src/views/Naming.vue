@@ -20,7 +20,7 @@ const q = ref('')
       <h1>Naming</h1>
       <span class="h-tag">hostnames · fun names · tags</span>
       <span class="grow"></span>
-      <input v-model="q" type="search" :placeholder="tab === 'pools' ? 'Search pools and names' : tab === 'tags' ? 'Search tags' : 'Search codes and labels'" style="max-width: 260px" aria-label="Search">
+      <input v-model="q" type="search" :placeholder="tab === 'pools' ? 'Search pools and names' : tab === 'tags' ? 'Search tags' : 'Search codes and labels'" aria-label="Search">
       <span v-if="!state.meta.is_admin" class="lock">🔒 only administrators change these lists</span>
     </div>
     <nav class="tabs">

@@ -5,6 +5,8 @@ import { computed, ref } from 'vue'
 import { Antenna } from 'lucide-vue-next'
 import { useQuery } from '../query'
 import { ago, stamp, toast } from '../store'
+import Pager from '../components/Pager.vue'
+import { usePaged } from '../paged'
 
 const query = useQuery(() => '/api/agents', { onError: (e) => toast(e.message, 'error') })
 const agents = computed(() => query.data.value?.agents || [])
@@ -38,6 +40,7 @@ const rows = computed(() => {
     .filter((a) => (!f || f(a)) && (!n || [a.host, a.hostname, a.version, a.facts?.os].join(' ').toLowerCase().includes(n)))
     .sort((a, b) => Number(a.linked) - Number(b.linked) || a.host.localeCompare(b.host))
 })
+const { page, rows: paged } = usePaged(rows, { resetOn: [q, filter] })
 const mode = computed(() => agents.value[0]?.cert?.mode || '')
 </script>
 
@@ -47,7 +50,7 @@ const mode = computed(() => agents.value[0]?.cert?.mode || '')
       <h1>Agents</h1>
       <span class="h-tag">{{ counts.linked }}/{{ agents.length }} linked</span>
       <span class="grow"></span>
-      <input v-model="q" type="search" placeholder="Search hosts, OS, version" style="max-width: 300px" aria-label="Search agents">
+      <input v-model="q" type="search" placeholder="Search hosts, OS, version" aria-label="Search agents">
     </div>
 
     <div class="kpis">
@@ -64,7 +67,7 @@ const mode = computed(() => agents.value[0]?.cert?.mode || '')
         <table>
           <thead><tr><th>Host</th><th>Link</th><th>Runs as</th><th>Writes</th><th>Certificate</th><th class="num">CPU</th><th class="num">Memory</th><th class="num">/</th><th>Version</th></tr></thead>
           <tbody>
-            <tr v-for="a in rows" :key="a.id">
+            <tr v-for="a in paged" :key="a.id">
               <td><RouterLink :to="{ path: `/hosts/${a.host}`, query: { tab: 'agent' } }" class="mono">{{ a.host }}</RouterLink>
                 <div v-if="a.facts?.os" class="small faint">{{ a.facts.os }}</div></td>
               <td>
@@ -99,6 +102,7 @@ const mode = computed(() => agents.value[0]?.cert?.mode || '')
           </tbody>
         </table>
       </div>
+      <Pager v-model="page" :total="rows.length" unit="agents" />
     </div>
     <p class="hint">
       Enrol an agent on a host's <b>Agent</b> tab. Client certificates: <span class="mono">{{ mode || '—' }}</span>

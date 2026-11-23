@@ -406,7 +406,7 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 .inbox { position: relative; }
 .ping { position: absolute; top: 3px; right: 3px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bar-bg); }
 
-.areatabs { display: flex; gap: 4px; padding: 14px 28px 0; max-width: 1320px; margin: 0 auto; overflow-x: auto; scrollbar-width: none; }
+.areatabs { display: flex; gap: 4px; padding: 14px 22px 0; overflow-x: auto; scrollbar-width: none; }
 .areatabs a { padding: 4px 12px; border-radius: var(--r-chip); border: 1px solid var(--line); background: var(--card); color: var(--muted);
   font-size: calc(13px * var(--text)); white-space: nowrap; }
 .areatabs a:hover { color: var(--ink); text-decoration: none; border-color: var(--line-strong); }

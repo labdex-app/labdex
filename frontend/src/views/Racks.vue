@@ -120,7 +120,7 @@ const setSite = (v) => { site.value = v; router.replace({ query: v ? { site: v }
 </script>
 
 <template>
-  <div class="page wide">
+  <div class="page">
     <div class="page-head">
       <h1>Racks</h1>
       <span class="h-tag">{{ all.length }} rack{{ all.length === 1 ? '' : 's' }}</span>
@@ -229,7 +229,6 @@ const setSite = (v) => { site.value = v; router.replace({ query: v ? { site: v }
 </template>
 
 <style scoped>
-.page.wide { max-width: none; }
 .site + .site { margin-top: 26px; }
 .sitename { font-size: calc(15px * var(--text)); margin: 0 0 10px; }
 .racks { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }

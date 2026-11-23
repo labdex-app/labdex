@@ -88,7 +88,7 @@ async function remove() {
       <h1>Firewall aliases</h1>
       <span class="h-tag">{{ visible.length }}/{{ all.length }}</span>
       <span class="grow"></span>
-      <input v-model="q" type="search" placeholder="Search names and contents" style="max-width: 300px" aria-label="Search aliases">
+      <input v-model="q" type="search" placeholder="Search names and contents" aria-label="Search aliases">
       <button v-if="can('alias', 'edit')" class="btn primary" @click="edit(null)"><Plus :size="15" /> Custom alias</button>
     </div>
 
@@ -158,8 +158,8 @@ async function remove() {
           </tbody>
         </table>
       </div>
+      <Pager v-model="page" :total="visible.length" :size="SIZE" unit="aliases" />
     </div>
-    <Pager v-model="page" :total="visible.length" :size="SIZE" />
   </div>
 </template>
 

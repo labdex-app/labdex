@@ -62,7 +62,7 @@ const results = computed(() => {
   const top = remote.find((r) => r.kind === 'host')
   const uid = top?.link.split('/').pop()
   const forTop = top ? [
-    ...(can('host', 'edit') ? [{ kind: 'edit', title: `Edit ${top.title}`, target: top.title, link: `/hosts?peek=${uid}&edit=1`, sub: 'quick edit beside the list' }] : []),
+    ...(can('host', 'edit') ? [{ kind: 'edit', title: `Edit ${top.title}`, target: top.title, link: `/hosts/${uid}?tab=overview`, sub: 'its details form' }] : []),
     { kind: 'impact', title: `What breaks if ${top.title} goes down?`, target: top.title, link: `/impact?host=${encodeURIComponent(top.title)}`, sub: 'impact' },
   ] : []
   // actions first ("patch web-01": what you came to do), then the inventory with the quick

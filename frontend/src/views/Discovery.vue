@@ -9,6 +9,7 @@ import HostPicker from '../components/HostPicker.vue'
 import ZoneChip from '../components/ZoneChip.vue'
 import { ago, can, changed, state, toast } from '../store'
 import Loading from '../components/Loading.vue'
+import Pager from '../components/Pager.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -100,7 +101,6 @@ const pickedRows = () => data.value.items.filter((m) => picked[key(m)])
 
 const newHost = (ip, network, mac, hint, vendor) => ({ path: '/hosts/new', query: Object.fromEntries(Object.entries({ ip, network, mac, hint, vendor }).filter(([, v]) => v)) })
 const product = (s) => [s.product, s.version].filter(Boolean).join(' ')
-const pages = () => Math.max(1, Math.ceil(data.value.total / data.value.per_page))
 function go(p) { f.page = p; load() }
 </script>
 
@@ -140,7 +140,7 @@ function go(p) { f.page = p; load() }
         <label class="check small ml-2"><input v-model="f.closed" type="checkbox" @change="load"> closed too</label>
       </template>
       <span class="grow"></span>
-      <input v-model="f.q" type="search" placeholder="Filter…" style="max-width: 240px" aria-label="Filter">
+      <input v-model="f.q" type="search" placeholder="Filter…" aria-label="Filter">
     </div>
 
     <div class="card flush">
@@ -238,11 +238,7 @@ function go(p) { f.page = p; load() }
           {{ { services: 'Nothing to review here.', unknown: 'Every address seen is in the inventory.', macs: 'No MACs to fill in: every interface that was seen has one, or none was seen with a MAC.' }[tab] || 'Every declared service on a scanned host answered.' }}
         </div>
       </div>
-    </div>
-    <div v-if="data.total > data.per_page" class="row pager">
-      <button class="btn small" :disabled="f.page <= 1" @click="go(f.page - 1)">‹ Prev</button>
-      <span class="small muted">Page {{ f.page }} of {{ pages() }} · {{ data.total }} rows</span>
-      <button class="btn small" :disabled="f.page >= pages()" @click="go(f.page + 1)">Next ›</button>
+      <Pager :model-value="f.page - 1" :total="data.total" :size="data.per_page" unit="rows" @update:model-value="(p) => go(p + 1)" />
     </div>
     </template>
   </div>
@@ -252,7 +248,6 @@ function go(p) { f.page = p; load() }
 button.stat { font: inherit; color: inherit; text-align: left; cursor: pointer; }
 button.stat:hover { border-color: var(--faint); }
 .act { display: flex; gap: 6px; justify-content: flex-end; align-items: center; }
-.pager { justify-content: center; margin-top: 14px; }
 .macbar { padding: 12px 16px; border-bottom: 1px solid var(--line); gap: 8px; }
 .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--faint); margin-right: 7px; opacity: .5; }
 .dot.up { background: var(--ok); opacity: 1; }

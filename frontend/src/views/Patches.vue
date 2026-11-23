@@ -11,6 +11,8 @@ import PatchState from '../components/PatchState.vue'
 import ZoneChip from '../components/ZoneChip.vue'
 import { useQuery } from '../query'
 import { ago, stamp, toast } from '../store'
+import Pager from '../components/Pager.vue'
+import { usePaged } from '../paged'
 
 const site = ref('')
 const query = useQuery(() => `/api/patches${site.value ? `?site=${encodeURIComponent(site.value)}` : ''}`, { onError: (e) => toast(e.message, 'error') })
@@ -33,6 +35,7 @@ const rows = computed(() => {
       (!n || [h.name, h.fun, h.os, h.kernel, h.zone].join(' ').toLowerCase().includes(n)))
     .sort((a, b) => ORDER[a.state] - ORDER[b.state] || b.security - a.security || b.pending - a.pending || a.name.localeCompare(b.name))
 })
+const { page, rows: paged } = usePaged(rows, { resetOn: [q, site, state] })
 const reported = computed(() => data.value.hosts.filter((h) => h.state !== 'unknown').length)
 const detail = useQuery(() => (open.value ? `/api/hosts/${open.value}/patches` : null))
 const picked = computed(() => data.value.hosts.find((h) => h.name === open.value) || null)
@@ -58,7 +61,7 @@ const BAR = { err: 'var(--err)', warn: 'var(--warn)', ok: 'var(--ok)', '': 'var(
       <span class="h-tag">{{ reported }}/{{ data.hosts.length }} report</span>
       <span class="grow"></span>
       <FilterSelect v-if="data.sites.length > 1" :model-value="site" label="Site" :options="data.sites" @update:model-value="(v) => (site = v || '')" />
-      <input v-model="q" type="search" placeholder="Search hosts, OS, kernel" style="max-width: 300px" aria-label="Search hosts">
+      <input v-model="q" type="search" placeholder="Search hosts, OS, kernel" aria-label="Search hosts">
     </div>
 
     <div class="kpis">
@@ -86,7 +89,7 @@ const BAR = { err: 'var(--err)', warn: 'var(--warn)', ok: 'var(--ok)', '': 'var(
         <table>
           <thead><tr><th>Host</th><th>Zone</th><th>State</th><th class="num">Updates</th><th class="num">Security</th><th>OS</th><th>Last patched</th><th>Reported</th></tr></thead>
           <tbody>
-            <tr v-for="h in rows" :key="h.name" class="click" :class="{ peek: open === h.name }" v-rowlink :aria-expanded="open === h.name ? 'true' : 'false'"
+            <tr v-for="h in paged" :key="h.name" class="click" :class="{ peek: open === h.name }" v-rowlink :aria-expanded="open === h.name ? 'true' : 'false'"
                 @click="toggle(h.name)" @dblclick="router.push(`/hosts/${h.name}?tab=updates`)">
               <td><RouterLink :to="`/hosts/${h.name}`" class="mono nowrap" @click.stop>{{ h.name }}</RouterLink><div v-if="h.fun" class="small faint">{{ h.fun }}</div></td>
               <td><ZoneChip :zone="h.zone" /></td>
@@ -101,6 +104,7 @@ const BAR = { err: 'var(--err)', warn: 'var(--warn)', ok: 'var(--ok)', '': 'var(
           </tbody>
         </table>
       </div>
+      <Pager v-model="page" :total="rows.length" unit="hosts" />
     </div>
     <p class="hint">
       Hosts report with <a href="/api/patches/agent" download>labdex-patch-report</a> (apt, dnf, Proxmox VE; Python 3, from cron or Ansible),

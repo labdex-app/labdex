@@ -8,6 +8,7 @@ import { api } from '../api'
 import { ago, stamp, toast } from '../store'
 import Diff from '../components/Diff.vue'
 import Loading from '../components/Loading.vue'
+import Pager from '../components/Pager.vue'
 import Drawer from '../components/Drawer.vue'
 import { ArrowUpRight } from 'lucide-vue-next'
 
@@ -53,13 +54,19 @@ const qs = computed(() => new URLSearchParams(Object.entries(f.value).filter(([,
 const logins = ref(route.query.logins === '1')
 const extra = computed(() => (logins.value || f.value.action === 'login' ? '' : '&changes=1'))
 
-async function load(append = false) {
+// the server pages by id (?before=), so each page remembers where it starts; page 0 is the newest
+const page = ref(0)
+let starts = [null]
+async function load(p = 0) {
   loading.value = true
   try {
-    const before = append && events.value.length ? `&before=${events.value[events.value.length - 1].id}` : ''
+    if (p === 0) starts = [null]
+    const before = starts[p] ? `&before=${starts[p]}` : ''
     const rows = await api.get(`/api/history?limit=${PAGE}&${qs.value}${extra.value}${before}`)
-    events.value = append ? [...events.value, ...rows] : rows
+    events.value = rows
+    page.value = p
     more.value = rows.length === PAGE
+    if (more.value) starts[p + 1] = rows[rows.length - 1].id
   } catch (e) {
     toast(e.message, 'error')
   } finally {
@@ -68,7 +75,7 @@ async function load(append = false) {
 }
 onMounted(() => (net.value ? loadNet() : load()))
 let shown = false
-onActivated(() => { if (shown) (net.value ? loadNet() : load()); shown = true })
+onActivated(() => { if (shown) (net.value ? loadNet() : load(page.value)); shown = true })
 
 function apply() {
   router.replace({ query: Object.fromEntries(Object.entries(f.value).filter(([, v]) => v)) })
@@ -93,7 +100,7 @@ const link = (e) => ({ host: `/hosts/${e.object_name}`, network: `/networks/${e.
 
 <template>
   <div class="page" :class="{ peeking: peekId }">
-    <div class="page-head"><h1>Activity</h1><span v-if="!net" class="h-tag">{{ events.length }}{{ more ? '+' : '' }} change{{ events.length === 1 ? '' : 's' }}</span></div>
+    <div class="page-head"><h1>Activity</h1><span v-if="!net" class="h-tag">{{ page * PAGE + events.length }}{{ more ? '+' : '' }} change{{ page * PAGE + events.length === 1 ? '' : 's' }}</span></div>
     <p class="page-lead">Every change, who made it, and the way back.</p>
 
     <div class="filters">
@@ -151,8 +158,8 @@ const link = (e) => ({ host: `/hosts/${e.object_name}`, network: `/networks/${e.
         </table>
         <Loading v-if="!events.length && loading" />
       </div>
+      <Pager :model-value="page" :more="more" :size="PAGE" @update:model-value="load" />
     </div>
-    <div v-if="more && !net" style="text-align: center; margin-top: 14px"><button class="btn" :disabled="loading" @click="load(true)">Older</button></div>
 
     <Drawer v-if="peekId" :key="peekId" :label="peeked ? `${peeked.action} · ${peeked.object_type}` : 'Change'" :title="peeked?.object_name || ''" @close="unpeek">
       <template v-if="peeked">

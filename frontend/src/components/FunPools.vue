@@ -102,8 +102,8 @@ async function remove(p) {
         </div>
       </template>
       <div v-if="!filtered.length" class="list-empty">{{ pools.length ? 'Nothing matches.' : 'No pools.' }}</div>
+      <Pager v-model="page" :total="filtered.length" :size="SIZE" unit="pools" />
     </div>
-    <Pager v-model="page" :total="filtered.length" :size="SIZE" />
 
     <Modal v-if="editing" wide :title="editing === 'new' ? 'New pool' : `Edit pool ${editing}`" @close="editing = null">
       <form id="pool-form" @submit.prevent="save">

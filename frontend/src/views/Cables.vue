@@ -13,6 +13,8 @@ import Modal from '../components/Modal.vue'
 import { CABLE_COLOURS, MEDIA, SPEEDS, speedStep } from '../links'
 import { useQuery } from '../query'
 import { toast } from '../store'
+import Pager from '../components/Pager.vue'
+import { usePaged } from '../paged'
 
 const route = useRoute()
 const tracing = ref(null)
@@ -31,6 +33,7 @@ const shown = computed(() => {
   return all.value.filter((c) => (!unlabelled.value || !c.label)
     && (!s || [c.label, c.a_host, c.a_port, c.b_host, c.b_port, c.medium, c.speed, c.colour, c.notes].join(' ').toLowerCase().includes(s)))
 })
+const { page, rows: paged } = usePaged(shown, { resetOn: [search, unlabelled] })
 // the QR code on a cable's label comes here: ?host=&port= opens its trace
 onMounted(() => {
   const { host, port } = route.query
@@ -67,14 +70,14 @@ const swatch = (c) => CABLE_COLOURS.find((x) => x.name === c)?.hex || (/^#[0-9a-
 </script>
 
 <template>
-  <div class="page wide">
+  <div class="page">
     <div class="page-head">
       <h1>Cables</h1>
       <span class="h-tag">{{ all.length }} cable{{ all.length === 1 ? '' : 's' }}</span>
       <span v-if="all.filter((c) => !c.label).length" class="h-tag warn">{{ all.filter((c) => !c.label).length }} without a label</span>
       <span class="grow"></span>
       <template v-if="tab === 'list'">
-      <input v-model="search" type="search" placeholder="Label, host, port, colour …" style="max-width: 260px" aria-label="Search cables">
+      <input v-model="search" type="search" placeholder="Label, host, port, colour …" aria-label="Search cables">
       <button class="btn" :disabled="!shown.length" @click="print"><Printer :size="15" /> Print {{ picked.size ? picked.size : 'all shown' }} label{{ (picked.size || shown.length) === 1 ? '' : 's' }}</button>
       </template>
     </div>
@@ -90,14 +93,15 @@ const swatch = (c) => CABLE_COLOURS.find((x) => x.name === c)?.hex || (/^#[0-9a-
       <span v-if="q.data.value" class="small faint">Next free label: <span class="mono">{{ q.data.value.next_label }}</span></span>
     </div>
     <p v-if="q.data.value && !all.length" class="empty">No cables yet. Add them on a host's Network tab or draw them on the topology.</p>
-    <div v-else-if="all.length" class="card" style="padding: 0">
+    <div v-else-if="all.length" class="card flush">
+      <div class="table-wrap">
       <table>
         <thead><tr>
           <th style="width: 34px"><input type="checkbox" class="tick" :checked="allPicked" aria-label="Pick all shown" @change="toggleAll"></th>
           <th>Label</th><th>From</th><th>To</th><th class="hide-m">Kind</th><th class="hide-m">Length</th><th class="hide-m">Notes</th><th :style="{ width: canEdit ? '76px' : '40px' }"></th>
         </tr></thead>
         <tbody>
-          <tr v-for="c in shown" :key="c.id">
+          <tr v-for="c in paged" :key="c.id">
             <td><input type="checkbox" class="tick" :checked="picked.has(c.id)" :aria-label="`Pick ${c.label || c.a_host + ' ' + c.a_port}`" @change="togglePick(c.id)"></td>
             <td class="mono"><span v-if="swatch(c.colour)" class="cc" :style="{ background: swatch(c.colour) }" :title="c.colour"></span>{{ c.label || '—' }}</td>
             <td><RouterLink :to="`/hosts/${c.a_uid}?tab=network`">{{ c.a_host }}</RouterLink> <span class="mono small">{{ c.a_port }}</span></td>
@@ -112,6 +116,8 @@ const swatch = (c) => CABLE_COLOURS.find((x) => x.name === c)?.hex || (/^#[0-9a-
           </tr>
         </tbody>
       </table>
+      </div>
+      <Pager v-model="page" :total="shown.length" unit="cables" />
     </div>
     </template>
     <p v-if="tab === 'list'" class="hint">Each label goes near one end and names both ends, so you print two per cable: on a label printer roll, tape or an A4 sheet, with a QR code that opens the cable's trace.</p>

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Pages use the whole width** beside the sidebar, as in the mockups; only running text keeps a
+  reading measure. **A host opens on its own page**: a click on a row in Hosts goes straight to it,
+  without the side panel and its quick edit (*Edit* in Ctrl K opens the host's Details form).
+- **One pager for every long list**, as the footer of its card ("1–50 of 315 hosts ‹ 1 2 … 7 ›"):
+  Hosts (instead of *Show more*), Services, Networks, Updates, Agents, Cables, DNS, Aliases,
+  Discovery (instead of its own Prev/Next) and Activity (instead of *Older*), 50 to a page.
+- Shared controls in more places: on/off options are switches and picks from a list are tick
+  boxes (Agent tab, Labels), chip remove buttons, card tool buttons, and one search box width.
 - **The rest of the pages in the new look.** KPI cards (Updates, Agents; Discovery and *What
   breaks?* counts look the same); page heads are the title, a mono tag and the actions, with what
   the page is for on one line under them; titles match the sidebar (Updates, Activity,

@@ -8,6 +8,8 @@ import ZoneChip from '../components/ZoneChip.vue'
 import NetworkPeek from '../components/NetworkPeek.vue'
 import { can, state, toast } from '../store'
 import Loading from '../components/Loading.vue'
+import Pager from '../components/Pager.vue'
+import { usePaged } from '../paged'
 
 const router = useRouter()
 const query = useQuery('/api/networks', { onError: (e) => toast(e.message, 'error') })
@@ -23,6 +25,7 @@ const visible = computed(() => {
   const inSite = site.value ? nets.value.filter((x) => x.site === site.value) : nets.value
   return n ? inSite.filter((x) => JSON.stringify(x).toLowerCase().includes(n)) : inSite
 })
+const { page, rows: paged } = usePaged(visible, { resetOn: [q, site] })
 // list-detail: a click shows the network beside the list (?peek=<uid>); a double click opens it
 const peeked = computed(() => route.query.peek ? nets.value.find((n) => n.uid === route.query.peek || n.name === route.query.peek) : null)
 function peek(n) { router.replace({ query: { ...route.query, peek: n.uid || n.name } }) }
@@ -40,7 +43,7 @@ const dhcp = (n) => (n.dhcp_start ? `${n.dhcp_start.split('.').pop()}–${n.dhcp
         <option value="">Every site</option>
         <option v-for="s in sites" :key="s.code" :value="s.code">{{ s.name }}</option>
       </select>
-      <input v-model="q" type="search" placeholder="Search" style="max-width: 260px" aria-label="Search networks">
+      <input v-model="q" type="search" placeholder="Search" aria-label="Search networks">
       <RouterLink v-if="can('network', 'edit')" to="/networks/new" class="btn primary"><Plus :size="15" /> Network</RouterLink>
     </div>
 
@@ -51,7 +54,7 @@ const dhcp = (n) => (n.dhcp_start ? `${n.dhcp_start.split('.').pop()}–${n.dhcp
             <tr><th>VLAN</th><th>Name</th><th>Prefix</th><th>Zone</th><th>Gateway</th><th>DHCP</th><th>Static usage</th><th>Hosts</th><th>Notes</th></tr>
           </thead>
           <tbody>
-            <tr v-for="n in visible" :key="n.name" class="click" :class="{ peek: peeked && peeked.name === n.name }" v-rowlink
+            <tr v-for="n in paged" :key="n.name" class="click" :class="{ peek: peeked && peeked.name === n.name }" v-rowlink
                 :aria-expanded="peeked && peeked.name === n.name ? 'true' : 'false'" @click="peek(n)" @dblclick="router.push(`/networks/${n.uid || n.name}`)">
               <td><b v-if="n.vlan">{{ n.vlan }}</b><span v-else class="faint">—</span></td>
               <td>
@@ -87,6 +90,7 @@ const dhcp = (n) => (n.dhcp_start ? `${n.dhcp_start.split('.').pop()}–${n.dhcp
         </table>
         <Loading v-if="loading" :rows="5" label="Loading networks" />
       </div>
+      <Pager v-model="page" :total="visible.length" unit="networks" />
     </div>
     <NetworkPeek v-if="peeked" :key="peeked.name" :net="peeked" @close="unpeek" />
   </div>

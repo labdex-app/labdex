@@ -184,7 +184,7 @@ watch(() => route.query.d, () => { editing.value = false })
 </script>
 
 <template>
-  <div class="page dashpage">
+  <div class="page">
     <div class="page-head">
       <h1>{{ state.nav?.instance_name && state.nav.instance_name !== 'labdex' ? state.nav.instance_name : 'Overview' }}</h1>
       <span class="h-tag">site {{ state.site || 'all' }}</span>
@@ -225,10 +225,10 @@ watch(() => route.query.d, () => { editing.value = false })
       <div v-for="it in [...items].sort((a, b) => a.y - b.y || a.x - b.x)" :key="it.id" class="ditem" :style="place(it)" :data-type="it.type">
         <DashItem :item="it" :d="d" />
         <div v-if="editing" class="tools">
-          <button class="tbtn grip" :aria-label="`Move ${types[it.type] || it.type}`" title="Drag to move" @pointerdown="pointerDown($event, it, 'move')" @keydown="keyMove($event, it)"><GripVertical :size="15" /></button>
+          <button class="btn icon grip" :aria-label="`Move ${types[it.type] || it.type}`" title="Drag to move" @pointerdown="pointerDown($event, it, 'move')" @keydown="keyMove($event, it)"><GripVertical :size="15" /></button>
           <span class="tname small">{{ it.config?.title || types[it.type] }}</span>
-          <button v-if="['links', 'services', 'note', 'widget'].includes(it.type)" class="tbtn" aria-label="Card settings" title="Settings" @click="openCfg(it)"><Settings2 :size="15" /></button>
-          <button class="tbtn" aria-label="Remove card" title="Remove" @click="removeCard(it)"><X :size="15" /></button>
+          <button v-if="['links', 'services', 'note', 'widget'].includes(it.type)" class="btn icon" aria-label="Card settings" title="Settings" @click="openCfg(it)"><Settings2 :size="15" /></button>
+          <button class="btn icon" aria-label="Remove card" title="Remove" @click="removeCard(it)"><X :size="15" /></button>
         </div>
         <span v-if="editing" class="resize" title="Drag to resize" aria-hidden="true" @pointerdown="pointerDown($event, it, 'resize')"></span>
       </div>
@@ -304,7 +304,6 @@ watch(() => route.query.d, () => { editing.value = false })
 </template>
 
 <style scoped>
-.page.dashpage { max-width: 1500px; }
 .dgrid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; position: relative; }
 .dgrid.editing { background-image: linear-gradient(to right, color-mix(in srgb, var(--line) 60%, transparent) 1px, transparent 1px);
   background-size: calc((100% + 14px) / 12) 100%; border-radius: var(--r-box); }
@@ -314,8 +313,6 @@ watch(() => route.query.d, () => { editing.value = false })
 .tools { position: absolute; top: 6px; right: 6px; left: 6px; display: flex; align-items: center; gap: 4px; z-index: 5;
   background: var(--card); border: 1px solid var(--line-strong); border-radius: var(--r-ctl); padding: 2px 4px; box-shadow: 0 4px 14px var(--shadow); }
 .tname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
-.tbtn { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 4px; border-radius: var(--r-ctl); display: grid; place-items: center; }
-.tbtn:hover { color: var(--ink); background: var(--raise); }
 .grip { cursor: grab; touch-action: none; }
 .grip:active { cursor: grabbing; }
 .resize { position: absolute; right: -4px; bottom: -4px; width: 16px; height: 16px; cursor: nwse-resize; z-index: 6; touch-action: none;

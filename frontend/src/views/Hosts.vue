@@ -13,28 +13,19 @@ import Modal from '../components/Modal.vue'
 import Copy from '../components/Copy.vue'
 import FilterSelect from '../components/FilterSelect.vue'
 import HostIcon from '../components/HostIcon.vue'
-import HostPeek from '../components/HostPeek.vue'
-import HostQuickEdit from '../components/HostQuickEdit.vue'
+import Pager from '../components/Pager.vue'
 import TagChip from '../components/TagChip.vue'
 import ZoneChip from '../components/ZoneChip.vue'
 import Usage from '../components/Usage.vue'
 import { can, changed, state, tagColour, toast } from '../store'
 import Loading from '../components/Loading.vue'
+import { usePaged } from '../paged'
 
 const route = useRoute()
 const router = useRouter()
 const query = useQuery('/api/hosts', { onError: (e) => toast(e.message, 'error') })
-// list-detail: a click shows the host in a drawer beside the list (?peek=<uid>); a double click,
-// or "Open host" in the drawer, opens its page
-const peeked = computed(() => route.query.peek ? (query.data.value || []).find((h) => h.uid === route.query.peek || h.name === route.query.peek) : null)
-// ?edit=1 turns the drawer into the quick edit form
-function peek(h) { const { edit: _, ...rest } = route.query; router.replace({ query: { ...rest, peek: h.uid || h.name } }) }
-function unpeek() { const { peek: _, edit: __, ...rest } = route.query; router.replace({ query: rest }) }
-function quickEdit(on) { const { edit: _, ...rest } = route.query; router.replace({ query: on ? { ...rest, edit: '1' } : rest }) }
-async function quickSaved(h) {
-  await query.refresh()
-  if (route.query.peek !== h.uid) router.replace({ query: { ...route.query, peek: h.uid } })
-}
+// a click opens the host's own page; there is no side panel for hosts
+const open = (h) => router.push(`/hosts/${h.uid || h.name}`)
 const hosts = computed(() => query.data.value || [])
 const loading = computed(() => query.loading.value && !query.data.value)
 const q = ref(String(route.query.q || ''))
@@ -51,8 +42,6 @@ const groupBy = ref(String(route.query.group || ''))
 const GROUPS = [{ value: 'site', label: 'site' }, { value: 'tag', label: 'tag' }, { value: 'zone', label: 'zone' }, { value: 'runs_on', label: 'runs on' }, { value: 'cat', label: 'category' }, { value: 'status', label: 'status' }]
 function setTab(t) { tab.value = t; syncQuery() }
 const sort = ref({ key: 'name', dir: 1 })
-const PAGE = 200
-const shown = ref(PAGE)
 
 // The page stays alive between visits; links from the sidebar change the query.
 watch(() => route.query, (rq) => {
@@ -62,7 +51,6 @@ watch(() => route.query, (rq) => {
   tab.value = fromQuery(rq.kind)
   groupBy.value = String(rq.group || '')
 })
-watch([q, filter, sort, tab, groupBy], () => { shown.value = PAGE }, { deep: true })
 
 // One lower-cased search text per host (values only, not key names), built once per answer, not per keystroke.
 const values = (v) => (v == null || typeof v === 'boolean' ? '' : typeof v === 'object' ? Object.values(v).map(values).join(' ') : String(v))
@@ -127,8 +115,9 @@ const keysOf = (h) => {
   if (g === 'cat') return [cat(h)]
   return [h[g] || '']
 }
+const { page, rows: pageRows } = usePaged(visible, { resetOn: [q, filter, sort, tab, groupBy] })
 const rows = computed(() => {
-  const list = visible.value.slice(0, shown.value)
+  const list = pageRows.value
   const index = new Map(visible.value.map((h, i) => [h.name, i]))
   if (!groupBy.value) return list.map((h) => ({ h, idx: index.get(h.name), key: h.name }))
   const groups = new Map()
@@ -271,12 +260,12 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
 </script>
 
 <template>
-  <div class="page" :class="{ peeking: peeked }">
+  <div class="page">
     <div class="page-head">
       <h1>Hosts</h1>
       <span class="sub">{{ visible.length }} of {{ inTab.length }}</span>
       <span class="grow"></span>
-      <input v-model="q" type="search" placeholder="Search, or tag:backup zone:DC_TC on:pve …" title="Plain text searches everything; site: tag: zone: status: on: net: cat: narrow it" style="max-width: 340px"
+      <input v-model="q" type="search" placeholder="Search, or tag:backup zone:DC_TC on:pve …" title="Plain text searches everything; site: tag: zone: status: on: net: cat: narrow it"
              aria-label="Search hosts" @input="syncQuery">
       <MenuButton v-if="searchItems.length" :items="searchItems" :icon="Bookmark" label="Saved" title="Saved searches" />
       <RouterLink v-if="can('host', 'edit')" :to="tab === 'vip' ? '/hosts/new?kind=vip' : tab === 'virtual' ? '/hosts/new?virtual=1' : '/hosts/new'" class="btn primary"><Plus :size="15" /> {{ tab === 'vip' ? 'VIP' : 'Host' }}</RouterLink>
@@ -327,9 +316,7 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
             <tr v-if="r.head" class="grph"><td :colspan="(editable ? 7 : 6) + sources.length + (hasUsage ? 3 : 0)">
               <b :class="{ mono: groupBy !== 'status' }">{{ r.label || NOGROUP[groupBy] }}</b> <span class="faint small">{{ r.n }}</span>
               <a v-if="r.label && groupBy === 'tag'" href="#" class="small ml-2" @click.prevent="addTerm('tag', r.label)">only these</a></td></tr>
-            <tr v-else v-rowlink class="click" :class="{ sel: picked.has(r.h.name), peek: peeked && peeked.name === r.h.name }" @mouseenter="hover(r.h)"
-                :aria-expanded="peeked && peeked.name === r.h.name ? 'true' : 'false'"
-                @click="peek(r.h)" @dblclick="router.push(`/hosts/${r.h.uid || r.h.name}`)">
+            <tr v-else v-rowlink class="click" :class="{ sel: picked.has(r.h.name) }" @mouseenter="hover(r.h)" @click="open(r.h)">
               <td v-if="editable" class="pick" @click.stop="pick(r.h, r.idx, $event)">
                 <input type="checkbox" :checked="picked.has(r.h.name)" :aria-label="`Select ${r.h.name}`" @click.stop="pick(r.h, r.idx, $event)"></td>
               <td>
@@ -395,10 +382,7 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
         </table>
         <Loading v-if="loading && !visible.length" :rows="6" label="Loading hosts" />
       </div>
-      <div v-if="visible.length > shown" class="more">
-        <button class="btn" @click="shown += PAGE">Show {{ Math.min(PAGE, visible.length - shown) }} more</button>
-        <span class="faint small">{{ shown }} of {{ visible.length }} shown</span>
-      </div>
+      <Pager v-model="page" :total="visible.length" unit="hosts" />
     </div>
 
     <Modal v-if="saveDlg" title="Save this search" :busy="busy" @close="saveDlg = null">
@@ -440,8 +424,6 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
         <button class="btn primary" :disabled="busy || (bulk.runs === 'set' && !bulk.runs_on)" @click="saveBulk">Change {{ picked.size }} host{{ picked.size === 1 ? '' : 's' }}</button>
       </template>
     </Modal>
-    <HostQuickEdit v-if="peeked && route.query.edit" :key="`e${peeked.uid}`" :host="peeked" @close="quickEdit(false)" @saved="quickSaved" />
-    <HostPeek v-else-if="peeked" :key="peeked.name" :host="peeked" @close="unpeek" @edit="quickEdit(true)" />
   </div>
 </template>
 
@@ -453,10 +435,6 @@ const addresses = (h) => h.interfaces.filter((i) => i.ip4 || i.ip6)
 .pick { width: 34px; padding-right: 0 !important; cursor: default; }
 .pick input { cursor: pointer; }
 tr.sel td { background: color-mix(in srgb, var(--accent) 9%, transparent); }
-tr.peek td { background: var(--accent-faint); }
-tr.peek td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
-/* the drawer covers the right: the list makes room on screens wide enough for both */
-@media (min-width: 1200px) { .page.peeking { padding-right: 524px; } }
 .bulkbar { position: sticky; top: 8px; z-index: 5; display: flex; align-items: center; gap: 10px; padding: 8px 12px; margin-bottom: 10px;
   background: var(--card); border: 1px solid var(--accent); border-radius: var(--r-box); box-shadow: 0 8px 24px var(--shadow); }
 @media (max-width: 640px) { .g2 { grid-template-columns: minmax(0, 1fr); } .hide-s { display: none; } }
