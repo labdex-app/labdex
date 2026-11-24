@@ -7574,6 +7574,19 @@
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>Pages use the whole width</strong> beside the sidebar, as in the mockups; only running text keeps a
+  reading measure. <strong>A host opens on its own page</strong>: a click on a row in Hosts goes straight to it,
+  and on Updates to its <em>Updates</em> tab; the host side panel and its quick edit are gone (<em>Edit</em> in
+  Ctrl K opens the host's Details form). What the quick edit had moved to the host page:
+  <strong>Preview diff</strong> next to <em>Save changes</em> shows the host's lines in its site file before and
+  after, and a <strong>YAML</strong> tab shows the entry and where it lives in git, with <em>Edit YAML</em>, a
+  preview and <em>Save and commit</em>. <code>PUT /api/hosts/&lt;name&gt;</code> takes <code>"dry_run": true</code> for the diff.</li>
+<li><strong>All tabs are pills</strong>, like the area tabs (Physical, Firewall).</li>
+<li><strong>One pager for every long list</strong>, as the footer of its card ("1–50 of 315 hosts ‹ 1 2 … 7 ›"):
+  Hosts (instead of <em>Show more</em>), Services, Networks, Updates, Agents, Cables, DNS, Aliases,
+  Discovery (instead of its own Prev/Next) and Activity (instead of <em>Older</em>), 50 to a page.</li>
+<li>Shared controls in more places: on/off options are switches and picks from a list are tick
+  boxes (Agent tab, Labels), chip remove buttons, card tool buttons, and one search box width.</li>
 <li><strong>The rest of the pages in the new look.</strong> KPI cards (Updates, Agents; Discovery and <em>What
   breaks?</em> counts look the same); page heads are the title, a mono tag and the actions, with what
   the page is for on one line under them; titles match the sidebar (Updates, Activity,

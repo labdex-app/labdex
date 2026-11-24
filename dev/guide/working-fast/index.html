@@ -2222,7 +2222,7 @@ outside a text field, opens one search box for everything:</p>
 <li><strong>A verb and a host</strong>: <code>patch web-01</code> offers <em>Plan install updates on web-01</em> (with the
   host's waiting updates), <code>deploy web-01</code> the host actions that match. End the host with
   <code>*</code> to plan for every host that starts with it: <code>patch web*</code>.</li>
-<li>For the best host match, <strong>Edit</strong> (the quick edit beside the Hosts list) and <strong>What
+<li>For the best host match, <strong>Edit</strong> (the host's Details form) and <strong>What
   breaks if it goes down?</strong></li>
 <li>
 <p><strong>Pages</strong> and <strong>New host / New VIP / New network</strong>.</p>
@@ -2347,18 +2347,17 @@ and hides or reorders pages; hidden pages stay in the search. This is kept for y
 the server, so it follows you to other browsers. Until you change the pages, they follow the
 default: administrators set it with <em>Make these pages the default</em>, and <em>Use the default
 pages</em> goes back to it (your pins stay).</p>
-<p>On Hosts and Networks a click on a row shows that host or network in a panel on the
-right, beside the list, with what you need most often and a button to its full page; a
-double click goes straight to the page, and <kbd>Esc</kbd> closes the panel. The address
-keeps the open panel (<code>?peek=…</code>), so a link or a reload brings it back.</p>
-<p><strong>Edit</strong> in a host's panel turns it into a short form: name, kind, site, zone, status, fun
-name, function, features, tags and notes. <strong>Preview diff</strong> shows the host's lines in its
-site file before and after, and <strong>YAML</strong> shows the whole entry; <em>Edit YAML</em> lets you change
-it as text (left-out fields take their defaults, like a file from git; cables stay on the host
-page), with the same <em>Preview diff</em> before saving. Saving works like saving on
-the host page: the change is checked, recorded in Activity and, when the site has a git
-repository, written to it (<em>Save and commit</em>). Interfaces, services and cables are edited on
-the host page.</p>
+<p>A click on a host opens its own page (on Updates, its <em>Updates</em> tab). On a host's page,
+<strong>Preview diff</strong> next to <em>Save changes</em> shows the host's lines in its site file before and
+after your changes. The <strong>YAML</strong> tab shows the host's whole entry as the site file lists it and
+where that file lives in git; <em>Edit YAML</em> changes it as text (left-out fields take their
+defaults, like a file from git; cables stay on the Network tab), with the same <em>Preview diff</em>
+before saving. Saving either way is checked, recorded in Activity and, when the site has a git
+repository, written to it (<em>Save and commit</em>).</p>
+<p>On Networks a click on a row shows that network in a
+panel on the right, beside the list, with what you need most often and a button to its full
+page; a double click goes straight to the page, and <kbd>Esc</kbd> closes the panel. The
+address keeps the open panel (<code>?peek=…</code>), so a link or a reload brings it back.</p>
 <p>The top bar says where you are (site, area, page, item) and holds the search box. The status
 bar at the foot shows whether the page is live (changes arrive as they happen), the git
 commit and sync time of each site that has a repository, how many agents are linked, and
