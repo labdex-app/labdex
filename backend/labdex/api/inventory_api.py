@@ -343,11 +343,13 @@ def _host_detail(h: Host) -> dict:
     d["merged_vars"] = features.host_vars(h)
     d["guests"] = [n for n in d["guests"] if p.can("host", "view", rbac.host_facts(store.host_access(_host(n))))]
     from .. import discovery, health
-    srcs = [x for x in health.sources().get(h.name, []) if p.can("integration", "view", rbac.named_facts(x["integration"]))]
+    srcs = [x for x in health.sources().get(h.name, [])
+            if x["plugin"] == "agent" or p.can("integration", "view", rbac.named_facts(x["integration"]))]
     disc = discovery.live_status().get(h.name)
     d["health"] = {"live": health.combine(srcs, disc), "sources": srcs, "discovery": disc} | health.strip(h.name)
     from .. import agents
     d["usage"] = agents.usage().get(h.name)
+    d["usage_history"] = agents.history(h.name)
     a = agents.current(h.name)
     d["agent"] = {"linked": agents.linked(a), "version": a.version, "mtls": bool(a.link_cert and agents.linked(a))} if a else None
     from .. import patches

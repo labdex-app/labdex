@@ -25,7 +25,7 @@ cd backend && pip install -e ".[server]" && python tools/agent_rehearsal.py
 ```
 
 It installs read-only, checks the link, the certificate and the read-only jobs, revokes, and
-uninstalls. It ends with `all 13 checks passed`, or says what failed. It touches nothing outside the
+uninstalls. It ends with `all 15 checks passed`, or says what failed. It touches nothing outside the
 container and a temporary folder.
 
 ## Install

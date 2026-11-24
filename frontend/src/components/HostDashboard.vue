@@ -10,11 +10,14 @@ import ZoneChip from './ZoneChip.vue'
 import HistoryList from './HistoryList.vue'
 import HealthStrip from './HealthStrip.vue'
 import HostGuests from './HostGuests.vue'
+import Spark from './Spark.vue'
 
 const props = defineProps({ host: { type: Object, required: true } })
 const emit = defineEmits(['tab'])
 const gb = (b) => (b >= 2 ** 40 ? `${(b / 2 ** 40).toFixed(1).replace(/\.0$/, '')} TB` : `${Math.round(b / 2 ** 30)} GB`)
 const u = () => props.host.usage || {}
+const series = (k) => (props.host.usage_history || []).map((h) => ({ at: h.at, v: h[k] }))
+const hasHistory = () => (props.host.usage_history || []).length > 1
 </script>
 
 <template>
@@ -24,13 +27,16 @@ const u = () => props.host.usage || {}
       <div class="cells">
         <div class="cell"><span class="label">CPU</span>
           <b v-if="u().cpu != null">{{ Math.round(u().cpu) }}<small>%</small></b><b v-else class="faint">—</b>
-          <span v-if="u().cpus" class="small faint">{{ u().cpus }} cores</span></div>
+          <span v-if="u().cpus" class="small faint">{{ u().cpus }} cores</span>
+          <Spark v-if="hasHistory()" :points="series('cpu')" :max="100" label="CPU" /></div>
         <div class="cell"><span class="label">Memory</span>
           <b v-if="u().mem != null">{{ Math.round(u().mem) }}<small>%</small></b><b v-else class="faint">—</b>
-          <span v-if="u().mem_total" class="small faint">of {{ gb(u().mem_total) }}</span></div>
+          <span v-if="u().mem_total" class="small faint">of {{ gb(u().mem_total) }}</span>
+          <Spark v-if="hasHistory()" :points="series('mem')" :max="100" label="Memory" /></div>
         <div class="cell"><span class="label">Disk</span>
           <b v-if="u().disk != null">{{ Math.round(u().disk) }}<small>%</small></b><b v-else class="faint">—</b>
-          <span v-if="u().disk_total" class="small faint">of {{ gb(u().disk_total) }} on /</span></div>
+          <span v-if="u().disk_total" class="small faint">of {{ gb(u().disk_total) }} on /</span>
+          <Spark v-if="hasHistory()" :points="series('disk')" :max="100" label="Disk" /></div>
         <div class="cell"><span class="label">Updates</span>
           <b>{{ host.patches?.state === 'unknown' ? '—' : host.patches?.pending || 0 }}</b>
           <span v-if="host.patches?.security" class="small c-warn">{{ host.patches.security }} security</span></div>
@@ -41,7 +47,7 @@ const u = () => props.host.usage || {}
       <div class="health">
         <div class="h-head"><span class="label">Health · 48 h</span><span class="grow"></span><span class="label">now</span></div>
         <HealthStrip v-if="host.health?.hours?.length" :hours="host.health.hours" />
-        <p v-else class="small faint m-0">No history yet: it starts when a monitoring plugin reports this host.</p>
+        <p v-else class="small faint m-0">No history yet: it starts when the host’s agent links or a monitoring plugin reports it.</p>
       </div>
       <p v-if="!host.usage" class="small faint m-0 note">CPU, memory and disk come from the host's agent.
         <a href="#" @click.prevent="emit('tab', 'agent')">{{ host.agent ? 'Its agent isn\'t linked right now.' : 'Link one' }}</a></p>
@@ -60,7 +66,8 @@ const u = () => props.host.usage || {}
           <span v-if="host.health" class="hstate" :class="host.health.live">{{ host.health.live === 'unknown' ? 'no live data' : host.health.live }}</span></div>
         <table v-if="host.health?.sources.length" class="mini">
           <tbody><tr v-for="x in host.health.sources" :key="x.integration">
-            <td><RouterLink :to="`/integrations/${x.integration}`" class="mono">{{ x.integration }}</RouterLink></td>
+            <td><a v-if="x.plugin === 'agent'" href="#" class="mono" @click.prevent="emit('tab', 'agent')">agent</a>
+              <RouterLink v-else :to="`/integrations/${x.integration}`" class="mono">{{ x.integration }}</RouterLink></td>
             <td><span class="hstate" :class="x.state">{{ x.state }}</span></td><td class="small faint">{{ x.detail }}</td></tr></tbody>
         </table>
         <p v-else class="small faint m-0 mt-2">{{ host.health?.discovery ? 'Seen by Discovery; no monitor reports this host.' : 'No monitor reports this host.' }}</p>

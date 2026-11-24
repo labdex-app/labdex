@@ -11,7 +11,7 @@ import json
 from datetime import datetime, UTC
 
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import TypeDecorator
 
@@ -1039,6 +1039,21 @@ class HostHealth(db.Model):
     since: Mapped[datetime] = mapped_column(default=utcnow)
 
 
+class AgentSample(db.Model):
+    """A host agent's metrics every 5 minutes, kept 48 hours for the charts on the host page.
+    By host, not by agent, so a rerolled key keeps the history. Longer history: VictoriaMetrics."""
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    host: Mapped[str] = mapped_column(String(63), index=True)
+    at: Mapped[datetime] = mapped_column(default=utcnow, index=True)
+    cpu: Mapped[float | None] = mapped_column()  # percent
+    mem: Mapped[float | None] = mapped_column()  # percent used
+    disk: Mapped[float | None] = mapped_column()  # percent of / used
+    load1: Mapped[float | None] = mapped_column()
+    net_rx: Mapped[int | None] = mapped_column(BigInteger)  # counters in bytes: the UI draws the rate
+    net_tx: Mapped[int | None] = mapped_column(BigInteger)
+
+
 class HostHealthEvent(db.Model):
     """A change of a host's combined state, kept for a week for the 48 h strip on the host page."""
 
@@ -1133,7 +1148,8 @@ class Agent(db.Model):
     host_allow: Mapped[list] = mapped_column(JSONList, default=list)  # capabilities switched on on the host
     facts: Mapped[dict] = mapped_column(JSONValue, default=dict)
     metrics: Mapped[dict] = mapped_column(JSONValue, default=dict)
-    discovery: Mapped[dict] = mapped_column(JSONValue, default=dict)  # the last discovery.services result
+    # the last discovery.services result; deferred: it's large, and each link reloads the row every second
+    discovery: Mapped[dict] = mapped_column(JSONValue, default=dict, deferred=True)
     connected: Mapped[str] = mapped_column(String(128), default="")  # the process holding the link, '' when not linked
     linked_at: Mapped[datetime | None] = mapped_column()
     last_seen: Mapped[datetime | None] = mapped_column()
