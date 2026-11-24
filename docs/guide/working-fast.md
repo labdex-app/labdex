@@ -30,7 +30,7 @@ outside a text field, opens one search box for everything:
 - **A verb and a host**: `patch web-01` offers *Plan install updates on web-01* (with the
   host's waiting updates), `deploy web-01` the host actions that match. End the host with
   `*` to plan for every host that starts with it: `patch web*`.
-- For the best host match, **Edit** (the quick edit beside the Hosts list) and **What
+- For the best host match, **Edit** (the host's Details form) and **What
   breaks if it goes down?**
 - **Pages** and **New host / New VIP / New network**.
 
@@ -154,19 +154,18 @@ the server, so it follows you to other browsers. Until you change the pages, the
 default: administrators set it with *Make these pages the default*, and *Use the default
 pages* goes back to it (your pins stay).
 
-On Hosts and Networks a click on a row shows that host or network in a panel on the
-right, beside the list, with what you need most often and a button to its full page; a
-double click goes straight to the page, and <kbd>Esc</kbd> closes the panel. The address
-keeps the open panel (`?peek=…`), so a link or a reload brings it back.
+A click on a host opens its own page (on Updates, its *Updates* tab). On a host's page,
+**Preview diff** next to *Save changes* shows the host's lines in its site file before and
+after your changes. The **YAML** tab shows the host's whole entry as the site file lists it and
+where that file lives in git; *Edit YAML* changes it as text (left-out fields take their
+defaults, like a file from git; cables stay on the Network tab), with the same *Preview diff*
+before saving. Saving either way is checked, recorded in Activity and, when the site has a git
+repository, written to it (*Save and commit*).
 
-**Edit** in a host's panel turns it into a short form: name, kind, site, zone, status, fun
-name, function, features, tags and notes. **Preview diff** shows the host's lines in its
-site file before and after, and **YAML** shows the whole entry; *Edit YAML* lets you change
-it as text (left-out fields take their defaults, like a file from git; cables stay on the host
-page), with the same *Preview diff* before saving. Saving works like saving on
-the host page: the change is checked, recorded in Activity and, when the site has a git
-repository, written to it (*Save and commit*). Interfaces, services and cables are edited on
-the host page.
+On Networks a click on a row shows that network in a
+panel on the right, beside the list, with what you need most often and a button to its full
+page; a double click goes straight to the page, and <kbd>Esc</kbd> closes the panel. The
+address keeps the open panel (`?peek=…`), so a link or a reload brings it back.
 
 The top bar says where you are (site, area, page, item) and holds the search box. The status
 bar at the foot shows whether the page is live (changes arrive as they happen), the git

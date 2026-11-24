@@ -187,10 +187,11 @@ b, strong { font-weight: 600; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
 /* layout */
-.page { max-width: 1320px; margin: 0 auto; padding: 24px 28px 48px; }
+/* every page uses the whole width next to the sidebar (f01-f15); only running text keeps a reading measure */
+.page { padding: 20px 22px 40px; }
 .page-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; min-height: 36px; }
 .page-head .sub { color: var(--muted); }
-.page-head input[type=search] { max-width: 280px; }
+.page-head input[type=search], .filters input[type=search] { max-width: 320px; }
 .page-head .h-tag { align-self: center; }
 .h-tag.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); }
 /* one line under a page's head on what the page is for; the head itself stays title, tag, actions */
@@ -269,6 +270,8 @@ select[multiple], select[size] { padding: 4px; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 14px; }
 @media (max-width: 640px) { .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); } }
+/* tick boxes that stand alone (a table's pick column) look like the ones in a .check.tick */
+input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 .check { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
 .check input { accent-color: var(--accent); }
 /* on/off settings are switches; .tick keeps a tick box (picking several from a list, agreeing to something) */
@@ -369,11 +372,13 @@ ul.plain li { padding: 3px 0; word-break: break-all; }
 
 /* v0.2 additions */
 .pill.info { background: var(--accent); color: var(--on-accent); }
-.tabs { display: flex; gap: 4px; box-shadow: inset 0 -1px 0 var(--line); margin-bottom: 20px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+/* every set of tabs is a row of pills (the area tabs in App.vue look the same) */
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }
-.tabs a { padding: 8px 12px; color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; white-space: nowrap; }
-.tabs a:hover { color: var(--ink); text-decoration: none; }
-.tabs a.router-link-active { color: var(--ink); border-bottom-color: var(--accent); }
+.tabs a { padding: 4px 12px; border-radius: var(--r-chip); border: 1px solid var(--line); background: var(--card);
+  color: var(--muted); font-size: calc(13px * var(--text)); font-weight: 500; white-space: nowrap; }
+.tabs a:hover { color: var(--ink); text-decoration: none; border-color: var(--line-strong); }
+.tabs a.router-link-active, .tabs a.on { color: var(--ink); border-color: var(--accent); background: var(--accent-faint); }
 .js-succeeded, .js-applied { color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
 .js-planned { color: var(--accent-soft); background: var(--accent-faint); }
 .js-approved { color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); }
@@ -398,6 +403,12 @@ ul.plain li { padding: 3px 0; word-break: break-all; }
 fieldset.bare { border: 0; padding: 0; margin: 0; min-width: 0; }
 fieldset.bare.wide { margin-top: 16px; }
 .more { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
+/* <Pager>: below a list, or as the footer of the card or .list it sits in */
+.pager { display: flex; align-items: center; gap: 4px; margin-top: 10px; }
+.card > .pager, .list > .pager { margin: 0; padding: 8px 12px 8px 16px; border-top: 1px solid var(--line); }
+.pager .pg-count { font: calc(12px * var(--text)) var(--mono); color: var(--faint); }
+.pager .btn { min-width: 28px; justify-content: center; font-family: var(--mono); }
+.pager .btn.on { background: var(--card); border-color: var(--line-strong); color: var(--ink); font-weight: 600; }
 .vipb { font-size: calc(11.5px * var(--text)); padding: 0 6px; border: 1px solid var(--line-strong); border-radius: var(--r-tag); }
 select:disabled, input:disabled { opacity: .55; cursor: not-allowed; }
 .tcount { margin-left: 6px; font-size: calc(11px * var(--text)); color: var(--faint); font-weight: 600; }
@@ -487,7 +498,7 @@ ul.pop { margin: 0; list-style: none; }
 }
 
 /* list and detail (Changes, Checks): the list on the left, the picked item beside it */
-.ld { display: grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); gap: 16px; align-items: start; max-width: 1480px; }
+.ld { display: grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); gap: 16px; align-items: start; }
 .list-pane { position: sticky; top: 66px; max-height: calc(100vh - 110px); display: flex; flex-direction: column; }
 .lp-head { display: flex; align-items: center; gap: 8px; padding: 14px 16px 10px; }
 .lp-head h1 { font-size: calc(16px * var(--text)); }

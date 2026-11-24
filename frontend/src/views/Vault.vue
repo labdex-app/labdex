@@ -73,7 +73,7 @@ async function savePassphrase() {
       <span v-if="st?.initialized" class="sub" :class="st.sealed ? 'warn' : ''">
         <component :is="st.sealed ? Lock : LockOpen" :size="13" /> {{ st.sealed ? 'sealed' : 'unsealed' }}</span>
       <span class="grow"></span>
-      <input v-if="st?.initialized" v-model.trim="search" type="search" placeholder="Path, host or description" style="max-width: 260px" aria-label="Search secrets">
+      <input v-if="st?.initialized" v-model.trim="search" type="search" placeholder="Path, host or description" aria-label="Search secrets">
       <template v-if="st?.initialized && !st.sealed">
         <button v-if="st.can_unseal" class="btn" @click="change = { current: '', next: '', again: '', errors: {} }">Change passphrase</button>
         <button v-if="st.can_unseal" class="btn" @click="seal"><Lock :size="14" /> Seal</button>

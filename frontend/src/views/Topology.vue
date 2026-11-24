@@ -628,13 +628,13 @@ onBeforeUnmount(() => cy.value?.destroy())
 </script>
 
 <template>
-  <div class="page wide">
+  <div class="page">
     <div class="page-head">
       <h1>Topology</h1>
       <span v-if="stats && data.view === 'l3'" class="sub">{{ stats.networks }} networks · {{ stats.hosts }} hosts · {{ stats.routers }} in several networks</span>
       <span v-else-if="stats" class="sub">{{ stats.hosts }} hosts · {{ stats.boxes }} hypervisors · {{ stats.cables }} cable{{ stats.cables === 1 ? '' : 's' }} · {{ stats.internal }} internal link{{ stats.internal === 1 ? '' : 's' }}</span>
       <span class="grow"></span>
-      <input v-model="q" type="search" placeholder="Find a host, address or network" style="max-width: 260px" aria-label="Find in the picture">
+      <input v-model="q" type="search" placeholder="Find a host, address or network" aria-label="Find in the picture">
     </div>
     <nav class="tabs">
       <a href="#" :class="{ 'router-link-active': view === 'physical' }" :aria-current="view === 'physical' ? 'page' : undefined" @click.prevent="setView('physical')">Physical</a>
@@ -849,7 +849,6 @@ onBeforeUnmount(() => cy.value?.destroy())
 </template>
 
 <style scoped>
-.page.wide { max-width: none; }
 .canvas-wrap { position: relative; height: calc(100vh - 250px); min-height: 420px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--bg); overflow: hidden; }
 .canvas-wrap.wiring { border-color: var(--accent); }
 .canvas { position: absolute; inset: 0; }

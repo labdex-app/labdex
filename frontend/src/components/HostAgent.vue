@@ -72,7 +72,7 @@ const statusClass = (s) => ({ succeeded: 'ok', failed: 'bad', refused: 'bad', ex
     <template v-if="mayEdit">
       <div class="row mt-2" style="gap: 12px">
         <button class="btn" :disabled="busy" @click="enrol">Enrol an agent</button>
-        <label v-if="isAdmin" class="small"><input v-model="allowRoot" type="checkbox"> run it as root (needed for Ansible)</label>
+        <label v-if="isAdmin" class="check small"><input v-model="allowRoot" type="checkbox"> run it as root (needed for Ansible)</label>
       </div>
       <div v-if="enrolment" class="mt-2">
         <p class="small m-0">Run this on {{ host }} as root before {{ stamp(enrolment.expires_at) }}. The token works once.</p>
@@ -127,11 +127,11 @@ const statusClass = (s) => ({ succeeded: 'ok', failed: 'bad', refused: 'bad', ex
       <div v-if="mayEdit && (canRun('patch') || canRun('ansible'))" class="row mt-2" style="gap: 12px; flex-wrap: wrap">
         <template v-if="canRun('patch')">
           <button class="btn small danger" :disabled="busy" @click="run('patch.apply', { reboot })"><Play :size="14" /> Install updates</button>
-          <label v-if="canRun('reboot')" class="small"><input v-model="reboot" type="checkbox"> reboot if needed</label>
+          <label v-if="canRun('reboot')" class="check small"><input v-model="reboot" type="checkbox"> reboot if needed</label>
         </template>
         <template v-if="canRun('ansible')">
           <input v-model="playbook" class="mono small" style="width: 220px" aria-label="Playbook in the site's git repository">
-          <label class="small"><input v-model="checkOnly" type="checkbox"> check only (--check --diff)</label>
+          <label class="check small"><input v-model="checkOnly" type="checkbox"> check only (--check --diff)</label>
           <button class="btn small danger" :disabled="busy" @click="run('ansible.run', { playbook, check: checkOnly })"><Play :size="14" /> Run playbook</button>
         </template>
       </div>
@@ -193,11 +193,11 @@ const statusClass = (s) => ({ succeeded: 'ok', failed: 'bad', refused: 'bad', ex
       </div>
       <div class="mt-2 small">
         Writes (both ends must allow them):
-        <label v-for="c in data.capabilities" :key="c" style="margin-left: 10px">
+        <label v-for="c in data.capabilities" :key="c" class="check ml-2">
           <input type="checkbox" :checked="agent.capabilities.includes(c)" :disabled="!isAdmin" @change="toggleCap(c)"> {{ c }}
           <span class="faint">({{ agent.host_allow.includes(c) ? 'host allows' : 'host doesn’t allow' }})</span>
         </label>
-        <label v-if="isAdmin" style="margin-left: 10px"><input type="checkbox" :checked="agent.allow_root" @change="save({ allow_root: !agent.allow_root })"> root allowed</label>
+        <label v-if="isAdmin" class="check ml-2"><input type="checkbox" :checked="agent.allow_root" @change="save({ allow_root: !agent.allow_root })"> root allowed</label>
       </div>
       <button v-if="mayEdit" class="btn small danger mt-2" @click="revoke"><ShieldOff :size="14" /> Revoke</button>
     </div>

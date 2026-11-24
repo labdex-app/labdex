@@ -5,6 +5,7 @@ import { api, ApiError, enc } from '../api'
 import { useQuery } from '../query'
 import { changed, state, toast } from '../store'
 import Pager from './Pager.vue'
+import { usePaged } from '../paged'
 import ColourPicker from './ColourPicker.vue'
 import Field from './Field.vue'
 import Modal from './Modal.vue'
@@ -17,9 +18,8 @@ const query = useQuery('/api/tags', { onError: (e) => toast(e.message, 'error') 
 const tags = computed(() => query.data.value || [])
 const needle = computed(() => props.q.trim().toLowerCase())
 const filtered = computed(() => tags.value.filter((t) => !needle.value || `${t.name} ${t.description}`.toLowerCase().includes(needle.value)))
-const page = ref(0)
 const SIZE = 25
-const paged = computed(() => filtered.value.slice(page.value * SIZE, (page.value + 1) * SIZE))
+const { page, rows: paged } = usePaged(filtered, { size: SIZE, resetOn: needle })
 const edit = ref(null)
 const errors = ref({})
 const busy = ref(false)
@@ -70,8 +70,8 @@ async function remove(t) {
         </div>
       </div>
       <div v-if="!filtered.length" class="list-empty">{{ tags.length ? 'Nothing matches.' : 'No tags yet. Add one here or type it on a host.' }}</div>
+      <Pager v-model="page" :total="filtered.length" :size="SIZE" unit="tags" />
     </div>
-    <Pager v-model="page" :total="filtered.length" :size="SIZE" />
 
     <Modal v-if="edit" :title="edit._orig ? `Edit tag ${edit._orig}` : 'New tag'" :busy="busy" @close="edit = null">
       <form id="tag-form" @submit.prevent="save">

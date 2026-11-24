@@ -4,6 +4,8 @@ import FilterSelect from '../components/FilterSelect.vue'
 import { computed, ref } from 'vue'
 import ZoneChip from '../components/ZoneChip.vue'
 import { useQuery } from '../query'
+import Pager from '../components/Pager.vue'
+import { usePaged } from '../paged'
 import { toast, zoneLong } from '../store'
 
 const query = useQuery('/api/services', { onError: (e) => toast(e.message, 'error') })
@@ -23,9 +25,11 @@ const visible = computed(() => {
     (!status.value || s.status === status.value) && (!linkedOnly.value || s.url) &&
     (!n || [s.name, s.description, s.host, s.fun, s.function, s.url, s.zone, ...(s.addresses || [])].join(' ').toLowerCase().includes(n)))
 })
+// cards and table page alike; on a page the cards are grouped by zone
+const { page, rows: paged } = usePaged(visible, { resetOn: [q, status, linkedOnly] })
 const groups = computed(() => {
   const by = {}
-  for (const s of visible.value) (by[s.zone] ||= []).push(s)
+  for (const s of paged.value) (by[s.zone] ||= []).push(s)
   return Object.entries(by).sort(([a], [b]) => a.localeCompare(b)).map(([zone, items]) => ({ zone, items }))
 })
 const counts = computed(() => ({
@@ -41,7 +45,7 @@ const counts = computed(() => ({
       <h1>Services</h1>
       <span class="h-tag">{{ visible.length }}/{{ services.length }}</span>
       <span class="grow"></span>
-      <input v-model="q" type="search" placeholder="Search services, hosts, addresses" style="max-width: 300px" aria-label="Search services">
+      <input v-model="q" type="search" placeholder="Search services, hosts, addresses" aria-label="Search services">
       <div class="seg" role="group" aria-label="View">
         <button :class="{ on: view === 'cards' }" @click="setView('cards')">Cards</button>
         <button :class="{ on: view === 'table' }" @click="setView('table')">Table</button>
@@ -77,6 +81,7 @@ const counts = computed(() => ({
           </div>
         </div>
       </section>
+      <Pager v-model="page" :total="visible.length" unit="services" />
       <p v-if="!groups.length" class="empty">Nothing matches. Services are added on each host's Services tab.</p>
     </template>
 
@@ -85,7 +90,7 @@ const counts = computed(() => ({
         <table>
           <thead><tr><th></th><th>Service</th><th>Host</th><th>Zone</th><th>Port</th><th>Listens on</th><th>Allow from</th><th>Link</th></tr></thead>
           <tbody>
-            <tr v-for="s in visible" :key="s.host + s.name">
+            <tr v-for="s in paged" :key="s.host + s.name">
               <td><span class="dot" :class="STATUS[s.status][0]" :title="STATUS[s.status][1] + (s.status_by ? ` (${s.status_by})` : '')"></span></td>
               <td><b>{{ s.name }}</b><div v-if="s.description" class="small faint">{{ s.description }}</div></td>
               <td><RouterLink :to="`/hosts/${s.host}?tab=services`">{{ s.fun || s.host }}</RouterLink></td>
@@ -99,6 +104,7 @@ const counts = computed(() => ({
           </tbody>
         </table>
       </div>
+      <Pager v-model="page" :total="visible.length" unit="services" />
     </div>
     <p class="hint">Status comes from a monitor (e.g. Uptime Kuma) when one checks the service, otherwise from Discovery: answering when a scan saw the port open on an address the service listens on.</p>
   </div>

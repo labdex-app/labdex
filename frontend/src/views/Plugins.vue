@@ -113,7 +113,7 @@ const dot = (i) => (!i.enabled ? 'off' : i.last_status === 'failed' ? 'bad' : 'o
       <FilterSelect v-model="show" label="Show" any="" :options="[{ value: 'all', label: 'all installed' }, { value: 'used', label: 'in use' }]" />
       <FilterSelect :model-value="cap" label="Brings" :options="usedCaps" @update:model-value="(v) => (cap = v || '')" />
       <span class="grow"></span>
-      <input v-model="q" type="search" placeholder="Search plugins and instances" style="max-width: 260px" aria-label="Search plugins">
+      <input v-model="q" type="search" placeholder="Search plugins and instances" aria-label="Search plugins">
     </div>
 
     <div class="pgrid">

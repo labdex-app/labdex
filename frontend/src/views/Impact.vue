@@ -46,7 +46,7 @@ const hostLink = (r) => `/hosts/${r.uid || r.host}`
     <div class="card pick">
       <span class="small muted">If these go down:</span>
       <span v-for="n in chosen" :key="n" class="chip mono">{{ n }}
-        <button class="x" :aria-label="`Remove ${n}`" @click="drop(n)"><X :size="12" /></button></span>
+        <button class="chipx" :aria-label="`Remove ${n}`" @click="drop(n)"><X :size="12" /></button></span>
       <HostPicker all :exclude="chosen" placeholder="Add a host, switch, hypervisor…" style="min-width: 240px" @pick="add" />
     </div>
 
@@ -146,8 +146,6 @@ const hostLink = (r) => `/hosts/${r.uid || r.host}`
 <style scoped>
 .pick { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
 .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 9px; border-radius: 999px; background: var(--accent-faint); font-size: 13px; }
-.chip .x { border: 0; background: none; padding: 2px; cursor: pointer; color: inherit; opacity: 0.6; display: inline-flex; }
-.chip .x:hover { opacity: 1; }
 .empty { max-width: 640px; }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
 .stats.dim { opacity: 0.6; }

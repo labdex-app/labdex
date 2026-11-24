@@ -70,14 +70,33 @@ def test_hosts_search_open_and_back(page):
     page.fill("input[aria-label=\"Search hosts\"]", "dns")
     page.wait_for_timeout(200)
     assert 0 < rows.count() < total
-    rows.first.click()  # list-detail: the host shows in a drawer beside the list first
-    page.wait_for_selector(".drawer >> text=srv-vm-dns-01")
-    assert "peek=" in page.url and rows.count() > 0
-    page.click(".drawer >> text=Open host")
+    rows.first.click()  # a host opens on its own page, no side panel
     page.wait_for_selector(".glance")
+    assert "/hosts/" in page.url and "peek=" not in page.url
     page.go_back()
     page.wait_for_selector("table tbody tr")
     assert page.input_value("input[aria-label=\"Search hosts\"]") == "dns"  # the list page was kept alive
+
+
+def test_host_page_previews_the_diff_and_edits_yaml(page, server):
+    open_host(page, server, "srv-vm-ha-01", "overview")
+    page.locator("label.field:has(> span:text-is('Function')) input").first.fill("Home automation (e2e)")
+    page.click(".oh-acts >> text=Preview diff")
+    page.wait_for_selector(".dlg .cb-line.add >> text=Home automation (e2e)")
+    assert page.locator(".dlg .cb-line.del").count() == 1
+    page.click(".dlg button.primary")
+    page.wait_for_selector(".dlg", state="detached")
+    page.wait_for_selector(".oh-acts >> text=Saved")
+    page.click(".tabs >> text=YAML")
+    page.wait_for_selector(".cb-line >> text=Home automation (e2e)")
+    page.click("text=Edit YAML")
+    box = page.locator("textarea[aria-label='The host as YAML']")
+    box.fill(box.input_value().replace("Home automation (e2e)", "Home automation (yaml)"))
+    page.click(".yh >> text=Preview diff")
+    page.wait_for_selector(".cb-line.add >> text=Home automation (yaml)")
+    page.click(".yh button.primary")
+    page.wait_for_selector("text=This host’s entry in its site file.")
+    assert page.evaluate("async () => (await (await fetch('/api/hosts/srv-vm-ha-01')).json()).function") == "Home automation (yaml)"
 
 
 def test_edit_host_and_see_it_in_the_list(page, server):
@@ -91,22 +110,6 @@ def test_edit_host_and_see_it_in_the_list(page, server):
     assert r == 200
     page.goto(server + "/hosts?kind=virtual")
     page.wait_for_selector("text=Resolver (e2e) >> visible=true")
-
-
-def test_quick_edit_in_the_drawer_shows_a_diff_and_saves(page, server):
-    page.goto(server + "/hosts?kind=virtual")
-    page.click("td >> text=srv-vm-ha-01")
-    page.click(".drawer >> button:has-text('Edit')")
-    page.wait_for_selector(".drawer >> text=Edit host")
-    page.locator(".drawer").get_by_label("Function").fill("Home automation (e2e)")
-    page.wait_for_selector(".drawer >> text=1 change: function")
-    page.click(".drawer >> text=Preview diff")
-    page.wait_for_selector(".cb-line.add >> text=Home automation (e2e)")
-    assert page.locator(".cb-line.del").count() == 1
-    page.click(".drawer >> button.primary")
-    page.wait_for_selector("td >> text=Home automation (e2e) >> visible=true")
-    page.wait_for_selector(".drawer >> text=No changes yet")
-    assert "edit=1" in page.url  # still editing the same host, with the list updated beside it
 
 
 def test_checks_list_beside_the_finding(page, server):
@@ -578,10 +581,12 @@ def test_patches_page_and_host_card(page, server, tmp_path):
     page.goto(server + "/patches")
     page.wait_for_selector("td >> text=srv-vm-dns-01")
     assert page.locator(".kpi.security b").inner_text() == "1"
-    page.click("tr.click:has-text('srv-vm-dns-01')")
-    page.wait_for_selector(".drawer .pdetail >> text=openssl")
     page.screenshot(path=str(tmp_path / "patches.png"))
-    page.click(".drawer button[aria-label='Close']")
+    page.click("tr.click:has-text('srv-vm-dns-01')")  # no side panel: the host's Updates tab
+    page.wait_for_selector("td >> text=openssl")
+    assert "tab=updates" in page.url
+    page.go_back()
+    page.wait_for_selector("td >> text=srv-vm-dns-01")
     page.click(".kpi.current")
     page.wait_for_function("document.querySelectorAll('tr.click').length === 1")
     open_host(page, server, "srv-vm-dns-01")

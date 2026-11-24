@@ -46,7 +46,7 @@ const paged = computed(() => filtered.value.slice(page.value * SIZE, (page.value
       <h1>DNS</h1>
       <span v-if="d" class="h-tag">{{ d.generated.length }} records · {{ d.zones.length }} zone{{ d.zones.length === 1 ? '' : 's' }}</span>
       <span class="grow"></span>
-      <input v-model="q" type="search" placeholder="Search names, values, hosts" style="max-width: 300px" aria-label="Search records">
+      <input v-model="q" type="search" placeholder="Search names, values, hosts" aria-label="Search records">
       <button class="btn small" :disabled="query.loading.value" @click="query.refresh()">Refresh</button>
     </div>
     <Loading v-if="loading" label="Asking the DNS servers…" />
@@ -82,8 +82,8 @@ const paged = computed(() => filtered.value.slice(page.value * SIZE, (page.value
             </tbody>
           </table>
         </div>
+        <Pager v-model="page" :total="filtered.length" :size="SIZE" unit="records" />
       </div>
-      <Pager v-model="page" :total="filtered.length" :size="SIZE" />
       <p v-if="!servers.length" class="hint">Add a Technitium integration to compare with what your DNS server holds.</p>
       <p v-else class="hint">Unmanaged records stay as they are; labdex only changes what it made (comment "labdex").</p>
     </template>

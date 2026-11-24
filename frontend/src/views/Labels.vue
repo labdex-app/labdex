@@ -87,7 +87,7 @@ const print = () => window.print()
 </script>
 
 <template>
-  <div class="page wide">
+  <div class="page">
     <div class="page-head no-print">
       <h1>Labels</h1>
       <span class="grow"></span>
@@ -109,15 +109,15 @@ const print = () => window.print()
               <option v-for="z in zones" :key="z" :value="z">{{ z }}</option></select>
           </div>
           <div class="chips"><span v-for="n in chosenHosts" :key="n" class="chip mono">{{ n }}
-            <button class="x" :aria-label="`Remove ${n}`" @click="dropHost(n)"><X :size="12" /></button></span></div>
+            <button class="chipx" :aria-label="`Remove ${n}`" @click="dropHost(n)"><X :size="12" /></button></span></div>
           <a v-if="chosenHosts.length" href="#" class="small" @click.prevent="set({ host: [] })">Clear</a>
         </template>
 
         <template v-else-if="what === 'cables'">
           <p class="small muted">Two labels per cable, one for each end: which end it is and where the other one goes.</p>
-          <label class="small"><input type="checkbox" :checked="cables.length && chosenCables.size === cables.length" @change="allCables"> all {{ cables.length }}</label>
+          <label class="check tick small"><input type="checkbox" :checked="cables.length && chosenCables.size === cables.length" @change="allCables"> all {{ cables.length }}</label>
           <div class="pick-list">
-            <label v-for="c in cables" :key="c.id" class="small"><input type="checkbox" :checked="chosenCables.has(String(c.id))" @change="toggle('cable', String(c.id))">
+            <label v-for="c in cables" :key="c.id" class="check tick small"><input type="checkbox" :checked="chosenCables.has(String(c.id))" @change="toggle('cable', String(c.id))">
               <b class="mono">{{ c.label || '—' }}</b> <span class="muted">{{ c.a_host }} {{ c.a_port }} ⇄ {{ c.b_host }} {{ c.b_port }}</span></label>
           </div>
         </template>
@@ -130,7 +130,7 @@ const print = () => window.print()
 
         <template v-else>
           <div class="pick-list">
-            <label v-for="r in racks" :key="r.uid" class="small"><input type="checkbox" :checked="chosenRacks.has(r.uid)" @change="toggle('rack', r.uid)">
+            <label v-for="r in racks" :key="r.uid" class="check tick small"><input type="checkbox" :checked="chosenRacks.has(r.uid)" @change="toggle('rack', r.uid)">
               <b>{{ r.name }}</b> <span class="muted">{{ r.site }}</span></label>
             <p v-if="!racks.length" class="small muted">No racks yet.</p>
           </div>
@@ -138,7 +138,7 @@ const print = () => window.print()
 
         <hr>
         <label class="small fld">Label<select v-model="fmtId"><option v-for="f in FORMATS" :key="f.id" :value="f.id">{{ f.name }}</option></select></label>
-        <label class="small"><input type="checkbox" :checked="withQr" @change="set({ qr: withQr ? '0' : undefined })"> QR code
+        <label class="check small"><input type="checkbox" :checked="withQr" @change="set({ qr: withQr ? '0' : undefined })"> QR code
           <span v-if="withQr && !qrShown" class="faint">(not on labels this small)</span></label>
         <label v-if="fmt.sheet" class="small fld">Start at label<input type="number" min="1" :value="skip + 1" style="width: 70px"
           @change="(e) => set({ skip: String(Math.max(0, (parseInt(e.target.value, 10) || 1) - 1)) || undefined })">
@@ -195,7 +195,6 @@ const print = () => window.print()
 .fld { display: flex; flex-direction: column; gap: 4px; }
 .chips { display: flex; flex-wrap: wrap; gap: 5px; }
 .chip { display: inline-flex; align-items: center; gap: 3px; padding: 2px 4px 2px 8px; border-radius: 999px; background: var(--accent-faint); font-size: 12px; }
-.chip .x { border: 0; background: none; padding: 1px; cursor: pointer; color: inherit; opacity: 0.6; display: inline-flex; }
 .pick-list { max-height: 360px; overflow: auto; display: flex; flex-direction: column; gap: 3px; }
 .pick-list label { display: flex; gap: 6px; align-items: baseline; }
 
