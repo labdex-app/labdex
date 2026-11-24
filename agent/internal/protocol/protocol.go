@@ -48,7 +48,22 @@ var JobTypes = map[string]JobType{
 	"patch.report":       {"", 600, "updates waiting and whether a reboot is needed"},
 	"patch.apply":        {"patch", 3600, "install the waiting updates (a reboot needs the reboot capability too)"},
 	"ansible.run":        {"ansible", 3600, "run a signed playbook bundle from git on this host"},
+	// Go agent only (the hub sends it to agents whose hello lists it): labdex runs Ansible itself
+	// and reaches this host's sshd through pipes in the link. See "Ansible over the link".
+	"ansible.session": {"ansible", 3600, "let labdex reach this host's sshd through the link for one Ansible run"},
 }
+
+// GoOnly are the job types only the Go agent has; the contract's shared cases leave them out.
+var GoOnly = map[string]bool{"ansible.session": true}
+
+// Pipes: byte streams in the link from the hub to this host's sshd, for ansible.session.
+const (
+	MaxSessionMinutes  = 60        // an Ansible session lasts at most this long
+	MaxPipesPerSession = 4         // ssh connections at once in one session
+	MaxPipes           = 8         // in all sessions together
+	PipeChunk          = 32 * 1024 // bytes per pipe.data message, before base64
+	PipeQueue          = 256       // pipe.data messages from the hub waiting for sshd, per pipe
+)
 
 // Capabilities are the write capabilities, each switched on at both ends.
 var Capabilities = []string{"patch", "reboot", "ansible"}

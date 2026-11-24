@@ -142,6 +142,8 @@ type Agent struct {
 	heartbeat  time.Duration
 	beatReset  chan struct{} // the hub set another heartbeat interval
 	lastWrite  time.Time
+	pipes      *pipes
+	sendHook   func(map[string]any) bool // tests: stands in for the link
 }
 
 type bundleAnswer struct {
@@ -167,12 +169,15 @@ func New(cfg *Config, creds *Credentials, r runner.Runner, log func(string)) (*A
 		audit: &AuditLog{path: filepath.Join(cfg.StateDir, "audit.log")}, seen: OpenSeen(filepath.Join(cfg.StateDir, "seen.json")),
 		spool: sp, beatFile: filepath.Join(cfg.StateDir, "heartbeat"), metrics: host.NewMetrics(host.Proc),
 		slots: make(chan struct{}, Workers), ctx: ctx, cancel: cancel, bundles: map[string]chan bundleAnswer{},
-		heartbeat: protocol.Heartbeat, beatReset: make(chan struct{}, 1)}, nil
+		heartbeat: protocol.Heartbeat, beatReset: make(chan struct{}, 1), pipes: newPipes()}, nil
 }
 
 // -- sending
 
 func (a *Agent) send(message map[string]any) bool {
+	if a.sendHook != nil {
+		return a.sendHook(message)
+	}
 	a.mu.Lock()
 	c := a.conn
 	a.mu.Unlock()
@@ -264,6 +269,7 @@ func (a *Agent) link() error {
 		a.conn = nil
 		a.mu.Unlock()
 		_ = c.CloseNow()
+		a.closeAllPipes("the link closed")
 	}()
 	go a.pinger(pctx, c)
 	a.send(a.hello())
@@ -343,6 +349,14 @@ func (a *Agent) handle(message map[string]any) {
 		}
 	case "job":
 		a.take(message)
+	case "pipe.open":
+		go a.handlePipeOpen(message) // connecting to sshd must not hold up the link
+	case "pipe.data":
+		a.handlePipeData(message)
+	case "pipe.close":
+		a.handlePipeClose(message)
+	case "session.end":
+		a.handleSessionEnd(message)
 	case "renew":
 		key, csr, err := NewRequest()
 		if err != nil {
@@ -458,7 +472,8 @@ func (a *Agent) refuse(env *protocol.Envelope, why string, answer bool) {
 
 func (a *Agent) run(env *protocol.Envelope) {
 	started := time.Now()
-	ctx := &jobs.Context{Runner: a.Runner, Allow: a.Cfg.Allow, StateDir: a.Cfg.StateDir, FetchBundle: a.fetchBundle, WriteLock: &a.writeLock}
+	ctx := &jobs.Context{Runner: a.Runner, Allow: a.Cfg.Allow, StateDir: a.Cfg.StateDir, FetchBundle: a.fetchBundle,
+		OpenSession: a.openSession, WriteLock: &a.writeLock}
 	var result map[string]any
 	ok, errText := true, ""
 	func() {
@@ -559,6 +574,7 @@ func (a *Agent) Stop() {
 // won't take this agent, nil when stopped.
 func (a *Agent) Run() error {
 	go a.beatLoop()
+	go a.expireLoop()
 	backoff := time.Second
 	for a.ctx.Err() == nil {
 		started := time.Now()

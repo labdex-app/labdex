@@ -23,6 +23,8 @@ type Context struct {
 	StateDir string
 	// FetchBundle asks the hub for an Ansible bundle over the link; nil without a link.
 	FetchBundle func(sha256 string) ([]byte, error)
+	// OpenSession starts an ansible.session (pipes to sshd until `until`); nil without a link.
+	OpenSession func(id string, until time.Time) error
 	// WriteLock: write jobs run one at a time.
 	WriteLock *sync.Mutex
 }
@@ -38,6 +40,7 @@ var Handlers = map[string]Handler{
 	"patch.report":       patchReport,
 	"patch.apply":        patchApply,
 	"ansible.run":        AnsibleRun,
+	"ansible.session":    AnsibleSession,
 }
 
 // Names is the sorted list of job types this agent runs (for hello).

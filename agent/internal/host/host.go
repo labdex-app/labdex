@@ -7,7 +7,9 @@ import (
 	"net"
 	"os"
 	"os/user"
+	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -225,20 +227,21 @@ func Facts() map[string]any {
 		}
 	}
 	return map[string]any{
-		"hostname":   hostname,
-		"fqdn":       fqdn(hostname),
-		"os":         osName,
-		"os_id":      rel["ID"],
-		"os_version": rel["VERSION_ID"],
-		"kernel":     release,
-		"arch":       machine,
-		"cpus":       numCPU(),
-		"memory":     mem["MemTotal"],
-		"disks":      disks,
-		"agent":      "go",
-		"user":       UserName(),
-		"root":       os.Geteuid() == 0,
-		"boot_time":  int64(math.RoundToEven(float64(time.Now().UnixNano())/1e9 - Uptime(Proc))),
+		"hostname":      hostname,
+		"fqdn":          fqdn(hostname),
+		"os":            osName,
+		"os_id":         rel["ID"],
+		"os_version":    rel["VERSION_ID"],
+		"kernel":        release,
+		"arch":          machine,
+		"cpus":          numCPU(),
+		"memory":        mem["MemTotal"],
+		"disks":         disks,
+		"agent":         "go",
+		"user":          UserName(),
+		"root":          os.Geteuid() == 0,
+		"ssh_host_keys": SSHHostKeys("/etc/ssh"),
+		"boot_time":     int64(math.RoundToEven(float64(time.Now().UnixNano())/1e9 - Uptime(Proc))),
 	}
 }
 
@@ -297,3 +300,22 @@ func loadavg(proc string) [3]float64 {
 }
 
 func numCPU() int { return runtime.NumCPU() }
+
+// SSHHostKeys are sshd's public host keys ("<type> <base64>", sorted, comments dropped), so labdex
+// can pin them for Ansible runs over the link instead of trusting them on first use.
+func SSHHostKeys(dir string) []string {
+	out := []string{}
+	paths, _ := filepath.Glob(filepath.Join(dir, "ssh_host_*_key.pub"))
+	for _, p := range paths {
+		b, err := os.ReadFile(p)
+		if err != nil {
+			continue
+		}
+		f := strings.Fields(string(b))
+		if len(f) >= 2 && (strings.HasPrefix(f[0], "ssh-") || strings.HasPrefix(f[0], "ecdsa-")) {
+			out = append(out, f[0]+" "+f[1])
+		}
+	}
+	sort.Strings(out)
+	return out
+}

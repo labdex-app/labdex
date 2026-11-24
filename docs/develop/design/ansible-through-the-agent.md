@@ -1,7 +1,7 @@
 # Design: Ansible through the agent
 
-Status: **proposal**, waiting for decisions (see [Open decisions](#open-decisions)). Nothing here is
-built yet. The Python agent stays as it is; the new parts are for the Go agent only.
+Status: **decided**, being built (see [Decisions](#decisions)). The pipe in the protocol and the Go
+agent is the first part: [Ansible over the link](../agent-protocol.md#ansible-over-the-link). The Python agent stays as it is; the new parts are for the Go agent only.
 
 ## Goal
 
@@ -72,7 +72,7 @@ that, is reviewed far more than anything we would write, and keeps the agent a d
 | --- | --- | --- |
 | Job signing key (exists) | `<data>/agent-signing.key` | signing `ansible.session` and every other job |
 | Agent CA (exists) | `<data>/agent-ca.*` | the link's mTLS |
-| **SSH user CA** (new, Ed25519) | in the vault, or `<data>/ansible-ssh-ca.key` (decision D3) | signing per-run SSH certificates |
+| **SSH user CA** (new, Ed25519) | in the vault (D3) | signing per-run SSH certificates |
 | Vault entries (exist) | the vault | `{$secret: …}` in feature and host variables |
 | ansible-vault password (exists) | integration setting | files encrypted with `ansible-vault` |
 
@@ -166,7 +166,7 @@ It needs:
    which of the listed packages are installed in its facts (new; it asks the package manager the
    way the patch report does).
 
-Only distribution packages by default; PyPI is decision D4.
+Only distribution packages (D4). Ubuntu first (D6); the RHEL column waits until another distribution is wanted.
 
 ## 4. Privileges
 
@@ -275,24 +275,26 @@ To be built with the agent UI rework (separate thread), on the host's Agent tab:
 
 Each step a draft pull request of its own:
 
-1. **Protocol**: `ansible.session` and the `pipe.*` messages in
-   [agent-protocol.md](../agent-protocol.md), with conformance cases.
-2. **Go agent**: the pipe (to `127.0.0.1:<ssh_port>` only), sshd host keys in facts, rehearsal
-   checks in the Debian container.
+1. **Protocol and Go agent**: `ansible.session`, the `pipe.*` messages and `ssh_port` in
+   [agent-protocol.md](../agent-protocol.md); the pipe (to `127.0.0.1:<ssh_port>` only) and sshd's
+   host keys in the facts, with Go tests.
+2. (merged into 1)
 3. **labdex**: SSH CA, per-run certificates, the pipe broker and `labdex agent-pipe`, the runner
    choosing the agent pipe per host (hosts without one keep plain SSH).
 4. **install.sh**: `--ansible`, `--ansible-become`, `--packages`; the user, sshd drop-in, sudoers.
 5. **Requirements**: the module table, the module scan, the prepare play.
 6. **Agent tab** (with the UI thread).
-7. **Docs** and a full rehearsal: a real playbook through the pipe in the Debian container.
+7. **Docs** and a full rehearsal: a real playbook through the pipe in an Ubuntu container.
 
-## Open decisions
+## Decisions
 
-| | Question | Recommended |
+Decided by Mike on 2026-11-24:
+
+| | Question | Decision |
 | --- | --- | --- |
-| D1 | Transport: SSH inside the agent pipe, or an own connection plugin that runs commands over the link? | **Decided 2026-11-24: SSH inside the pipe** |
-| D2 | Become: root opt-in per host at both ends, accepting that it is full root (no narrow allowlist is possible)? | Yes |
-| D3 | SSH CA key: in the vault (runs need it unsealed) or in the data folder (scheduled runs work after a restart without unsealing)? | Vault |
-| D4 | Module requirements: distribution packages only, or also PyPI into a venv for modules without a package? | Distribution only, for now |
-| D5 | The existing `ansible.run` (local, root agent): keep, or remove once the pipe works? | Remove after the pipe has run on real hosts |
-| D6 | Which distributions first? | Debian/Ubuntu and the RHEL family, as for patching |
+| D1 | Transport | SSH inside the agent pipe |
+| D2 | Become | Root opt-in per host, at both ends, knowing it is full root |
+| D3 | SSH CA key | In the vault: Ansible runs need the vault unsealed |
+| D4 | Module requirements | Distribution packages only |
+| D5 | The existing `ansible.run` | Remove it once the pipe has run on real hosts |
+| D6 | First distribution | Ubuntu only; other distributions later |
