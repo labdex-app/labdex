@@ -44,3 +44,23 @@ jobs:
               yaml.safe_load(open(f)) if not f.endswith("mkdocs.yml") else yaml.load(open(f), Loader=yaml.BaseLoader)
           print("ok")
           PY
+
+  go:
+    name: Go agent
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+      - name: gofmt, vet, tests
+        working-directory: agent
+        run: |
+          test -z "$(gofmt -l . | tee /dev/stderr)"
+          go vet ./...
+          go test -race ./...
+      - name: Builds for amd64 and arm64
+        working-directory: agent
+        run: |
+          for arch in amd64 arm64; do CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -trimpath -o /dev/null ./cmd/labdex-agent; done

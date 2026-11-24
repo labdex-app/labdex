@@ -98,5 +98,6 @@ nav:
       - Branches, versions and releases: develop/releasing.md
       - REST API: develop/api.md
       - CLI: develop/cli.md
+      - Agent protocol: develop/agent-protocol.md
       - Contributing: develop/contributing.md
   - Changelog: changelog.md

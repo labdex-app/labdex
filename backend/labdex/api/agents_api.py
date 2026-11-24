@@ -78,6 +78,33 @@ def agent_package() -> tuple[bytes, str]:
     return out
 
 
+# The Go agent (agent/ in the repository, docs/develop/agent-protocol.md): one static binary per
+# architecture, built into the image. Python stays the default until the Go agent passes the same
+# install rehearsal (tools/agent_rehearsal.py --agent go); `install.sh --go` picks it.
+GO_ARCHES = ("amd64", "arm64")
+
+
+def _go_dir() -> Path:
+    return Path(current_app.config.get("LABDEX_AGENT_BIN_DIR") or AGENT_DIR / "bin")
+
+
+def go_binaries() -> dict[str, tuple[Path, str]]:
+    """{arch: (path, sha256)} of the Go agent's binaries that are there; {} when none were built."""
+    cache = current_app.extensions["labdex"].setdefault("agent_go", {})
+    out = {}
+    for arch in GO_ARCHES:
+        path = _go_dir() / f"labdex-agent-linux-{arch}"
+        try:
+            st = path.stat()
+        except OSError:
+            continue
+        key = (str(path), st.st_mtime_ns, st.st_size)
+        if cache.get(arch, (None,))[0] != key:
+            cache[arch] = (key, hashlib.sha256(path.read_bytes()).hexdigest())
+        out[arch] = (path, cache[arch][1])
+    return out
+
+
 @bp.get("/agents/install.sh")
 def agent_install_script():
     """The install script for hosts (read it before you run it)."""
@@ -89,6 +116,12 @@ def agent_download(name):
     if name == "labdex-agent.pyz":
         data, sha = agent_package()
         resp = Response(data, mimetype="application/zip")
+        resp.headers["X-Labdex-SHA256"] = sha
+        return resp
+    go = {f"labdex-agent-linux-{arch}": v for arch, v in go_binaries().items()}
+    if name in go:
+        path, sha = go[name]
+        resp = Response(path.read_bytes(), mimetype="application/octet-stream")
         resp.headers["X-Labdex-SHA256"] = sha
         return resp
     if name == "labdex-agent.service":
@@ -140,7 +173,15 @@ def agent_token(name):
     base = request.host_url.rstrip("/")
     cmd = (f"curl -fsSLo install.sh {base}/api/agents/install.sh && sudo sh install.sh --url {base} "
            f"--token {secret} --sha256 {sha}" + (" --root" if allow_root else ""))
-    return jsonify({"token": secret, "expires_at": agents._iso(t.expires_at), "sha256": sha, "command": cmd}), 201
+    out = {"token": secret, "expires_at": agents._iso(t.expires_at), "sha256": sha, "command": cmd}
+    go = go_binaries()
+    if go:
+        # one --sha256 per architecture: install.sh takes the binary that matches any of them
+        shas = " ".join(f"--sha256 {v[1]}" for v in go.values())
+        out["go"] = {"sha256": {arch: v[1] for arch, v in go.items()},
+                     "command": (f"curl -fsSLo install.sh {base}/api/agents/install.sh && sudo sh install.sh --go --url {base} "
+                                 f"--token {secret} {shas}" + (" --root" if allow_root else ""))}
+    return jsonify(out), 201
 
 
 # ----------------------------------------------------------------------------- the host's agent

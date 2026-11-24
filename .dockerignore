@@ -11,3 +11,4 @@ frontend/dist
 *.db
 **/.git
 plugins/
+backend/labdex/agent/bin

@@ -1,12 +1,15 @@
 """Rehearse the host agent's install in a throwaway systemd container, before you touch a real host.
 
-    cd backend && python tools/agent_rehearsal.py [--image IMAGE] [--keep]
+    cd backend && python tools/agent_rehearsal.py [--image IMAGE] [--keep] [--agent python|go]
 
 It starts a local labdex (gunicorn over TLS, client certificates required, the example inventory)
 and a container with systemd that stands in for a host. Then it does what the guide *A first agent,
 read-only* says: it fetches install.sh from labdex, installs read-only, and checks the service, the
 link, the client certificate and the read-only jobs. It revokes the agent, which must stop for good,
 and uninstalls with --purge, which must leave nothing behind.
+
+With --agent go it installs the Go agent (agent/, built here with `go build` unless
+LABDEX_AGENT_BIN_DIR already holds the binaries) through `install.sh --go`, and runs the same checks.
 
 Needs Docker (privileged containers, cgroup v2), openssl, and this backend installed with
 `.[server]`. The container shares the host's network to reach labdex on 127.0.0.1. Nothing outside
@@ -51,13 +54,26 @@ def free_port() -> int:
         return s.getsockname()[1]
 
 
+def go_binaries(work: Path) -> Path:
+    """The folder with the Go agent for this machine's architecture: LABDEX_AGENT_BIN_DIR, or built here."""
+    if os.environ.get("LABDEX_AGENT_BIN_DIR"):
+        return Path(os.environ["LABDEX_AGENT_BIN_DIR"])
+    out = work / "agent-bin"
+    arch = {"x86_64": "amd64", "aarch64": "arm64", "arm64": "arm64"}.get(os.uname().machine, os.uname().machine)
+    sh("go", "build", "-trimpath", "-o", str(out / f"labdex-agent-linux-{arch}"), "./cmd/labdex-agent",
+       cwd=ROOT / "agent", env=os.environ | {"CGO_ENABLED": "0", "GOOS": "linux", "GOARCH": arch})
+    return out
+
+
 class Hub:
-    def __init__(self, work: Path):
+    def __init__(self, work: Path, bin_dir: Path | None = None):
         self.work, self.data, self.port = work, work / "data", free_port()
         self.url = f"https://127.0.0.1:{self.port}"
         self.env = os.environ | {"LABDEX_DATA": str(self.data), "LABDEX_AGENT_MTLS": "required", "LABDEX_OFFICIAL_INDEX": "",
                                  "LABDEX_ADMIN_USER": USER, "LABDEX_ADMIN_PASSWORD": PASSWORD, "NO_PROXY": "127.0.0.1,localhost",
                                  "no_proxy": "127.0.0.1,localhost"}
+        if bin_dir is not None:
+            self.env["LABDEX_AGENT_BIN_DIR"] = str(bin_dir)
         self.proc = None
         self.cookies = None
 
@@ -140,10 +156,10 @@ class Box:
         sh("docker", "rm", "-f", self.name, check=False)
 
 
-def rehearse(image: str, keep: bool) -> list[str]:
+def rehearse(image: str, keep: bool, agent: str = "python") -> list[str]:
     work = Path(tempfile.mkdtemp(prefix="labdex-rehearsal-"))
     work.chmod(0o755)
-    hub, box = Hub(work), Box(image, work)
+    hub, box = Hub(work, go_binaries(work) if agent == "go" else None), Box(image, work)
     passed: list[str] = []
 
     def ok(what: str):
@@ -156,13 +172,21 @@ def rehearse(image: str, keep: bool) -> list[str]:
         box.start()
         ok(f"systemd runs in {image}")
         t = hub.call("POST", f"/api/hosts/{HOST}/agent/token", {})
+        if agent == "go":
+            if not t.get("go"):
+                raise Failed("labdex offers no Go agent: no binaries in LABDEX_AGENT_BIN_DIR")
+            how = "--go " + " ".join(f"--sha256 {sha}" for sha in t["go"]["sha256"].values())
+        else:
+            how = f"--sha256 {t['sha256']}"
         fetch = ("python3 -c \"import ssl, urllib.request as u; open('/root/install.sh', 'wb').write(u.urlopen("
                  f"'{hub.url}/api/agents/install.sh', context=ssl.create_default_context(cafile='/rehearsal/hub.pem')).read())\"")
-        out = box.run(f"{fetch} && sh /root/install.sh --url {hub.url} --token {t['token']} --sha256 {t['sha256']} "
+        out = box.run(f"{fetch} && sh /root/install.sh --url {hub.url} --token {t['token']} {how} "
                       "--ca-file /rehearsal/hub.pem").stdout
         if "running as labdex-agent" not in out:
             raise Failed(f"install.sh: {out[-500:]}")
-        ok("install.sh installed it read-only, as labdex-agent")
+        if agent == "go" and "/opt/labdex-agent/labdex-agent run" not in box.run("systemctl cat labdex-agent").stdout:
+            raise Failed("install.sh --go didn't point the service at the Go agent")
+        ok(f"install.sh installed the {agent} agent read-only, as labdex-agent")
         for _ in range(30):
             if box.run("labdex-agent health", check=False).returncode == 0:
                 break
@@ -175,7 +199,8 @@ def rehearse(image: str, keep: bool) -> list[str]:
             raise Failed("write rules in a read-only install:\n" + sudoers)
         ok("the sudo rules are read-only")
         a = hub.call("GET", f"/api/hosts/{HOST}/agent")["agent"]
-        if not (a["linked"] and a["cert"]["on_link"] and not a["root"] and not a["host_allow"]):
+        if not (a["linked"] and a["cert"]["on_link"] and not a["root"] and not a["host_allow"]
+                and (agent != "go" or a["facts"].get("agent") == "go")):
             raise Failed(f"agent state: {json.dumps(a)[:600]}")
         ok("linked with its client certificate")
         for kind in ("ping", "facts", "discovery.services", "patch.report"):
@@ -220,13 +245,14 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--image", default="geerlingguy/docker-debian12-ansible:latest", help="a container image with systemd")
     ap.add_argument("--keep", action="store_true", help="leave the container and labdex running to look around")
+    ap.add_argument("--agent", choices=["python", "go"], default="python", help="which agent to install (default: python)")
     args = ap.parse_args()
-    for tool in ("docker", "openssl"):
+    for tool in ("docker", "openssl") + (("go",) if args.agent == "go" and not os.environ.get("LABDEX_AGENT_BIN_DIR") else ()):
         if not shutil.which(tool):
             print(f"needs {tool}", file=sys.stderr)
             return 2
     try:
-        passed = rehearse(args.image, args.keep)
+        passed = rehearse(args.image, args.keep, args.agent)
     except Failed as e:
         print(f"FAILED: {e}", file=sys.stderr)
         return 1
