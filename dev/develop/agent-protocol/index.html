@@ -4109,8 +4109,9 @@ key and every check failure, redaction, <code>ss</code>, <code>systemctl show</c
 dnf output. The Python tests (<code>backend/tests/test_agent_conformance.py</code>) and the Go tests read the
 same file. A change to the contract changes this page and that file in the same pull request.</p>
 <p>The end-to-end check is the install rehearsal, <code>backend/tools/agent_rehearsal.py</code>: a local labdex
-over TLS with client certificates required, a systemd container standing in for a host, and 13
-checks from install to <code>--uninstall --purge</code>. <code>--agent go</code> runs it with the Go agent.</p>
+over TLS with client certificates required, a systemd container standing in for a host, and 15
+checks from install to <code>--uninstall --purge</code>. It installs the Go agent, like <code>install.sh</code>;
+<code>--agent python</code> runs it with the Python agent.</p>
 <h2 id="what-may-differ-between-agents">What may differ between agents<a class="headerlink" href="#what-may-differ-between-agents" title="Permanent link">&para;</a></h2>
 <ul>
 <li><code>version</code> and the <code>python</code> / <code>agent</code> / <code>ssh_host_keys</code> facts.</li>

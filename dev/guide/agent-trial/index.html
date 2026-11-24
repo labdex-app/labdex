@@ -2196,9 +2196,10 @@
 and leave the writes off: the agent then only reads, and you can take it all back with one command.</p>
 <h2 id="before-you-start">Before you start<a class="headerlink" href="#before-you-start" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>The host:</strong> Debian 12 or newer, Ubuntu 22.04 or newer, Fedora or RHEL 9, with systemd and
-  Python 3.11 or newer (<code>python3 --version</code>). A VM or a container with systemd will do. Take a
-  snapshot first if it is a VM.</li>
+<li><strong>The host:</strong> Debian 12 or newer, Ubuntu 22.04 or newer, Fedora or RHEL 9, amd64 or arm64, with
+  systemd. The command installs the Go agent, which needs no Python; for the
+  <a href="../agent/#the-python-agent">Python agent</a> the host needs Python 3.11 or newer. A VM or a
+  container with systemd will do. Take a snapshot first if it is a VM.</li>
 <li><strong>labdex:</strong> reachable from the host over <code>https://</code>, with this host in the inventory. If its
   certificate is from your own CA, copy that CA's certificate to the host for <code>--ca-file</code>.</li>
 <li><strong>A reverse proxy in front of labdex</strong> must pass WebSockets through for <code>/api/agents/link</code>.
@@ -2211,8 +2212,9 @@ and leave the writes off: the agent then only reads, and you can take it all bac
 container with systemd, against a local labdex that requires client certificates:</p>
 <div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>backend<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[server]"</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>python<span class="w"> </span>tools/agent_rehearsal.py
 </code></pre></div>
-<p>It installs read-only, checks the link, the certificate and the read-only jobs, revokes, and
-uninstalls. It ends with <code>all 15 checks passed</code>, or says what failed. It touches nothing outside the
+<p>It builds the Go agent first, so it needs Go too (or add <code>--agent python</code>). It installs read-only,
+checks the link, the certificate and the read-only jobs, revokes, and uninstalls. It ends with
+<code>all 15 checks passed</code>, or says what failed. It touches nothing outside the
 container and a temporary folder.</p>
 <h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
 <ol>
@@ -2257,12 +2259,12 @@ journalctl<span class="w"> </span>-u<span class="w"> </span>labdex-agent<span cl
 </thead>
 <tbody>
 <tr>
-<td><code>/opt/labdex-agent/labdex-agent.pyz</code></td>
-<td>the agent</td>
+<td><code>/opt/labdex-agent/labdex-agent</code></td>
+<td>the Go agent</td>
 </tr>
 <tr>
 <td><code>/usr/local/bin/labdex-agent</code></td>
-<td>a two-line wrapper to run it</td>
+<td>a link to it</td>
 </tr>
 <tr>
 <td><code>/etc/labdex-agent/agent.conf</code></td>
@@ -2286,8 +2288,10 @@ journalctl<span class="w"> </span>-u<span class="w"> </span>labdex-agent<span cl
 </tr>
 </tbody>
 </table>
-<p>Packages are installed only if <code>python3</code>, its <code>cryptography</code> package or <code>sudo</code> were missing; the
-script says which.</p>
+<p>With <code>--python</code>, <code>/opt/labdex-agent/labdex-agent.pyz</code> and its venv <code>/opt/labdex-agent/venv</code> take the
+Go agent's place, and <code>/usr/local/bin/labdex-agent</code> is a two-line wrapper that runs it.</p>
+<p>Packages are installed only if <code>sudo</code> was missing (with <code>--python</code>, also <code>python3</code>, or the
+distribution's <code>cryptography</code> when PyPI can't be reached); the script says which.</p>
 <h2 id="take-it-back">Take it back<a class="headerlink" href="#take-it-back" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>sh<span class="w"> </span>install.sh<span class="w"> </span>--uninstall<span class="w"> </span>--purge
 </code></pre></div>

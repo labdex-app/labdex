@@ -7658,6 +7658,16 @@
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>The Go agent is now the default.</strong> <code>install.sh</code> installs it unless you add <code>--python</code>, and the
+  enrol command on a host's Agent tab is the Go one wherever labdex serves the binaries (the image
+  always does), with the Python command under <em>The Python agent instead</em>. <code>--go</code> is still
+  accepted. <code>POST /api/hosts/&lt;name&gt;/agent/token</code> adds <code>agent</code> (<code>go</code> or <code>python</code>) and
+  <code>python.command</code>; <code>command</code> is the default one.</li>
+<li><strong>The Python agent runs from its own venv</strong>, <code>/opt/labdex-agent/venv</code>, with a current
+  <code>cryptography</code> from PyPI, or the distribution's where PyPI can't be reached. The unit and the
+  <code>labdex-agent</code> wrapper use the venv's Python.</li>
+<li>Fixed: the Python agent failed to enrol with cryptography older than 42 (Ubuntu 24.04 ships 41):
+  <code>'Certificate' object has no attribute 'not_valid_after_utc'</code>.</li>
 <li><strong>Go agent: pipes to sshd for Ansible runs</strong> (first part of running Ansible through the agent,
   see <em>Develop › Design: Ansible through the agent</em>). A signed <code>ansible.session</code> job (capability
   <code>ansible</code>) opens a session of up to 60 minutes in which labdex can open up to 4 byte pipes to

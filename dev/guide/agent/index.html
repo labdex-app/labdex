@@ -720,13 +720,30 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#the-go-agent-preview" class="md-nav__link">
+  <a href="#the-go-agent-and-the-python-agent" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The Go agent (preview)
+        The Go agent and the Python agent
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="The Go agent and the Python agent">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-python-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Python agent
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -2190,13 +2207,30 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#the-go-agent-preview" class="md-nav__link">
+  <a href="#the-go-agent-and-the-python-agent" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The Go agent (preview)
+        The Go agent and the Python agent
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="The Go agent and the Python agent">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-python-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Python agent
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -2383,11 +2417,10 @@ tab says so under the command. Behind a proxy that ends TLS, set the address onc
 <code>curl</code> (a minimal Debian), the command falls back to <code>wget</code>.</p>
 <p>Read <code>install.sh</code> before you run it. It:</p>
 <ol>
-<li>installs Python 3 (3.11 or newer), its <code>cryptography</code> package and <code>sudo</code> from the distribution,
-   but only what is missing. The agent brings its other libraries along, so nothing comes from
-   PyPI;</li>
-<li>downloads the agent (<code>/opt/labdex-agent/labdex-agent.pyz</code>) from labdex and checks it against
-   <code>--sha256</code>;</li>
+<li>installs <code>sudo</code> from the distribution, but only if it is missing;</li>
+<li>downloads the agent from labdex and checks it against <code>--sha256</code>. By default this is the Go
+   agent, one static binary (<code>/opt/labdex-agent/labdex-agent</code>) for amd64 or arm64. With <code>--python</code>
+   it is the Python agent instead, <a href="#the-python-agent">below</a>;</li>
 <li>creates the system user <code>labdex-agent</code> (no shell, no home);</li>
 <li>writes <code>/etc/labdex-agent/agent.conf</code> and the sudo rules in <code>/etc/sudoers.d/labdex-agent</code>
    (checked with <code>visudo</code> first);</li>
@@ -2418,8 +2451,12 @@ tab says so under the command. Behind a proxy that ends TLS, set the address onc
 <td>for a labdex with a certificate from your own CA.</td>
 </tr>
 <tr>
-<td><code>--go</code></td>
-<td>install the Go agent instead of the Python one (preview, below).</td>
+<td><code>--python</code></td>
+<td>install the Python agent instead of the Go one (<a href="#the-python-agent">below</a>).</td>
+</tr>
+<tr>
+<td><code>--sha256 …</code></td>
+<td>the agent's hash, from labdex. For the Go agent, once per architecture; the binary for this host must match one of them.</td>
 </tr>
 <tr>
 <td><code>--uninstall</code></td>
@@ -2432,20 +2469,32 @@ Without <code>curl</code> on the host, it downloads with Python instead; fetch <
 <div class="highlight"><pre><span></span><code>python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import urllib.request as u; open('install.sh','wb').write(u.urlopen('https://lantern.example.net/api/agents/install.sh').read())"</span>
 </code></pre></div>
 <p>The hub URL must be <code>https://</code>: the key travels over it.</p>
-<h3 id="the-go-agent-preview">The Go agent (preview)<a class="headerlink" href="#the-go-agent-preview" title="Permanent link">&para;</a></h3>
-<p>There is a second agent written in Go: one static binary for amd64 or arm64, so the host needs no
-Python for the agent itself. It speaks the same <a href="../../develop/agent-protocol/">protocol</a>, installs
-with the same script, the same user, sudo rules and systemd unit, and passes the same install
-rehearsal. The Python agent stays the default until the Go agent has run on real hosts.</p>
-<p>The labdex image builds both binaries and serves them; <code>POST /api/hosts/&lt;name&gt;/agent/token</code> then
-answers with a <code>go.command</code> as well. Install with <code>--go</code>, and one <code>--sha256</code> per architecture (the
-binary for this host must match one of them):</p>
-<div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>sh<span class="w"> </span>install.sh<span class="w"> </span>--go<span class="w"> </span>--url<span class="w"> </span>https://lantern.example.net<span class="w"> </span>--token<span class="w"> </span>lxe_…<span class="w"> </span>--sha256<span class="w"> </span>&lt;amd64&gt;<span class="w"> </span>--sha256<span class="w"> </span>&lt;arm64&gt;
+<h3 id="the-go-agent-and-the-python-agent">The Go agent and the Python agent<a class="headerlink" href="#the-go-agent-and-the-python-agent" title="Permanent link">&para;</a></h3>
+<p>There are two agents. They speak the same <a href="../../develop/agent-protocol/">protocol</a>, pass the same
+shared test cases and the same install rehearsal, and install with the same script, user, sudo
+rules and systemd unit.</p>
+<p>The <strong>Go agent</strong> is the default: one static binary, so the host needs no Python for the agent
+itself. The labdex image builds the binaries for amd64 and arm64 and serves them, and the command
+on the Agent tab installs it, with one <code>--sha256</code> per architecture:</p>
+<div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>sh<span class="w"> </span>install.sh<span class="w"> </span>--url<span class="w"> </span>https://lantern.example.net<span class="w"> </span>--token<span class="w"> </span>lxe_…<span class="w"> </span>--sha256<span class="w"> </span>&lt;amd64&gt;<span class="w"> </span>--sha256<span class="w"> </span>&lt;arm64&gt;
 </code></pre></div>
 <p>Ansible jobs still need Python on the host: the agent only starts <code>ansible-playbook</code>. When labdex
 runs from source, build the binaries into <code>backend/labdex/agent/bin/</code> (or point
 <code>LABDEX_AGENT_BIN_DIR</code> at them): <code>cd agent &amp;&amp; GOOS=linux GOARCH=amd64 go build -o
-../backend/labdex/agent/bin/labdex-agent-linux-amd64 ./cmd/labdex-agent</code>.</p>
+../backend/labdex/agent/bin/labdex-agent-linux-amd64 ./cmd/labdex-agent</code>. Without them, labdex
+offers only the Python agent, and the Agent tab's command says <code>--python</code>.</p>
+<h4 id="the-python-agent">The Python agent<a class="headerlink" href="#the-python-agent" title="Permanent link">&para;</a></h4>
+<p>With <code>--python</code>, <code>install.sh</code> installs the Python agent (<code>/opt/labdex-agent/labdex-agent.pyz</code>). It
+needs Python 3.11 or newer, which the script installs from the distribution if it is missing. The
+agent runs from its own venv, <code>/opt/labdex-agent/venv</code>, apart from the system's packages:</p>
+<ul>
+<li>the venv gets a current <code>cryptography</code> (42 or newer) from PyPI;</li>
+<li>where PyPI or the venv module's pip can't be had, the venv uses the distribution's
+  <code>python3-cryptography</code> instead (installed if missing). The agent works with older versions too,
+  such as 41 on Ubuntu 24.04.</li>
+</ul>
+<p>The agent brings its other libraries along. The Agent tab shows its command under <em>The Python
+agent instead</em>.</p>
 <h2 id="what-runs-with-privileges">What runs with privileges<a class="headerlink" href="#what-runs-with-privileges" title="Permanent link">&para;</a></h2>
 <p>The agent runs as <code>labdex-agent</code>. Its sudo rules allow exactly these command lines and nothing else
 (see them with <code>labdex-agent sudoers</code>):</p>
@@ -2689,7 +2738,9 @@ labdex-agent<span class="w"> </span>health<span class="w">                 </spa
 labdex-agent<span class="w"> </span>show<span class="w"> </span>discovery<span class="w">         </span><span class="c1"># what discovery would report, printed here, nothing sent</span>
 labdex-agent<span class="w"> </span>sudoers<span class="w">                </span><span class="c1"># the sudo rules for this host's capabilities</span>
 </code></pre></div>
-<p><code>labdex-agent</code> (in <code>/usr/local/bin</code>) runs <code>/usr/bin/python3 -I /opt/labdex-agent/labdex-agent.pyz</code>.
+<p><code>labdex-agent</code> (in <code>/usr/local/bin</code>) is the Go agent, a link to <code>/opt/labdex-agent/labdex-agent</code>. For
+the Python agent it is a wrapper that runs <code>/opt/labdex-agent/venv/bin/python -I
+/opt/labdex-agent/labdex-agent.pyz</code>.
 Its log is in the journal: <code>journalctl -u labdex-agent</code>. Write jobs log there too, as
 <code>labdex-agent-patch</code> and <code>labdex-agent-ansible</code>.</p>
 <h2 id="running-labdex-for-agents">Running labdex for agents<a class="headerlink" href="#running-labdex-for-agents" title="Permanent link">&para;</a></h2>
