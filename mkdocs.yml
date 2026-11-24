@@ -99,5 +99,6 @@ nav:
       - REST API: develop/api.md
       - CLI: develop/cli.md
       - Agent protocol: develop/agent-protocol.md
+      - "Design: Ansible through the agent": develop/design/ansible-through-the-agent.md
       - Contributing: develop/contributing.md
   - Changelog: changelog.md
