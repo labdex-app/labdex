@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Shared BitsAndBricks colours.** The web UI takes its greys, status colours, fonts and radii
+  from `@bitsandbricks/tokens`, like the other BitsAndBricks apps. The light theme's amber is a
+  little deeper (`#b85a0a`, white text on buttons) so it also reads as link text; the greys lose
+  their warm tint, and filled danger buttons follow the theme.
 - **Ansible through the agent.** A host whose Go agent has `ansible` on at both ends now takes
   part in Ansible runs through its agent's link instead of over the network: labdex makes a key
   and an SSH certificate per run and host (`labdex-ansible@<host>`, an hour, only from
