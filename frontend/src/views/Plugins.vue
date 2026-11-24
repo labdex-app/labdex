@@ -1,6 +1,6 @@
 <script setup>
 // Installed plugins with their instances (integrations), and the Marketplace for the rest.
-import { Plus } from 'lucide-vue-next'
+import { Plus, Settings2 } from 'lucide-vue-next'
 import FilterSelect from '../components/FilterSelect.vue'
 import Field from '../components/Field.vue'
 import Modal from '../components/Modal.vue'
@@ -19,6 +19,7 @@ watch(tab, (t) => { if (t === 'installed') load().catch(() => {}) }) // what the
 const available = ref(0)
 const updates = ref(0)
 const plugins = ref([])
+const instanceCount = computed(() => plugins.value.reduce((n, p) => n + p.instances.length, 0))
 const caps = ref({})
 const loadErrors = ref([])
 const missing = ref([])
@@ -84,8 +85,9 @@ const dot = (i) => (!i.enabled ? 'off' : i.last_status === 'failed' ? 'bad' : 'o
   <div class="page">
     <div class="page-head">
       <h1>Integrations</h1>
+      <span v-if="plugins.length" class="h-tag">{{ instanceCount }} instance{{ instanceCount === 1 ? '' : 's' }}</span>
       <span class="grow"></span>
-      <RouterLink v-if="state.meta.is_admin" to="/admin/plugins" class="btn small ghost">Repositories and upload</RouterLink>
+      <RouterLink v-if="state.meta.is_admin" to="/admin/plugins" class="btn"><Settings2 :size="15" /> Repositories and upload</RouterLink>
     </div>
     <p class="page-lead">What talks to your firewall, DNS, monitoring and hosts, and what makes files and pages. Each instance of a plugin has its own settings.</p>
 

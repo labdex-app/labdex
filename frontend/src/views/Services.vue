@@ -1,5 +1,6 @@
 <script setup>
 // Every service in the inventory, as a launcher: grouped by zone, with what Discovery saw.
+import { Globe } from 'lucide-vue-next'
 import FilterSelect from '../components/FilterSelect.vue'
 import { computed, ref } from 'vue'
 import ZoneChip from '../components/ZoneChip.vue'
@@ -32,6 +33,13 @@ const groups = computed(() => {
   for (const s of paged.value) (by[s.zone] ||= []).push(s)
   return Object.entries(by).sort(([a], [b]) => a.localeCompare(b)).map(([zone, items]) => ({ zone, items }))
 })
+const linked = computed(() => services.value.filter((s) => s.url).length)
+const pct = (n) => (services.value.length ? Math.round((100 * n) / services.value.length) : 0)
+const CARDS = [
+  { k: 'open', label: 'Answering', tone: 'ok', sub: 'port open or monitor up' },
+  { k: 'closed', label: 'Not answering', tone: 'err', sub: 'port closed or monitor down' },
+  { k: 'unknown', label: 'Not scanned', tone: '', sub: 'no scan or monitor yet' },
+]
 const counts = computed(() => ({
   open: services.value.filter((s) => s.status === 'open').length,
   closed: services.value.filter((s) => s.status === 'closed').length,
@@ -51,10 +59,25 @@ const counts = computed(() => ({
         <button :class="{ on: view === 'table' }" @click="setView('table')">Table</button>
       </div>
     </div>
+    <p class="page-lead">Every service in the inventory, grouped by zone, with what Discovery or a monitor last saw.</p>
+
+    <div v-if="services.length" class="kpis">
+      <button v-for="c in CARDS" :key="c.k" class="kpi" :class="[c.tone && `t-${c.tone}`, { on: status === c.k }]" :aria-pressed="status === c.k" @click="status = status === c.k ? '' : c.k">
+        <span class="label">{{ c.label }}</span>
+        <b>{{ counts[c.k] }}</b>
+        <div class="bar"><div :style="{ width: `${pct(counts[c.k])}%`, background: c.tone ? `var(--${c.tone})` : 'var(--faint)' }"></div></div>
+        <span class="small muted">{{ c.sub }}</span>
+      </button>
+      <button class="kpi" :class="{ on: linkedOnly }" :aria-pressed="linkedOnly" @click="linkedOnly = !linkedOnly">
+        <span class="label">With a link</span>
+        <b>{{ linked }}</b>
+        <div class="bar"><div :style="{ width: `${pct(linked)}%`, background: 'var(--accent)' }"></div></div>
+        <span class="small muted">open from the cards</span>
+      </button>
+    </div>
 
     <div class="filters">
       <FilterSelect :model-value="status" label="Status" :options="Object.entries(STATUS).map(([k, v]) => ({ value: k, label: `${v[1]} (${counts[k]})` }))" @update:model-value="(v) => (status = v || '')" />
-      <label class="check small ml-2"><input v-model="linkedOnly" type="checkbox"> with a link</label>
     </div>
 
     <template v-if="view === 'cards'">
@@ -74,7 +97,7 @@ const counts = computed(() => ({
               <span v-if="s.function" class="faint"> · {{ s.function }}</span>
             </div>
             <div class="row foot">
-              <a v-if="s.url" :href="s.url" target="_blank" rel="noopener" class="btn small primary">Open ↗</a>
+              <a v-if="s.url" :href="s.url" target="_blank" rel="noopener" class="btn small">Open ↗</a>
               <span v-if="s.url" class="mono small faint url" :title="s.url">{{ s.url.replace(/^https?:\/\//, '') }}</span>
               <span v-else class="mono small faint">{{ (s.addresses || []).slice(0, 2).join(' ') }}</span>
             </div>
@@ -82,7 +105,15 @@ const counts = computed(() => ({
         </div>
       </section>
       <Pager v-model="page" :total="visible.length" unit="services" />
-      <p v-if="!groups.length" class="empty">Nothing matches. Services are added on each host's Services tab.</p>
+      <div v-if="!groups.length && query.data.value" class="card empty">
+        <template v-if="services.length">Nothing matches.</template>
+        <template v-else>
+          <div class="e-ic"><Globe :size="18" /></div>
+          <div class="e-t">No services yet</div>
+          <p>Add services on a host's Services tab, or import them with the Traefik or Docker plugin.</p>
+          <div class="e-acts"><RouterLink to="/hosts" class="btn">Pick a host</RouterLink><RouterLink to="/plugins" class="btn ghost">Plugins</RouterLink></div>
+        </template>
+      </div>
     </template>
 
     <div v-else class="card flush">

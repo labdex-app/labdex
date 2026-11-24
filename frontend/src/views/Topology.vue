@@ -336,14 +336,14 @@ async function draw() {
   if (known.length && known.length === placed.nodes().filter((n) => !n.isParent()).length) {
     placed.layout({ name: 'preset', positions: (n) => pos[n.id()], fit: false }).run()
     c.nodes('[type = "host"]').forEach(placeName)
-    c.fit(undefined, 44)
+    fitCapped(c)
   } else {
     placed.layout({ name: 'fcose', quality: 'proof', animate: false, nodeDimensionsIncludeLabels: true, packComponents: true,
       idealEdgeLength: (e) => (e.data('kind') === 'stack' ? 30 : e.data('kind') === 'internal' ? 60 : e.data('kind') === 'address' ? 90 : 120),
       nodeRepulsion: () => 9000, nestingFactor: 0.6, tilingPaddingVertical: 20, tilingPaddingHorizontal: 20, padding: 30,
       fixedNodeConstraint: known.length ? known.map((n) => ({ nodeId: n.id(), position: pos[n.id()] })) : undefined }).run()
     c.nodes('[type = "host"]').forEach(placeName)
-    c.fit(undefined, 44)
+    fitCapped(c)
     const startOver = fresh
     fresh = false
     if (canArrange.value) remember(startOver ? 'replace' : 'all') // new nodes found their place: save it for everyone
@@ -457,7 +457,13 @@ function snap(node) {
   nodes.forEach((n) => n.position({ x: n.position('x') + shift.x, y: n.position('y') + shift.y }))
 }
 watch(grid, paintGrid)
-function fit() { cy.value?.animate({ fit: { padding: 30 }, duration: 200 }) }
+// a small map fitted to the canvas would blow up to maxZoom; f02 draws nodes at about 1:1
+const FIT_MAX = 1.2
+function fitCapped(c, padding = 44) {
+  c.fit(undefined, padding)
+  if (c.zoom() > FIT_MAX) c.zoom({ level: FIT_MAX, renderedPosition: { x: c.width() / 2, y: c.height() / 2 } })
+}
+function fit() { if (cy.value) fitCapped(cy.value, 30) }
 
 // ------------------------------------------------------------- the side panel
 const edgesOf = computed(() => {
