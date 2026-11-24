@@ -156,6 +156,15 @@ class Box:
         sh("docker", "rm", "-f", self.name, check=False)
 
 
+def until(cond, why: str, wait: float = 60) -> None:
+    end = time.time() + wait
+    while time.time() < end:
+        if cond():
+            return
+        time.sleep(0.5)
+    raise Failed(why)
+
+
 def rehearse(image: str, keep: bool, agent: str = "python") -> list[str]:
     work = Path(tempfile.mkdtemp(prefix="labdex-rehearsal-"))
     work.chmod(0o755)
@@ -172,16 +181,15 @@ def rehearse(image: str, keep: bool, agent: str = "python") -> list[str]:
         box.start()
         ok(f"systemd runs in {image}")
         t = hub.call("POST", f"/api/hosts/{HOST}/agent/token", {})
-        if agent == "go":
-            if not t.get("go"):
-                raise Failed("labdex offers no Go agent: no binaries in LABDEX_AGENT_BIN_DIR")
-            how = "--go " + " ".join(f"--sha256 {sha}" for sha in t["go"]["sha256"].values())
-        else:
-            how = f"--sha256 {t['sha256']}"
-        fetch = ("python3 -c \"import ssl, urllib.request as u; open('/root/install.sh', 'wb').write(u.urlopen("
-                 f"'{hub.url}/api/agents/install.sh', context=ssl.create_default_context(cafile='/rehearsal/hub.pem')).read())\"")
-        out = box.run(f"{fetch} && sh /root/install.sh --url {hub.url} --token {t['token']} {how} "
-                      "--ca-file /rehearsal/hub.pem").stdout
+        if agent == "go" and not t.get("go"):
+            raise Failed("labdex offers no Go agent: no binaries in LABDEX_AGENT_BIN_DIR")
+        command = t["go"]["command"] if agent == "go" else t["command"]
+        if f"curl -fsSLo install.sh {hub.url}/api/agents/install.sh" not in command:
+            raise Failed(f"the Agent tab's command doesn't use {hub.url}: {command}")
+        # a real labdex has a certificate the host trusts; here the host learns to trust the test one,
+        # so the command runs exactly as the Agent tab shows it
+        box.run("cp /rehearsal/hub.pem /usr/local/share/ca-certificates/labdex-rehearsal.crt && update-ca-certificates >/dev/null")
+        out = box.run(f"cd /root && {command}").stdout
         if "running as labdex-agent" not in out:
             raise Failed(f"install.sh: {out[-500:]}")
         if agent == "go" and "/opt/labdex-agent/labdex-agent run" not in box.run("systemctl cat labdex-agent").stdout:
@@ -214,6 +222,19 @@ def rehearse(image: str, keep: bool, agent: str = "python") -> list[str]:
         r = box.run("labdex-agent show discovery > /dev/null && echo shown", check=False)
         if "shown" in r.stdout:
             ok("labdex-agent show discovery works on the host")
+        # the Agent tab's actions: a new certificate now, and a new key through the shown command
+        first = a["cert"]["sha256"]
+        hub.call("POST", f"/api/hosts/{HOST}/agent/cert")
+        until(lambda: hub.call("GET", f"/api/hosts/{HOST}/agent")["agent"]["cert"]["sha256"] != first, "no new certificate")
+        box.run("systemctl restart labdex-agent")
+        until(lambda: (lambda x: x["linked"] and x["cert"]["on_link"])(hub.call("GET", f"/api/hosts/{HOST}/agent")["agent"]),
+              "didn't link again with the renewed certificate")
+        ok("Renew certificate: the agent linked with its new certificate")
+        t = hub.call("POST", f"/api/hosts/{HOST}/agent/token", {"reroll": True})
+        box.run(f"cd /root && {t['go']['command'] if agent == 'go' else t['command']}")
+        until(lambda: (lambda x: x["id"] != a["id"] and x["linked"])(hub.call("GET", f"/api/hosts/{HOST}/agent")["agent"]),
+              "the rerolled agent didn't link")
+        ok("Reroll key: the shown command enrolled a new key, the old one is revoked")
         hub.call("DELETE", f"/api/hosts/{HOST}/agent")
         for _ in range(20):
             if box.run("systemctl is-active labdex-agent", check=False).stdout.strip() != "active":

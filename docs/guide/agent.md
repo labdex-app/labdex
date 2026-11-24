@@ -22,6 +22,13 @@ curl -fsSLo install.sh https://lantern.example.net/api/agents/install.sh
 sudo sh install.sh --url https://lantern.example.net --token lxe_… --sha256 …
 ```
 
+The address in the command is always `https://`, because the agent only talks to labdex over TLS.
+labdex takes it from *Settings › General › Address of this labdex*; without one, from what a
+trusted reverse proxy forwards (`X-Forwarded-Proto` and `X-Forwarded-Host` from
+`LABDEX_TRUSTED_PROXIES`), and last from your browser's address. When it had to guess, the Agent
+tab says so under the command. Behind a proxy that ends TLS, set the address once. On hosts without
+`curl` (a minimal Debian), the command falls back to `wget`.
+
 Read `install.sh` before you run it. It:
 
 1. installs Python 3 (3.11 or newer), its `cryptography` package and `sudo` from the distribution,
@@ -146,7 +153,28 @@ absolute paths, no `..` and no links, then runs `ansible-playbook -i localhost, 
 **Agents** in the sidebar lists every host's agent: linked or not, when it was last seen, whether it
 runs as root, which writes are on at both ends, whether the link used its client certificate, and
 its latest CPU, memory and `/` use. The tiles filter the list, for example to agents that link
-without a certificate before you switch `LABDEX_AGENT_MTLS` to `required`.
+without a certificate before you switch `LABDEX_AGENT_MTLS` to `required`. *No agent* lists the
+hosts that have none yet, each with a link to enrol one.
+
+## Adopt what it found
+
+The **Discovered** card on the Agent tab lists the host's listening ports, its running systemd
+services and its containers. **Add as service** declares one as a service of the host, in the
+host's site file like any other edit (and in the audit). A port takes its name from its container,
+unit or process (`redis` for `redis-server` on 6379); a port bound only to loopback gets the note
+"listens on loopback only". A unit is added without a port. What the host already declares shows
+its service's name instead of the button.
+
+## Reroll the key, renew the certificate
+
+**Reroll key** on the Agent tab gives you a new one-time command for the host. It is the install
+command again, with the writes the host allowed (`--allow`) and `--root` if the agent runs as root.
+When it runs, the host gets a new key and labdex revokes the old one. Until then the old key keeps
+working, so a reroll you never run locks nothing out.
+
+**Renew certificate** asks the linked agent for a new client certificate now, rather than 30 days
+before the current one runs out. The current certificate works until the agent links with the new
+one. It needs a linked agent. Both actions are in the audit (`reroll`, `cert-renew`).
 
 ## Revoke
 
@@ -250,7 +278,11 @@ for every job it accepted, refused or finished, without the job's output.
 
 `GET /api/agents/metrics` returns each connected agent's latest heartbeat in the Prometheus text
 format, as `labdex_agent_*` with `host` and `agent` labels. Point VictoriaMetrics at it with an API
-token. labdex itself keeps no history of these numbers.
+token for longer history.
+
+labdex keeps 48 hours itself: one sample per host every 5 minutes (CPU, memory, `/`, load and
+network). The Agent tab and the host's Overview draw them as small charts, and a linked agent
+counts as a live source for the host's health, so its 48 h strip fills without a monitoring plugin.
 
 The latest values also show in labdex while the agent is linked: CPU, memory and disk use (`/`)
 on the host page, as columns on the hosts list and in a host's Guests table, and as each site's

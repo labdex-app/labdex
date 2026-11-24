@@ -9,6 +9,13 @@ import Pager from '../components/Pager.vue'
 import { usePaged } from '../paged'
 
 const query = useQuery(() => '/api/agents', { onError: (e) => toast(e.message, 'error') })
+// hosts with no agent yet: the next ones to enrol
+const hostsQ = useQuery(() => '/api/hosts?fields=name,status,kind', { onError: () => {} })
+const without = computed(() => {
+  const have = new Set(agents.value.map((a) => a.host))
+  const all = hostsQ.data.value?.hosts || hostsQ.data.value || []
+  return (Array.isArray(all) ? all : []).filter((h) => !have.has(h.name) && h.status !== 'offline' && h.kind !== 'vip')
+})
 const agents = computed(() => query.data.value?.agents || [])
 const q = ref('')
 const filter = ref('')
@@ -41,6 +48,8 @@ const rows = computed(() => {
     .sort((a, b) => Number(a.linked) - Number(b.linked) || a.host.localeCompare(b.host))
 })
 const { page, rows: paged } = usePaged(rows, { resetOn: [q, filter] })
+const certUntil = (a) => (a.cert?.not_after ? new Date(a.cert.not_after) : null)
+const certDays = (a) => (certUntil(a) ? Math.floor((certUntil(a) - Date.now()) / 86400e3) : null)
 const mode = computed(() => agents.value[0]?.cert?.mode || '')
 </script>
 
@@ -60,9 +69,26 @@ const mode = computed(() => agents.value[0]?.cert?.mode || '')
         <div class="bar"><div :style="{ width: `${pct(counts[k], agents.length) || 0}%`, background: BAR[tone] }"></div></div>
         <span class="small muted">{{ sub }}</span>
       </button>
+      <button class="kpi" :class="{ on: filter === 'none' }" :aria-pressed="filter === 'none'" @click="filter = filter === 'none' ? '' : 'none'">
+        <span class="label">No agent</span>
+        <b>{{ without.length }}</b>
+        <div class="bar"><div :style="{ width: `${pct(without.length, without.length + agents.length) || 0}%`, background: 'var(--line-strong)' }"></div></div>
+        <span class="small muted">hosts to enrol</span>
+      </button>
     </div>
 
-    <div class="card flush">
+    <div v-if="filter === 'none'" class="card flush">
+      <div class="table-wrap"><table>
+        <thead><tr><th>Host</th><th class="r">Agent</th></tr></thead>
+        <tbody>
+          <tr v-for="h in without" :key="h.name"><td><RouterLink :to="`/hosts/${h.name}`" class="mono">{{ h.name }}</RouterLink></td>
+            <td class="r"><RouterLink :to="{ path: `/hosts/${h.name}`, query: { tab: 'agent' } }" class="btn small">Enrol</RouterLink></td></tr>
+          <tr v-if="!without.length"><td colspan="2" class="empty">Every host has an agent.</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div v-else class="card flush">
       <div class="table-wrap">
         <table>
           <thead><tr><th>Host</th><th>Link</th><th>Runs as</th><th>Writes</th><th>Certificate</th><th class="num">CPU</th><th class="num">Memory</th><th class="num">/</th><th>Version</th></tr></thead>
@@ -83,7 +109,7 @@ const mode = computed(() => agents.value[0]?.cert?.mode || '')
                 <span v-else-if="certState(a) === 'expiring'" class="warn">runs out soon</span>
                 <span v-else-if="certState(a) === 'issued'" class="faint">issued</span>
                 <span v-else class="faint">—</span>
-                <div v-if="a.cert?.not_after" class="faint">until {{ new Date(a.cert.not_after).toLocaleDateString() }}</div>
+                <div v-if="certUntil(a)" :class="certDays(a) < 30 ? 'warn' : 'faint'">until {{ certUntil(a).toLocaleDateString() }}</div>
               </td>
               <td class="num mono">{{ a.linked && a.metrics?.cpu_percent != null ? `${Math.round(a.metrics.cpu_percent)} %` : '—' }}</td>
               <td class="num mono">{{ a.linked && pct(a.metrics?.mem_total - a.metrics?.mem_available, a.metrics?.mem_total) != null ? `${pct(a.metrics.mem_total - a.metrics.mem_available, a.metrics.mem_total)} %` : '—' }}</td>
@@ -104,7 +130,7 @@ const mode = computed(() => agents.value[0]?.cert?.mode || '')
       </div>
       <Pager v-model="page" :total="rows.length" unit="agents" />
     </div>
-    <p class="hint">
+    <p class="hint mt-3">
       Enrol an agent on a host's <b>Agent</b> tab. Client certificates: <span class="mono">{{ mode || '—' }}</span>
       (<a href="https://labdex-app.github.io/labdex/guide/agent/#client-certificates" target="_blank" rel="noopener">LABDEX_AGENT_MTLS</a>).
       Metrics for VictoriaMetrics: <span class="mono">/api/agents/metrics</span>.
@@ -114,6 +140,7 @@ const mode = computed(() => agents.value[0]?.cert?.mode || '')
 
 <style scoped>
 .num { text-align: right; font-variant-numeric: tabular-nums; }
+.r { text-align: right; }
 .st { font-size: 12px; padding: 0 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
 .ok { color: var(--ok); }
 .bad { color: var(--err); }
