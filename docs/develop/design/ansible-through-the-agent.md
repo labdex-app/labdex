@@ -290,7 +290,7 @@ Each step a draft pull request of its own:
 
 | | Question | Recommended |
 | --- | --- | --- |
-| D1 | Transport: SSH inside the agent pipe, or an own connection plugin that runs commands over the link? | SSH inside the pipe |
+| D1 | Transport: SSH inside the agent pipe, or an own connection plugin that runs commands over the link? | **Decided 2026-11-24: SSH inside the pipe** |
 | D2 | Become: root opt-in per host at both ends, accepting that it is full root (no narrow allowlist is possible)? | Yes |
 | D3 | SSH CA key: in the vault (runs need it unsealed) or in the data folder (scheduled runs work after a restart without unsealing)? | Vault |
 | D4 | Module requirements: distribution packages only, or also PyPI into a venv for modules without a package? | Distribution only, for now |
