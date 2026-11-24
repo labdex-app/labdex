@@ -76,8 +76,16 @@ func TestCapabilitiesConformance(t *testing.T) {
 			t.Errorf("%s %v: %v, want %v", c.Type, c.Params, got, c.Needs)
 		}
 	}
-	if len(s.JobTypes) != len(JobTypes) {
-		t.Fatalf("job types: %d here, %d in the contract", len(JobTypes), len(s.JobTypes))
+	if len(s.JobTypes)+len(GoOnly) != len(JobTypes) {
+		t.Fatalf("job types: %d here (%d Go only), %d in the contract", len(JobTypes), len(GoOnly), len(s.JobTypes))
+	}
+	for name := range GoOnly {
+		if _, shared := s.JobTypes[name]; shared {
+			t.Errorf("%s is in the shared contract now: drop it from GoOnly", name)
+		}
+		if _, ok := JobTypes[name]; !ok {
+			t.Errorf("%s is Go only but not a job type", name)
+		}
 	}
 	for name, want := range s.JobTypes {
 		got, ok := JobTypes[name]

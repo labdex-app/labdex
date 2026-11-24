@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/labdex-app/labdex/agent/internal/protocol"
@@ -31,6 +32,8 @@ type Config struct {
 	Allow    map[string]bool
 	CAFile   string
 	StateDir string
+	// SSHPort is the one port ansible.session pipes reach, on 127.0.0.1 only.
+	SSHPort int
 }
 
 // readINI reads the keys of one section the way Python's configparser does for simple files:
@@ -74,6 +77,14 @@ func LoadConfig(path, url string) (*Config, error) {
 	c := &Config{URL: strings.TrimRight(url, "/"), Allow: map[string]bool{}, CAFile: s["ca_file"], StateDir: s["state_dir"]}
 	if c.StateDir == "" {
 		c.StateDir = StateDir
+	}
+	c.SSHPort = 22
+	if v := s["ssh_port"]; v != "" {
+		p, err := strconv.Atoi(v)
+		if err != nil || p < 1 || p > 65535 {
+			return nil, fmt.Errorf("labdex-agent: ssh_port must be a port number, not %q", v)
+		}
+		c.SSHPort = p
 	}
 	var unknown []string
 	for _, a := range strings.Fields(strings.ReplaceAll(s["allow"], ",", " ")) {
