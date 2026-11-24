@@ -18,6 +18,7 @@ const KEEP = ['Hosts', 'Networks', 'Services', 'Patches', 'Agents', 'Aliases', '
 const route = useRoute()
 const router = useRouter()
 const error = ref('')
+const retrying = ref(false)
 const menu = ref(false)
 const drawer = ref(false) // mobile
 let collapsed = false
@@ -135,22 +136,48 @@ async function loadUpdate() {
   try { update.value = (await api.get('/api/about/update')).update } catch { /* the About page shows why */ }
 }
 
+// Who is signed in and the meta first, then the rest. The view changes once, when both are known: clearing the
+// error before the requests would blank the page in between, and a failed retry would flash.
 async function start() {
-  error.value = ''
+  retrying.value = true
+  let st
   try {
-    const st = await loadAuth()
-    if (!st.user) return
-    await loadMeta()
-    refreshLint()
-    refreshPending()
-    loadNav()
-    loadUpdate()
-    loadSidebar()
-    refreshBar()
-    startEvents()
+    st = await loadAuth()
+    if (st.user) await loadMeta()
   } catch (e) {
     error.value = `Can't reach the labdex API: ${e.message}`
+    return
+  } finally {
+    retrying.value = false
   }
+  error.value = ''
+  if (st.user) boot()
+}
+
+function boot() {
+  refreshLint()
+  refreshPending()
+  loadNav()
+  loadUpdate()
+  loadSidebar()
+  refreshBar()
+  startEvents()
+}
+
+// The sign-in form waits on this. state.auth only gets the user once the meta is loaded too, so the form stays
+// up (busy) until labdex can be shown, and a backend error lands on the form instead of swapping the page out.
+async function signedIn() {
+  let st
+  try {
+    st = await api.get('/api/auth/status')
+    if (st.user) await loadMeta()
+  } catch (e) {
+    throw new Error(`Signed in, but labdex didn't load: ${e.message}`, { cause: e })
+  }
+  if (!st.user) throw new Error("Signed in, but the browser didn't keep the session. Open labdex at the address it expects (http or https), then try again.")
+  state.auth = st
+  error.value = ''
+  boot()
 }
 
 async function logout() {
@@ -172,8 +199,9 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 </script>
 
 <template>
-  <div v-if="error" class="page"><div class="errbox">{{ error }} <button class="btn small" @click="start">Retry</button></div></div>
-  <Login v-else-if="state.auth && !state.auth.user" @done="start" />
+  <div v-if="error" class="page"><div class="errbox" role="alert">{{ error }}
+    <button class="btn small" :disabled="retrying" @click="start">{{ retrying ? 'Retrying…' : 'Retry' }}</button></div></div>
+  <Login v-else-if="state.auth && !state.auth.user" :signed-in="signedIn" @done="start" />
   <div v-else-if="state.meta" class="shell" :class="{ small, drawer }">
     <a href="#main" class="skip">Skip to the page</a>
     <aside class="side">

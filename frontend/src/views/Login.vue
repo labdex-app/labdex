@@ -12,6 +12,7 @@ import AdminImport from '../components/AdminImport.vue'
 import Marketplace from '../components/Marketplace.vue'
 import { loadMeta, state } from '../store'
 
+const props = defineProps({ signedIn: { type: Function, required: true } }) // loads labdex; throws if it can't
 const emit = defineEmits(['done'])
 const router = useRouter()
 const setup = computed(() => state.auth?.setup_required)
@@ -56,13 +57,21 @@ async function submit() {
     if (setup.value) {
       created.value = form.username.toLowerCase()
       await afterAdmin()
-    } else emit('done')
+    } else await props.signedIn() // the form stays, busy, until labdex is loaded
   } catch (e) {
     if (e instanceof ApiError && e.errors.length) errors.value = e.fields
-    else message.value = e.message
+    else message.value = problem(e)
   } finally {
     busy.value = false
   }
+}
+
+// A wrong password has the server's own words. A bare status (a proxy's 404, a crash) or no answer at all
+// gets a sentence that says it's the server, not the person.
+function problem(e) {
+  if (!(e instanceof ApiError)) return e.name === 'TypeError' ? `Can't reach labdex: ${e.message}` : e.message
+  if (e.body?.error) return e.message
+  return `labdex answered with ${e.message}. Try again in a moment; if it keeps happening, check the server's log.`
 }
 
 // signed in now: the meta the embedded pages need, and the site labdex started with
@@ -227,7 +236,7 @@ function go(to) {
           This is the labdex demo. Sign in as <b class="mono">{{ demo.username }}</b> with <b class="mono">{{ demo.password }}</b>
           (filled in). Change anything you like: it all resets every night at 03:00 UTC, and nothing here talks to a real network.
         </div>
-        <div v-if="message" class="errbox mt-3 mb-0">{{ message }}</div>
+        <div v-if="message" class="errbox mt-3 mb-0" role="alert">{{ message }}</div>
         <a v-if="oidc && !passwordForm" :href="ssoHref" class="btn primary go sso">Sign in with {{ oidc.name }}</a>
         <div v-if="passwordForm" class="stack">
           <Field label="Username" :error="errors.username">

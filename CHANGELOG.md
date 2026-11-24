@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Signing in stays on the sign-in page when the server answers with an error.** A 404 or 500
+  while signing in, or while labdex loads right after, used to swap the form for a blank page and
+  then a bare error. The form now stays (busy) until labdex is loaded and says what went wrong;
+  *Retry* on the page-wide error keeps the error up while it asks again.
 - **A host agent in Go (preview)**, next to the Python one: one static binary for amd64 and arm64,
   no Python needed for the agent itself (Ansible jobs still need it). The labdex image builds and
   serves both binaries; `install.sh --go` installs it with the same user, sudo rules and unit. It
