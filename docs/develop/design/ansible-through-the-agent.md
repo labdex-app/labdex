@@ -264,7 +264,9 @@ Other risks:
 To be built with the agent UI rework (separate thread), on the host's Agent tab:
 
 - an **Ansible** section: off / on / on with become, for both ends, with what's missing;
-- the install command with `--ansible`, `--ansible-become` and `--packages` filled in;
+- the install command with `--ansible`, `--ansible-become` and `--packages` filled in. The
+  token call builds it (`agent_token` in `api/agents_api.py`); when it rerolls an existing agent's
+  key, these flags are kept the way `--allow` and `--root` are;
 - sshd's host key fingerprint as the agent reported it, and whether the host trusts the current CA;
 - the modules this host's features use, their packages, *installed / missing / unknown*;
 - the last runs, with commit, who, result and bytes.
