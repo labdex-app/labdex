@@ -20,7 +20,8 @@ from . import PUBLIC, HOOKS, body, bp, err
 
 AGENT_DIR = Path(__file__).resolve().parent.parent / "agent"
 # reached by hosts, not people: no session and no CSRF header (the enrolment token or nothing secret)
-for _ep in ("api.agent_enrol", "api.agent_install_script", "api.agent_download", "api.agent_ca"):
+for _ep in ("api.agent_enrol", "api.agent_install_script", "api.agent_download", "api.agent_ca",
+            "api.agent_ansible_ca"):
     PUBLIC.add(_ep)
     HOOKS.add(_ep)
 
@@ -156,6 +157,18 @@ def agent_ca():
     return Response(agent_pki.ca_pem(), mimetype="application/x-pem-file")
 
 
+@bp.get("/agents/ansible-ca.pub")
+def agent_ansible_ca():
+    """The SSH user CA's public key, for install.sh --ansible: hosts trust it for labdex-ansible.
+    Made in the vault on first use, so it needs the vault unsealed then."""
+    from .. import ansible_agent
+    try:
+        line = ansible_agent.ca_public()
+    except ansible_agent.AnsibleAgentError as e:
+        return err(503, str(e))
+    return Response(line + "\n", mimetype="text/plain")
+
+
 def hub_url() -> tuple[str, str]:
     """The https address hosts reach labdex at, and a note when it's a guess.
 
@@ -200,15 +213,18 @@ def agent_token(name):
     db.session.commit()
     _, sha = agent_package()
     base, note = hub_url()
-    keep = ""
+    keep = keep_go = ""
     if old is not None and old.host_allow:  # install.sh rewrites agent.conf: keep what the host allowed
         keep = f' --allow "{" ".join(old.host_allow)}"'
+    if old is not None and "ansible.session" in (old.jobs or []) and "ansible" in (old.host_allow or []):
+        # set up for Ansible through the agent (Go only): keep that, and become where it was on
+        keep_go = " --ansible" + (" --ansible-become" if old.ansible_become else "")
     root = " --root" if allow_root else ""
     # curl where there is one, wget on minimal Debian (which has no curl)
     fetch = f"{{ curl -fsSLo install.sh {base}/api/agents/install.sh || wget -qO install.sh {base}/api/agents/install.sh; }}"
 
-    def command(flags, shas):
-        return f"{fetch} && sudo sh install.sh{flags} --url {base} --token {secret} {shas}{keep}{root}"
+    def command(flags, shas, extra=""):
+        return f"{fetch} && sudo sh install.sh{flags} --url {base} --token {secret} {shas}{keep}{extra}{root}"
 
     # the Go agent is the default where labdex serves it (the image always does); else the Python one
     py = {"sha256": sha, "command": command(" --python", f"--sha256 {sha}")}
@@ -218,7 +234,7 @@ def agent_token(name):
     if go:
         # one --sha256 per architecture: install.sh takes the binary that matches any of them
         shas = " ".join(f"--sha256 {v[1]}" for v in go.values())
-        out["go"] = {"sha256": {arch: v[1] for arch, v in go.items()}, "command": command("", shas)}
+        out["go"] = {"sha256": {arch: v[1] for arch, v in go.items()}, "command": command("", shas, keep_go)}
         out |= {"agent": "go", "command": out["go"]["command"]}
     return jsonify(out), 201
 
