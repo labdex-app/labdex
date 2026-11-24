@@ -5,9 +5,10 @@ and leave the writes off: the agent then only reads, and you can take it all bac
 
 ## Before you start
 
-- **The host:** Debian 12 or newer, Ubuntu 22.04 or newer, Fedora or RHEL 9, with systemd and
-  Python 3.11 or newer (`python3 --version`). A VM or a container with systemd will do. Take a
-  snapshot first if it is a VM.
+- **The host:** Debian 12 or newer, Ubuntu 22.04 or newer, Fedora or RHEL 9, amd64 or arm64, with
+  systemd. The command installs the Go agent, which needs no Python; for the
+  [Python agent](agent.md#the-python-agent) the host needs Python 3.11 or newer. A VM or a
+  container with systemd will do. Take a snapshot first if it is a VM.
 - **labdex:** reachable from the host over `https://`, with this host in the inventory. If its
   certificate is from your own CA, copy that CA's certificate to the host for `--ca-file`.
 - **A reverse proxy in front of labdex** must pass WebSockets through for `/api/agents/link`.
@@ -24,8 +25,9 @@ container with systemd, against a local labdex that requires client certificates
 cd backend && pip install -e ".[server]" && python tools/agent_rehearsal.py
 ```
 
-It installs read-only, checks the link, the certificate and the read-only jobs, revokes, and
-uninstalls. It ends with `all 15 checks passed`, or says what failed. It touches nothing outside the
+It builds the Go agent first, so it needs Go too (or add `--agent python`). It installs read-only,
+checks the link, the certificate and the read-only jobs, revokes, and uninstalls. It ends with
+`all 15 checks passed`, or says what failed. It touches nothing outside the
 container and a temporary folder.
 
 ## Install
@@ -68,16 +70,19 @@ In labdex, on the host's **Agent** tab:
 
 | | |
 | --- | --- |
-| `/opt/labdex-agent/labdex-agent.pyz` | the agent |
-| `/usr/local/bin/labdex-agent` | a two-line wrapper to run it |
+| `/opt/labdex-agent/labdex-agent` | the Go agent |
+| `/usr/local/bin/labdex-agent` | a link to it |
 | `/etc/labdex-agent/agent.conf` | the hub's URL, writes allowed (none) |
 | `/etc/sudoers.d/labdex-agent` | the read-only sudo rules |
 | `/etc/systemd/system/labdex-agent.service` | the service |
 | `/var/lib/labdex-agent/` | key, certificate, audit log, offline buffer (mode 0700) |
 | user and group `labdex-agent` | no shell, no home |
 
-Packages are installed only if `python3`, its `cryptography` package or `sudo` were missing; the
-script says which.
+With `--python`, `/opt/labdex-agent/labdex-agent.pyz` and its venv `/opt/labdex-agent/venv` take the
+Go agent's place, and `/usr/local/bin/labdex-agent` is a two-line wrapper that runs it.
+
+Packages are installed only if `sudo` was missing (with `--python`, also `python3`, or the
+distribution's `cryptography` when PyPI can't be reached); the script says which.
 
 ## Take it back
 

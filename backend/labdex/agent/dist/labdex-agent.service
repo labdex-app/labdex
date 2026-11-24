@@ -10,7 +10,7 @@ After=network-online.target
 Type=simple
 User=labdex-agent
 Group=labdex-agent
-ExecStart=/usr/bin/python3 -I /opt/labdex-agent/labdex-agent.pyz run
+ExecStart=/opt/labdex-agent/venv/bin/python -I /opt/labdex-agent/labdex-agent.pyz run
 Restart=on-failure
 RestartSec=10
 # 3: the hub refused the agent (revoked, or root not allowed): stay stopped until someone looks
