@@ -2133,11 +2133,11 @@ they are, see <a href="../operate/security-review/">Security review (1.0)</a> an
 </tr>
 <tr>
 <td>Who can use it</td>
-<td>Only labdex, through a signed job, on a host whose <code>agent.conf</code> allows <code>ansible</code> and whose agent an administrator switched <code>ansible</code> on for. sshd still authenticates every connection.</td>
+<td>Only labdex, in the process that holds the agent's link, through a signed job, on a host whose <code>agent.conf</code> allows <code>ansible</code> and whose agent an administrator switched <code>ansible</code> on for. sshd still authenticates every connection.</td>
 </tr>
 <tr>
 <td>What it can do</td>
-<td>Whatever sshd lets the SSH user do. labdex logs in with short-lived certificates of its own (planned: per run, per host, valid only from <code>127.0.0.1</code>); with become switched on for the host, that is full root.</td>
+<td>Whatever sshd lets the SSH user do. labdex logs in as <code>labdex-ansible</code> with certificates of its own, per run and per host, valid for at most an hour and only from <code>127.0.0.1</code>; with become switched on for the host (at both ends), that is full root.</td>
 </tr>
 <tr>
 <td>Guards</td>

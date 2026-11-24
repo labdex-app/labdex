@@ -775,6 +775,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ansible-through-the-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ansible through the agent
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#all-agents" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2262,6 +2273,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ansible-through-the-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ansible through the agent
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#all-agents" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2583,6 +2605,11 @@ Debian 12 with systemd 252.</p>
 <td><code>ansible</code>, and a root agent</td>
 <td>run a playbook from the site's git repository on this host</td>
 </tr>
+<tr>
+<td><code>ansible.session</code></td>
+<td><code>ansible</code>, Go agent only</td>
+<td>let labdex reach this host's sshd through the link for one Ansible run (<a href="#ansible-through-the-agent">below</a>)</td>
+</tr>
 </tbody>
 </table>
 <p>Every job is signed with labdex's own key (<code>&lt;data&gt;/agent-signing.key</code>). The agent saved the public
@@ -2607,6 +2634,36 @@ agent the bundle's SHA-256, the commit, the playbook path and the variables, all
 fetches the bundle over the same connection and checks the hash. It unpacks the bundle with no
 absolute paths, no <code>..</code> and no links, then runs <code>ansible-playbook -i localhost, -c local</code> through
 <code>systemd-run</code>. Tick <em>check only</em> for <code>--check --diff</code>.</p>
+<h2 id="ansible-through-the-agent">Ansible through the agent<a class="headerlink" href="#ansible-through-the-agent" title="Permanent link">&para;</a></h2>
+<p>With the <strong>Go agent</strong>, labdex can run Ansible on a host without reaching its SSH port over the
+network: <code>ansible-playbook</code> runs in labdex as usual, and its SSH connections go through the agent's
+link to the host's own sshd on <code>127.0.0.1</code>. labdex holds every key; the host keeps none. The design
+and its reasons are in <a href="../../develop/design/ansible-through-the-agent/">Ansible through the agent</a>.</p>
+<p>A host goes through its agent in every Ansible run (features, the Ansible runner, plugins) when all
+of these hold; otherwise it uses plain SSH with the integration's settings, as before:</p>
+<ul>
+<li>its agent is the Go agent and is linked;</li>
+<li><code>ansible</code> is on at both ends: <code>--allow ansible</code> on the host, and the switch on the Agent tab;</li>
+<li>the agent reported sshd's host keys (it does when <code>/etc/ssh/ssh_host_*_key.pub</code> exist);</li>
+<li>the vault is unsealed: the SSH certificate authority lives there.</li>
+</ul>
+<p>Plugins that run isolated don't go through the agent: labdex's SSH certificate authority isn't
+theirs to use, like global secrets.</p>
+<p>For each run, labdex makes a key and a certificate per host, for the user <code>labdex-ansible@&lt;host&gt;</code>,
+valid for an hour and only from <code>127.0.0.1</code>, so it is useless anywhere but through that host's
+agent. Host keys are pinned from what the agent reported, never trusted on first use. The
+certificate authority is made the first time it is needed, as the vault entry
+<code>labdex/ansible-ssh-ca</code>.</p>
+<p><strong>Become</strong> (root) is off unless an administrator ticks <em>Ansible may become root</em> on the Agent tab
+(<code>ansible_become</code>), and the host allows it too. Become runs any code as root, so that is what it
+grants.</p>
+<p>The host has to trust the certificate authority and have the <code>labdex-ansible</code> user. TODO: until
+<code>install.sh --ansible</code> does this (next step), set it up by hand: the CA's public key from the vault
+entry in <code>/etc/ssh/labdex-ansible-ca.pub</code>, <code>TrustedUserCAKeys</code> and an <code>AuthorizedPrincipalsFile</code>
+for <code>labdex-ansible</code> with the line <code>from="127.0.0.1,::1" labdex-ansible@&lt;host&gt;</code>.</p>
+<p>The agent's audit log has a line for every session and pipe (bytes each way, never the bytes
+themselves), labdex's history has the <code>ansible.session</code> job, and sshd's log names the run in the
+certificate's key id (<code>run-…/&lt;who&gt;/&lt;host&gt;</code>).</p>
 <h2 id="all-agents">All agents<a class="headerlink" href="#all-agents" title="Permanent link">&para;</a></h2>
 <p><strong>Agents</strong> in the sidebar lists every host's agent: linked or not, when it was last seen, whether it
 runs as root, which writes are on at both ends, whether the link used its client certificate, and

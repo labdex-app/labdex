@@ -7658,6 +7658,14 @@
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>Ansible through the agent.</strong> A host whose Go agent has <code>ansible</code> on at both ends now takes
+  part in Ansible runs through its agent's link instead of over the network: labdex makes a key
+  and an SSH certificate per run and host (<code>labdex-ansible@&lt;host&gt;</code>, an hour, only from
+  <code>127.0.0.1</code>), signed by a certificate authority kept in the vault (<code>labdex/ansible-ssh-ca</code>),
+  pins the host keys the agent reported, and opens an <code>ansible.session</code> on the agent the first time
+  the run reaches the host. Become stays off unless an administrator switches on <em>Ansible may
+  become root</em> for the host (<code>ansible_become</code>). Other hosts use plain SSH as before. The host side
+  (<code>install.sh --ansible</code>) comes next; see <em>Guide › Host agent › Ansible through the agent</em>.</li>
 <li><strong>The Go agent is now the default.</strong> <code>install.sh</code> installs it unless you add <code>--python</code>, and the
   enrol command on a host's Agent tab is the Go one wherever labdex serves the binaries (the image
   always does), with the Python command under <em>The Python agent instead</em>. <code>--go</code> is still

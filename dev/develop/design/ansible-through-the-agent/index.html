@@ -2449,7 +2449,8 @@
 
 <h1 id="design-ansible-through-the-agent">Design: Ansible through the agent<a class="headerlink" href="#design-ansible-through-the-agent" title="Permanent link">&para;</a></h1>
 <p>Status: <strong>decided</strong>, being built (see <a href="#decisions">Decisions</a>). The pipe in the protocol and the Go
-agent is the first part: <a href="../../agent-protocol/#ansible-over-the-link">Ansible over the link</a>. The Python agent stays as it is; the new parts are for the Go agent only.</p>
+agent is the first part: <a href="../../agent-protocol/#ansible-over-the-link">Ansible over the link</a>. labdex's side (SSH CA, certificates, the broker, the runner) is the second:
+<a href="../../../guide/agent/#ansible-through-the-agent">Ansible through the agent</a>. The Python agent stays as it is; the new parts are for the Go agent only.</p>
 <h2 id="goal">Goal<a class="headerlink" href="#goal" title="Permanent link">&para;</a></h2>
 <p>labdex runs Ansible against a host <strong>through the agent's link</strong> instead of over the network:</p>
 <ul>
