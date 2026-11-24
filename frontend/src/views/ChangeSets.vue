@@ -1,7 +1,7 @@
 <script setup>
 // Change sets: write a batch of inventory changes as YAML, preview what it would do (hosts, lint,
 // firewall aliases, DNS) without saving anything, then apply it as one unit.
-import { Check, Play, Plus, Trash2 } from 'lucide-vue-next'
+import { Check, Layers, Play, Plus, Trash2 } from 'lucide-vue-next'
 import { ref } from 'vue'
 import { api, enc } from '../api'
 import { confirm } from '../confirm'
@@ -69,13 +69,19 @@ const remove = () => run(async () => {
     <div class="page-head">
       <h1>Change sets</h1>
       <span class="grow"></span>
-      <button class="btn primary" @click="fresh"><Plus :size="15" /> New change set</button>
+      <button class="btn" @click="fresh"><Plus :size="15" /> New change set</button>
     </div>
     <p class="page-lead">A batch of changes, reviewed as one unit: preview the effect on lint, firewall aliases and DNS, then apply all of it or none.</p>
 
-    <div class="cs-layout">
+    <div v-if="data && !data.length && !cur" class="card empty">
+      <div class="e-ic"><Layers :size="18" /></div>
+      <div class="e-t">No change sets yet</div>
+      <p>Group edits to networks, hosts and aliases, preview what they do to lint, firewall aliases and DNS, then apply them together.</p>
+      <div class="e-acts"><button class="btn" @click="fresh"><Plus :size="15" /> New change set</button></div>
+    </div>
+    <div v-else class="cs-layout">
       <div class="card">
-        <p v-if="data && !data.length" class="empty">None yet.</p>
+        <p v-if="data && !data.length" class="empty-line">None yet.</p>
         <ul class="list">
           <li v-for="r in data || []" :key="r.uid">
             <a href="#" @click.prevent="open(r)"><strong>{{ r.name }}</strong></a>

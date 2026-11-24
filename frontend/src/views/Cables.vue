@@ -2,7 +2,7 @@
 // Every cable in one list: what's printed on it, both ends, medium, speed, length, colour.
 // Pick some (or all shown) and print their labels (the Labels page): two per cable, one for each end
 // written on it, so whichever end you hold tells you where the other goes.
-import { Pencil, Printer, Route, Tag } from 'lucide-vue-next'
+import { Cable, Pencil, Printer, Route, Tag } from 'lucide-vue-next'
 import CableTrace from '../components/CableTrace.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -92,7 +92,12 @@ const swatch = (c) => CABLE_COLOURS.find((x) => x.name === c)?.hex || (/^#[0-9a-
       <label class="check small"><input v-model="unlabelled" type="checkbox"> Only cables without a label</label>
       <span v-if="q.data.value" class="small faint">Next free label: <span class="mono">{{ q.data.value.next_label }}</span></span>
     </div>
-    <p v-if="q.data.value && !all.length" class="empty">No cables yet. Add them on a host's Network tab or draw them on the topology.</p>
+    <div v-if="q.data.value && !all.length" class="card empty">
+      <div class="e-ic"><Cable :size="18" /></div>
+      <div class="e-t">No cables yet</div>
+      <p>Add cables on a host's Network tab, or draw them on the topology. Switches that report LLDP suggest them under Seen by switches.</p>
+      <div class="e-acts"><RouterLink to="/topology" class="btn">Open topology</RouterLink><RouterLink to="/hosts" class="btn ghost">Pick a host</RouterLink></div>
+    </div>
     <div v-else-if="all.length" class="card flush">
       <div class="table-wrap">
       <table>
