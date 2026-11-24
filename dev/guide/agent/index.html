@@ -716,6 +716,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Install it">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-go-agent-preview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Go agent (preview)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1973,6 +1990,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../develop/agent-protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../develop/contributing/" class="md-nav__link">
         
   
@@ -2062,6 +2107,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Install it">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-go-agent-preview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Go agent (preview)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2250,6 +2312,10 @@ sudo<span class="w"> </span>sh<span class="w"> </span>install.sh<span class="w">
 <td>for a labdex with a certificate from your own CA.</td>
 </tr>
 <tr>
+<td><code>--go</code></td>
+<td>install the Go agent instead of the Python one (preview, below).</td>
+</tr>
+<tr>
 <td><code>--uninstall</code></td>
 <td>stop and remove the agent again: its service, sudo rules, config and program. The key, certificate and audit log stay in <code>/var/lib/labdex-agent</code>; add <code>--purge</code> to remove them and the <code>labdex-agent</code> user too. Revoke the agent on the Agent tab as well.</td>
 </tr>
@@ -2260,6 +2326,20 @@ Without <code>curl</code> on the host, it downloads with Python instead; fetch <
 <div class="highlight"><pre><span></span><code>python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import urllib.request as u; open('install.sh','wb').write(u.urlopen('https://lantern.example.net/api/agents/install.sh').read())"</span>
 </code></pre></div>
 <p>The hub URL must be <code>https://</code>: the key travels over it.</p>
+<h3 id="the-go-agent-preview">The Go agent (preview)<a class="headerlink" href="#the-go-agent-preview" title="Permanent link">&para;</a></h3>
+<p>There is a second agent written in Go: one static binary for amd64 or arm64, so the host needs no
+Python for the agent itself. It speaks the same <a href="../../develop/agent-protocol/">protocol</a>, installs
+with the same script, the same user, sudo rules and systemd unit, and passes the same install
+rehearsal. The Python agent stays the default until the Go agent has run on real hosts.</p>
+<p>The labdex image builds both binaries and serves them; <code>POST /api/hosts/&lt;name&gt;/agent/token</code> then
+answers with a <code>go.command</code> as well. Install with <code>--go</code>, and one <code>--sha256</code> per architecture (the
+binary for this host must match one of them):</p>
+<div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>sh<span class="w"> </span>install.sh<span class="w"> </span>--go<span class="w"> </span>--url<span class="w"> </span>https://lantern.example.net<span class="w"> </span>--token<span class="w"> </span>lxe_…<span class="w"> </span>--sha256<span class="w"> </span>&lt;amd64&gt;<span class="w"> </span>--sha256<span class="w"> </span>&lt;arm64&gt;
+</code></pre></div>
+<p>Ansible jobs still need Python on the host: the agent only starts <code>ansible-playbook</code>. When labdex
+runs from source, build the binaries into <code>backend/labdex/agent/bin/</code> (or point
+<code>LABDEX_AGENT_BIN_DIR</code> at them): <code>cd agent &amp;&amp; GOOS=linux GOARCH=amd64 go build -o
+../backend/labdex/agent/bin/labdex-agent-linux-amd64 ./cmd/labdex-agent</code>.</p>
 <h2 id="what-runs-with-privileges">What runs with privileges<a class="headerlink" href="#what-runs-with-privileges" title="Permanent link">&para;</a></h2>
 <p>The agent runs as <code>labdex-agent</code>. Its sudo rules allow exactly these command lines and nothing else
 (see them with <code>labdex-agent sudoers</code>):</p>

@@ -1,0 +1,3973 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A small homelab inventory with zones, naming rules, IPAM, plans you approve and plugins.">
+      
+      
+      
+      
+        <link rel="prev" href="../cli/">
+      
+      
+        <link rel="next" href="../contributing/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/labdex-mark.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+      
+        <title>Agent protocol - labdex</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/labdex.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#agent-protocol" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="labdex" class="md-header__button md-logo" aria-label="labdex" data-md-component="logo">
+      
+  <img src="../../assets/labdex-mark-white.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            labdex
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Agent protocol
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Light"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Light" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Dark"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Dark" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/labdex-app/labdex" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="labdex" class="md-nav__button md-logo" aria-label="labdex" data-md-component="logo">
+      
+  <img src="../../assets/labdex-mark-white.svg" alt="logo">
+
+    </a>
+    labdex
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/labdex-app/labdex" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/install/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/first-steps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    First steps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/demo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Demo mode
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/zones/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Zones and names
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/sites/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sites
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/git/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inventory in git
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/inventory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hosts, networks, services
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/patches/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Patches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Host agents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/agent-trial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    A first agent, read-only
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/working-fast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Working fast
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coming from another tool
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/change-sets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change sets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/dns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DNS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Zone policy and firewall
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/plans/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plans and approvals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/vault/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The vault
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/rbac/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Users, roles, history
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Plugins
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/installing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installing and trust
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/opnsense/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OPNsense
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/technitium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Technitium DNS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/pulumi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pulumi (public site)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/patching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Patching (Ansible)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/kubernetes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kubernetes workloads & Flux
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/compose/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compose stacks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/ansible/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ansible and features
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/monitoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/compute/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compute and network
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operating
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operating
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operate/jobs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Jobs and the worker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operate/notifications/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Notifications
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operate/templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Templates and Ansible Vault
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operate/workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workflows and maintenance windows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operate/backups/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backups
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operate/upgrading/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Upgrading
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operate/security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operate/security-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugin-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugin API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../publishing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publishing plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releasing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Branches, versions and releases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    REST API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent protocol
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Versions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#constants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Constants
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#files-on-the-host" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Files on the host
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Files on the host">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#agentconf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        agent.conf
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#credentialsjson" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        credentials.json
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enrolment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enrolment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-link" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The link
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The link">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#handshake" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handshake
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#messages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Messages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#close-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Close codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reconnecting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reconnecting
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#jobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Jobs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Jobs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-envelope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The envelope
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#privileges" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Privileges
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Privileges">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sudoers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sudoers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#facts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Facts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metrics
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discovery
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Discovery">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#redaction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Redaction
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#patch-report" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Patch report
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Patch report">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#patch-apply" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Patch apply
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ansible" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ansible
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-spool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The spool
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#certificates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Certificates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#audit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Audit
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#command-line" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Command line
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#install-and-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install and service
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conformance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conformance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-may-differ-between-agents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What may differ between agents
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Versions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#constants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Constants
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#files-on-the-host" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Files on the host
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Files on the host">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#agentconf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        agent.conf
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#credentialsjson" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        credentials.json
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enrolment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enrolment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-link" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The link
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The link">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#handshake" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handshake
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#messages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Messages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#close-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Close codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reconnecting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reconnecting
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#jobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Jobs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Jobs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-envelope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The envelope
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#privileges" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Privileges
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Privileges">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sudoers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sudoers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#facts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Facts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metrics
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discovery
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Discovery">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#redaction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Redaction
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#patch-report" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Patch report
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Patch report">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#patch-apply" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Patch apply
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ansible" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ansible
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-spool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The spool
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#certificates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Certificates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#audit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Audit
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#command-line" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Command line
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#install-and-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install and service
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conformance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conformance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-may-differ-between-agents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What may differ between agents
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="agent-protocol">Agent protocol<a class="headerlink" href="#agent-protocol" title="Permanent link">&para;</a></h1>
+<p>This is the contract between labdex (the <strong>hub</strong>) and the host agent. Two agents implement it: the
+Python agent in <code>backend/labdex/agent/</code> and the Go agent in <code>agent/</code>. They share no code with each
+other or with the hub, so this page is what they agree on. Where this page and the Python agent
+differ, the Python agent's behaviour wins until this page is fixed: it is what runs today.</p>
+<p>User-facing docs: <a href="../../guide/agent/">Host agents</a> and <a href="../../guide/agent-trial/">A first agent, read-only</a>.</p>
+<p>The key words MUST, MUST NOT, SHOULD and MAY mean what RFC 2119 says.</p>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>host                                                         labdex
+┌────────────────────────────┐   1. POST /api/agents/enrol   ┌────────────────────┐
+│ labdex-agent               │ ─── token + CSR ────────────▶ │ key hash, cert,    │
+│  credentials.json          │ ◀── key, signing key, cert ── │ signing key (Ed25519)
+│  client.pem (mTLS)         │                               │                    │
+│                            │   2. wss://…/api/agents/link  │                    │
+│  link loop  ───────────────┼── hello, heartbeat, result ─▶ │ job queue          │
+│  job pool (2) ◀────────────┼── welcome, signed job ─────── │ audit              │
+│  buffer/  (offline spool)  │                               │                    │
+│  audit.log, seen.json      │                               │                    │
+└────────────────────────────┘                               └────────────────────┘
+</code></pre></div>
+<ul>
+<li>The agent dials out. The host needs no open port.</li>
+<li>One-time <strong>enrolment token</strong> → per-host <strong>key</strong> (<code>lxa_…</code>) and an mTLS <strong>client certificate</strong>.</li>
+<li>Jobs are <strong>signed</strong> by the hub (Ed25519) and come from a fixed <strong>allowlist</strong>. There is no shell
+  and no way to send a command line.</li>
+<li>A job that changes the host needs its <strong>capability</strong> switched on at <strong>both ends</strong>.</li>
+<li>Results and heartbeats go to a disk <strong>buffer</strong> while the hub is unreachable.</li>
+<li>Both ends keep an <strong>audit</strong> record of every job.</li>
+</ul>
+<h2 id="versions">Versions<a class="headerlink" href="#versions" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Protocol version</td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td>Job envelope version (<code>v</code>)</td>
+<td><code>1</code></td>
+</tr>
+</tbody>
+</table>
+<p>The protocol version is sent at enrolment and on every link. A hub that speaks another version
+answers enrolment with HTTP 426 and closes the link with close code 4426. A change that an older
+peer would misread MUST bump the protocol version. Adding an optional field to a message is not
+such a change: both ends MUST ignore fields they don't know.</p>
+<h2 id="constants">Constants<a class="headerlink" href="#constants" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>HEARTBEAT</code></td>
+<td>30 s</td>
+<td>Default heartbeat interval; the hub may set another in <code>welcome</code></td>
+</tr>
+<tr>
+<td><code>MAX_SKEW</code></td>
+<td>300 s</td>
+<td>How far a job's times may be off between hub and host clocks</td>
+</tr>
+<tr>
+<td><code>JOB_TTL</code></td>
+<td>600 s</td>
+<td>A queued job not sent by then expires on the hub</td>
+</tr>
+<tr>
+<td><code>MAX_MESSAGE</code></td>
+<td>16 MiB</td>
+<td>Largest WebSocket message either side accepts</td>
+</tr>
+<tr>
+<td><code>CONNECT_TIMEOUT</code></td>
+<td>15 s</td>
+<td>TCP + TLS + WebSocket handshake</td>
+</tr>
+<tr>
+<td><code>LINK_IDLE</code></td>
+<td>90 s</td>
+<td>No message from the hub this long: the link is dead, reconnect</td>
+</tr>
+<tr>
+<td><code>MAX_BACKOFF</code></td>
+<td>60 s</td>
+<td>Longest wait between link attempts</td>
+</tr>
+<tr>
+<td><code>HEALTHY_FOR</code></td>
+<td>120 s</td>
+<td><code>health</code> is OK while the hub answered within this time</td>
+</tr>
+<tr>
+<td><code>BUNDLE_WAIT</code></td>
+<td>120 s</td>
+<td>How long <code>ansible.run</code> waits for its bundle</td>
+</tr>
+<tr>
+<td>WebSocket ping</td>
+<td>25 s</td>
+<td>Both ends send WebSocket pings at this interval</td>
+</tr>
+</tbody>
+</table>
+<h2 id="files-on-the-host">Files on the host<a class="headerlink" href="#files-on-the-host" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Owner, mode</th>
+<th>What</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/etc/labdex-agent/agent.conf</code></td>
+<td>root, 0644</td>
+<td>Config (below)</td>
+</tr>
+<tr>
+<td><code>/var/lib/labdex-agent/</code></td>
+<td>agent user, 0700</td>
+<td>State folder (<code>state_dir</code>)</td>
+</tr>
+<tr>
+<td><code>credentials.json</code></td>
+<td>0600</td>
+<td>Agent id, key, host, hub URL, hub's job-signing public key</td>
+</tr>
+<tr>
+<td><code>client.pem</code></td>
+<td>0600</td>
+<td>Client certificate followed by its private key (PKCS#8 PEM)</td>
+</tr>
+<tr>
+<td><code>seen.json</code></td>
+<td>0600</td>
+<td>Ids of jobs already taken, until they expire</td>
+</tr>
+<tr>
+<td><code>audit.log</code></td>
+<td>0600</td>
+<td>One JSON line per job event</td>
+</tr>
+<tr>
+<td><code>buffer/</code></td>
+<td>0700</td>
+<td>The offline spool</td>
+</tr>
+<tr>
+<td><code>heartbeat</code></td>
+<td>default</td>
+<td>Unix time the hub last answered, as text</td>
+</tr>
+<tr>
+<td><code>bundles/&lt;sha256&gt;/</code></td>
+<td>0700</td>
+<td>An unpacked Ansible bundle while its job runs</td>
+</tr>
+</tbody>
+</table>
+<p>Secret files MUST be written to <code>&lt;name&gt;.tmp</code> with mode 0600, synced, then renamed over the old
+file, so a reader never sees half a file.</p>
+<h3 id="agentconf">agent.conf<a class="headerlink" href="#agentconf" title="Permanent link">&para;</a></h3>
+<p>An INI file with one section:</p>
+<div class="highlight"><pre><span></span><code><span class="k">[agent]</span>
+<span class="na">url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">https://lantern.example.net</span>
+<span class="c1"># write capabilities this host accepts: patch, reboot, ansible (space or comma separated); empty: read-only</span>
+<span class="na">allow</span><span class="w"> </span><span class="o">=</span>
+<span class="c1"># a CA bundle for a hub with a private certificate authority</span>
+<span class="na">ca_file</span><span class="w"> </span><span class="o">=</span>
+<span class="na">state_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">/var/lib/labdex-agent</span>
+</code></pre></div>
+<p>An unknown capability in <code>allow</code> is a fatal config error: the agent MUST exit non-zero and say
+which. A trailing <code>/</code> on <code>url</code> is dropped. <code>#</code> and <code>;</code> start comment lines.</p>
+<h3 id="credentialsjson">credentials.json<a class="headerlink" href="#credentialsjson" title="Permanent link">&para;</a></h3>
+<p>Written at enrolment. The agent MUST NOT change it afterwards.</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">"agent_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1a2b3c4d"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"lxa_1a2b3c4d_&lt;secret&gt;"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"host"</span><span class="p">:</span><span class="w"> </span><span class="s2">"srv-vm-dns-01"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"signing_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;base64 of the 32-byte Ed25519 public key&gt;"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"protocol"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"url"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://lantern.example.net"</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><code>url</code> is the hub URL used at enrolment. The link uses it, not <code>agent.conf</code>'s, so editing the config
+can't point an enrolled agent at another hub.</p>
+<h2 id="enrolment">Enrolment<a class="headerlink" href="#enrolment" title="Permanent link">&para;</a></h2>
+<p>The agent swaps a one-time token (<code>lxe_…</code>, valid an hour, made on the host's Agent tab) for its own
+key.</p>
+<ol>
+<li>The URL MUST be <code>https://</code> (a test-only flag MAY allow <code>http://</code>).</li>
+<li>The agent makes a new <strong>EC P-256</strong> key and a CSR for it with subject <code>CN=labdex-agent</code>, signed
+   with SHA-256. The hub uses only the public key; it names the certificate after the agent.</li>
+<li>
+<p><code>POST &lt;url&gt;/api/agents/enrol</code> with headers <code>Content-Type: application/json</code> and
+   <code>X-Requested-With: labdex-agent</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">"token"</span><span class="p">:</span><span class="w"> </span><span class="s2">"lxe_…"</span><span class="p">,</span><span class="w"> </span><span class="nt">"hostname"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;gethostname&gt;"</span><span class="p">,</span><span class="w"> </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;agent version&gt;"</span><span class="p">,</span><span class="w"> </span><span class="nt">"csr"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;PEM&gt;"</span><span class="p">,</span>
+<span class="w"> </span><span class="nt">"protocol"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">"root"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="nt">"allow"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"patch"</span><span class="p">]}</span>
+</code></pre></div>
+<p><code>root</code> is whether the agent runs as uid 0. <code>allow</code> is the sorted capability list from
+<code>agent.conf</code>.</p>
+</li>
+<li>
+<p>The agent MUST NOT follow redirects (the token would go along), MUST use TLS 1.2 or newer and
+   MUST trust the system roots, or only <code>ca_file</code> when it is set. Timeout: 30 s.</p>
+</li>
+<li>
+<p>Answers:</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Meaning</th>
+<th>Agent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>200</td>
+<td>Enrolled</td>
+<td>Save (below)</td>
+</tr>
+<tr>
+<td>403</td>
+<td>Bad, used or expired token; root not allowed; a certificate is required</td>
+<td>Exit non-zero with the hub's text</td>
+</tr>
+<tr>
+<td>426</td>
+<td>Protocol version mismatch</td>
+<td>Same</td>
+</tr>
+</tbody>
+</table>
+<p>The 200 body:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">"agent_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1a2b3c4d"</span><span class="p">,</span><span class="w"> </span><span class="nt">"key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"lxa_…"</span><span class="p">,</span><span class="w"> </span><span class="nt">"host"</span><span class="p">:</span><span class="w"> </span><span class="s2">"srv-vm-dns-01"</span><span class="p">,</span><span class="w"> </span><span class="nt">"signing_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;base64&gt;"</span><span class="p">,</span>
+<span class="w"> </span><span class="nt">"protocol"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">"client_cert"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;PEM, when mTLS is not off&gt;"</span><span class="p">,</span><span class="w"> </span><span class="nt">"ca_cert"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;PEM&gt;"</span><span class="p">}</span>
+</code></pre></div>
+<p><code>agent_id</code>, <code>key</code>, <code>host</code> and <code>signing_key</code> MUST be non-empty strings, or enrolment fails.</p>
+</li>
+<li>
+<p>The agent removes any old <code>client.pem</code>, saves <code>client_cert</code> with the key from step 2 in
+   <code>client.pem</code> (after checking the certificate's public key is that key), drops <code>client_cert</code> and
+   <code>ca_cert</code>, adds <code>url</code> and writes <code>credentials.json</code>.</p>
+</li>
+</ol>
+<p>A new enrolment for a host revokes the host's older agent on the hub.</p>
+<h2 id="the-link">The link<a class="headerlink" href="#the-link" title="Permanent link">&para;</a></h2>
+<p>The agent keeps one WebSocket connection to <code>&lt;url&gt;/api/agents/link</code>, with <code>https</code> → <code>wss</code> (and
+<code>http</code> → <code>ws</code> in tests).</p>
+<h3 id="handshake">Handshake<a class="headerlink" href="#handshake" title="Permanent link">&para;</a></h3>
+<p>Request headers:</p>
+<table>
+<thead>
+<tr>
+<th>Header</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Labdex-Agent-Key</code></td>
+<td>The key from <code>credentials.json</code></td>
+</tr>
+<tr>
+<td><code>Labdex-Agent-Version</code></td>
+<td>The agent's version</td>
+</tr>
+<tr>
+<td><code>Labdex-Agent-Protocol</code></td>
+<td><code>1</code></td>
+</tr>
+</tbody>
+</table>
+<p>TLS: version 1.2 or newer, the system roots or only <code>ca_file</code> when set, and the certificate in <code>client.pem</code>
+presented when the server (or a proxy in front) asks for one. The agent MUST NOT follow
+redirects.</p>
+<p>An HTTP 401, 403 or 426 answer to the upgrade means the hub won't take this agent: stop for good
+(exit code 3, below).</p>
+<h3 id="messages">Messages<a class="headerlink" href="#messages" title="Permanent link">&para;</a></h3>
+<p>Every message is one WebSocket <strong>text</strong> frame holding one JSON object with a type field <code>t</code>.
+Unknown types and fields MUST be ignored. Text that isn't a JSON object MUST be ignored.</p>
+<p>Agent → hub:</p>
+<table>
+<thead>
+<tr>
+<th><code>t</code></th>
+<th>Fields</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hello</code></td>
+<td><code>version</code>, <code>protocol</code>, <code>hostname</code>, <code>root</code> (bool), <code>allow</code> (sorted list), <code>jobs</code> (sorted list of job types it runs), <code>facts</code> (object, see <code>facts</code>), <code>buffered</code> (records in the spool), <code>certs: true</code>, <code>cert_sha256</code> (hex SHA-256 of the DER of the certificate in <code>client.pem</code>, <code>""</code> for none)</td>
+<td>First message on every link</td>
+</tr>
+<tr>
+<td><code>heartbeat</code></td>
+<td><code>ts</code> (Unix time, float), <code>metrics</code> (object)</td>
+<td>Every heartbeat interval</td>
+</tr>
+<tr>
+<td><code>ack</code></td>
+<td><code>id</code></td>
+<td>A job passed every check and is about to run</td>
+</tr>
+<tr>
+<td><code>result</code></td>
+<td><code>id</code>, <code>ok</code>, <code>result</code>, <code>error</code>, <code>started</code>, <code>finished</code>; or <code>id</code>, <code>ok: false</code>, <code>refused: true</code>, <code>error</code></td>
+<td>A job finished or was refused</td>
+</tr>
+<tr>
+<td><code>csr</code></td>
+<td><code>csr</code> (PEM)</td>
+<td>Answer to <code>renew</code></td>
+</tr>
+<tr>
+<td><code>bundle.get</code></td>
+<td><code>sha256</code></td>
+<td><code>ansible.run</code> needs its bundle</td>
+</tr>
+</tbody>
+</table>
+<p>Hub → agent:</p>
+<table>
+<thead>
+<tr>
+<th><code>t</code></th>
+<th>Fields</th>
+<th>Agent does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>welcome</code></td>
+<td><code>host</code>, <code>heartbeat</code> (s), <code>server_time</code></td>
+<td>Set the heartbeat interval to <code>heartbeat</code> clamped to 1…300 (30 if missing or 0); replay the spool</td>
+</tr>
+<tr>
+<td><code>ok</code></td>
+<td>—</td>
+<td>Nothing (it counts as contact)</td>
+</tr>
+<tr>
+<td><code>job</code></td>
+<td><code>job</code> (JSON text), <code>sig</code> (base64)</td>
+<td>Check and run it (<a href="#jobs">Jobs</a>)</td>
+</tr>
+<tr>
+<td><code>renew</code></td>
+<td>—</td>
+<td>Make a new key and CSR, send <code>csr</code>, keep the key until <code>cert</code> arrives</td>
+</tr>
+<tr>
+<td><code>cert</code></td>
+<td><code>cert</code> (PEM), <code>ca</code>; or <code>error</code></td>
+<td>Save <code>cert</code> with the pending key in <code>client.pem</code>; used from the next link</td>
+</tr>
+<tr>
+<td><code>bundle</code></td>
+<td><code>sha256</code>, <code>data</code> (base64); or <code>sha256</code>, <code>error</code></td>
+<td>Hand the bytes (or the error) to the waiting <code>ansible.run</code></td>
+</tr>
+</tbody>
+</table>
+<p>A record replayed from the spool carries <code>"buffered": true</code>. The hub uses a buffered heartbeat's
+time for "last seen" but not its metrics, and doesn't answer it with <code>ok</code>.</p>
+<h3 id="close-codes">Close codes<a class="headerlink" href="#close-codes" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+<th>Agent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4401</td>
+<td>Unknown or revoked key</td>
+<td>Stop for good (exit 3)</td>
+</tr>
+<tr>
+<td>4403</td>
+<td>Runs as root and the host isn't allowed a root agent</td>
+<td>Stop for good (exit 3)</td>
+</tr>
+<tr>
+<td>4426</td>
+<td>Protocol version mismatch</td>
+<td>Stop for good (exit 3)</td>
+</tr>
+<tr>
+<td>4495</td>
+<td>No client certificate, or the wrong one</td>
+<td>Reconnect with backoff (a proxy may get fixed)</td>
+</tr>
+<tr>
+<td>other</td>
+<td>—</td>
+<td>Reconnect with backoff</td>
+</tr>
+</tbody>
+</table>
+<h3 id="reconnecting">Reconnecting<a class="headerlink" href="#reconnecting" title="Permanent link">&para;</a></h3>
+<p>On any other end of the link (network error, close, <code>LINK_IDLE</code> with no message), the agent waits
+and tries again: 1 s, then doubling up to <code>MAX_BACKOFF</code>. A link that stayed up more than 60 s
+resets the wait to 1 s. Every message from the hub counts as contact: the agent writes the Unix
+time to <code>heartbeat</code> (at most every 10 s) for <code>health</code>.</p>
+<h2 id="jobs">Jobs<a class="headerlink" href="#jobs" title="Permanent link">&para;</a></h2>
+<h3 id="the-envelope">The envelope<a class="headerlink" href="#the-envelope" title="Permanent link">&para;</a></h3>
+<p>The hub signs the exact bytes of a JSON text, so neither side has to agree on JSON serialisation:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">"t"</span><span class="p">:</span><span class="w"> </span><span class="s2">"job"</span><span class="p">,</span><span class="w"> </span><span class="nt">"job"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{\"agent\":\"1a2b3c4d\",\"by\":\"admin\",\"expires\":1764000600,…}"</span><span class="p">,</span><span class="w"> </span><span class="nt">"sig"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;base64&gt;"</span><span class="p">}</span>
+</code></pre></div>
+<p>The envelope inside <code>job</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>v</code></td>
+<td>int</td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td><code>id</code></td>
+<td>string</td>
+<td>Job id (UUID)</td>
+</tr>
+<tr>
+<td><code>agent</code></td>
+<td>string</td>
+<td>Agent id it is addressed to</td>
+</tr>
+<tr>
+<td><code>host</code></td>
+<td>string</td>
+<td>Host name in labdex</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>string</td>
+<td>A job type below</td>
+</tr>
+<tr>
+<td><code>params</code></td>
+<td>object</td>
+<td>Its parameters</td>
+</tr>
+<tr>
+<td><code>issued</code></td>
+<td>number</td>
+<td>Unix time</td>
+</tr>
+<tr>
+<td><code>expires</code></td>
+<td>number</td>
+<td>Unix time</td>
+</tr>
+<tr>
+<td><code>by</code></td>
+<td>string</td>
+<td>Who queued it (for the audit)</td>
+</tr>
+</tbody>
+</table>
+<p><code>sig</code> is the standard base64 (with padding) of the Ed25519 signature over the UTF-8 bytes of <code>job</code>.
+The public key is <code>signing_key</code> from <code>credentials.json</code>: standard base64 of the raw 32 bytes.</p>
+<h3 id="checks">Checks<a class="headerlink" href="#checks" title="Permanent link">&para;</a></h3>
+<p>The agent checks in this order and stops at the first failure. The texts go to both audit logs
+and SHOULD be the same in every agent:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Check</th>
+<th>Error text</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>job</code> and <code>sig</code> are strings</td>
+<td><code>not a signed job</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Signature valid (bad base64 counts as invalid)</td>
+<td><code>bad signature</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Envelope is an object with <code>v == 1</code></td>
+<td><code>unknown job format</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>agent</code> is this agent's id</td>
+<td><code>addressed to another agent</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>issued</code> and <code>expires</code> are numbers</td>
+<td><code>job without times</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>issued &lt;= now + MAX_SKEW</code></td>
+<td><code>issued in the future: check the clocks</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>expires &gt;= now - MAX_SKEW</code></td>
+<td><code>expired</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>type</code> is a known job type</td>
+<td><code>unknown job type '&lt;type&gt;'</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>params</code> is an object and <code>id</code> a string</td>
+<td><code>job without id or params</code></td>
+</tr>
+<tr>
+<td>10</td>
+<td>Every capability the job needs is in <code>allow</code></td>
+<td><code>capability not switched on in this host's agent.conf: &lt;caps, comma separated&gt;</code></td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>id</code> not in <code>seen.json</code></td>
+<td><code>job already run (replay)</code></td>
+</tr>
+</tbody>
+</table>
+<p>Failures 1–9 are written to <code>audit.log</code> as <code>refused</code> and, when the job text holds a string <code>id</code>,
+answered with a refused <code>result</code> (sent, or buffered when the link is down). Failure 10 is the
+same. Failure 11 is written to <code>audit.log</code> but <strong>not answered</strong>: the hub already has the first
+answer.</p>
+<p>When every check passes, the agent:</p>
+<ol>
+<li>adds <code>id</code> to <code>seen.json</code> with its <code>expires</code>;</li>
+<li>writes <code>accepted</code> to <code>audit.log</code> with <code>id</code>, <code>type</code>, <code>params</code>, <code>by</code>;</li>
+<li>sends <code>ack</code> (not buffered);</li>
+<li>runs the job in a pool of <strong>two</strong> workers. Write jobs (<code>patch.apply</code>, <code>ansible.run</code>) also take
+   a single write lock, so at most one write job runs at a time.</li>
+</ol>
+<p>When the handler returns, the agent writes <code>finished</code> to <code>audit.log</code> (<code>id</code>, <code>type</code>, <code>ok</code>, <code>error</code>
+cut to 300 characters, <code>seconds</code>) and sends the result, or buffers it:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">"t"</span><span class="p">:</span><span class="w"> </span><span class="s2">"result"</span><span class="p">,</span><span class="w"> </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"…"</span><span class="p">,</span><span class="w"> </span><span class="nt">"ok"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"result"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="err">…</span><span class="p">},</span><span class="w"> </span><span class="nt">"error"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w"> </span><span class="nt">"started"</span><span class="p">:</span><span class="w"> </span><span class="mf">1764000000.1</span><span class="p">,</span><span class="w"> </span><span class="nt">"finished"</span><span class="p">:</span><span class="w"> </span><span class="mf">1764000003.4</span><span class="p">}</span>
+</code></pre></div>
+<p><code>ok</code> is the handler's <code>result.ok</code> when the result is an object that has it, else <code>true</code>. <code>error</code> is
+<code>result.error</code> when set. A handler that fails gives <code>ok: false</code>, <code>result: null</code> and the error. A
+failing job MUST NOT stop the agent.</p>
+<p><code>seen.json</code> is a JSON object <code>{"&lt;id&gt;": &lt;expires&gt;}</code>. Entries with <code>expires + MAX_SKEW &lt;= now</code> are
+dropped whenever an id is added.</p>
+<h3 id="job-types">Job types<a class="headerlink" href="#job-types" title="Permanent link">&para;</a></h3>
+<p>Nothing else runs. <code>write</code> is the capability a job needs at both ends.</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Write</th>
+<th>Hub timeout</th>
+<th>Parameters</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ping</code></td>
+<td>—</td>
+<td>10 s</td>
+<td><code>echo</code> (optional)</td>
+<td><code>{"pong": true, "time": &lt;now&gt;, "echo": "&lt;echo, max 200 chars&gt;"}</code></td>
+</tr>
+<tr>
+<td><code>facts</code></td>
+<td>—</td>
+<td>30 s</td>
+<td>none</td>
+<td><a href="#facts">Facts</a></td>
+</tr>
+<tr>
+<td><code>discovery.services</code></td>
+<td>—</td>
+<td>120 s</td>
+<td>none</td>
+<td><a href="#discovery">Discovery</a></td>
+</tr>
+<tr>
+<td><code>patch.report</code></td>
+<td>—</td>
+<td>600 s</td>
+<td>none</td>
+<td><a href="#patch-report">Patch report</a></td>
+</tr>
+<tr>
+<td><code>patch.apply</code></td>
+<td><code>patch</code> (+ <code>reboot</code> when <code>params.reboot</code>)</td>
+<td>3600 s</td>
+<td><code>reboot</code> (bool)</td>
+<td><a href="#patch-apply">Patch apply</a></td>
+</tr>
+<tr>
+<td><code>ansible.run</code></td>
+<td><code>ansible</code></td>
+<td>3600 s</td>
+<td><code>bundle</code>, <code>playbook</code>, <code>commit</code>, <code>vars</code>, <code>check</code></td>
+<td><a href="#ansible">Ansible</a></td>
+</tr>
+</tbody>
+</table>
+<p>Capabilities: <code>patch</code>, <code>reboot</code>, <code>ansible</code>. The hub refuses to queue a job whose capability is off
+in labdex (an administrator's switch) or missing from the <code>allow</code> the agent reported in <code>hello</code>.
+The agent checks its own <code>allow</code> again (check 10).</p>
+<h2 id="privileges">Privileges<a class="headerlink" href="#privileges" title="Permanent link">&para;</a></h2>
+<p>The agent runs as the system user <code>labdex-agent</code> by default, or as root where the host opted in
+(<code>install.sh --root</code>, and <code>allow_root</code> set by an administrator in labdex). A non-root agent runs
+the privileged commands below through <code>sudo -n</code> (never asking for a password); a root agent runs
+them directly. Nothing else runs privileged.</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Capability</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ss</code></td>
+<td>—</td>
+<td><code>ss -Htulpn</code></td>
+</tr>
+<tr>
+<td><code>docker_ps</code></td>
+<td>—</td>
+<td><code>docker ps --no-trunc --format {{json .}}</code></td>
+</tr>
+<tr>
+<td><code>podman_ps</code></td>
+<td>—</td>
+<td><code>podman ps --format json</code></td>
+</tr>
+<tr>
+<td><code>apt_update</code></td>
+<td><code>patch</code></td>
+<td><code>systemd-run --quiet --wait --pipe --collect --unit=labdex-agent-patch --setenv=DEBIAN_FRONTEND=noninteractive apt-get -q update</code></td>
+</tr>
+<tr>
+<td><code>apt_upgrade</code></td>
+<td><code>patch</code></td>
+<td><code>systemd-run … --unit=labdex-agent-patch --setenv=DEBIAN_FRONTEND=noninteractive apt-get -q -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold dist-upgrade</code></td>
+</tr>
+<tr>
+<td><code>dnf_upgrade</code></td>
+<td><code>patch</code></td>
+<td><code>systemd-run … --unit=labdex-agent-patch dnf -q -y upgrade</code></td>
+</tr>
+<tr>
+<td><code>reboot</code></td>
+<td><code>reboot</code></td>
+<td><code>shutdown -r +1 labdex-agent: reboot after updates</code></td>
+</tr>
+</tbody>
+</table>
+<p>The program (and, for <code>systemd-run</code>, the program it starts) is resolved to an absolute path:
+<code>argv[0]</code> on <code>/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin</code>, the started program
+on <code>/usr/sbin:/usr/bin:/sbin:/bin</code>. Write jobs go through <code>systemd-run</code> so they run outside the
+agent's own sandbox (<code>ProtectSystem=strict</code> would make <code>/usr</code> read-only for apt too).</p>
+<p>Every command runs with no stdin, the environment <code>PATH=/usr/sbin:/usr/bin:/sbin:/bin</code> and
+<code>LC_ALL=C</code> only, and a timeout. A missing program gives exit code 127, a timeout 124, another start
+failure 126.</p>
+<h3 id="sudoers">sudoers<a class="headerlink" href="#sudoers" title="Permanent link">&para;</a></h3>
+<p><code>labdex-agent sudoers [--user U]</code> prints the rules for exactly these lines: every read-only one, and
+the write ones whose capability is in <code>allow</code>. <code>install.sh</code> checks the output with <code>visudo -cf</code>
+before it goes live.</p>
+<div class="highlight"><pre><span></span><code># labdex-agent: written by `labdex-agent sudoers`; the agent runs nothing else with sudo.
+Defaults:labdex-agent !requiretty, !lecture
+labdex-agent ALL=(root) NOPASSWD: /usr/bin/ss -Htulpn
+# docker_ps: docker is not installed here
+…
+</code></pre></div>
+<p>Each rule is <code>&lt;user&gt; ALL=(root) NOPASSWD:</code> and the resolved command line, with <code>,</code> <code>:</code> <code>=</code> <code>\</code>
+escaped by a backslash. A command whose program is missing gives a comment line
+<code># &lt;name&gt;: &lt;program&gt; is not installed here</code> instead.</p>
+<h2 id="facts">Facts<a class="headerlink" href="#facts" title="Permanent link">&para;</a></h2>
+<p>Read from <code>/proc</code>, <code>/etc/os-release</code> and <code>statvfs</code>: no commands, no root.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hostname</code></td>
+<td><code>gethostname</code></td>
+</tr>
+<tr>
+<td><code>fqdn</code></td>
+<td>Fully qualified name, or <code>hostname</code></td>
+</tr>
+<tr>
+<td><code>os</code></td>
+<td><code>PRETTY_NAME</code> from <code>/etc/os-release</code>, else the kernel name</td>
+</tr>
+<tr>
+<td><code>os_id</code>, <code>os_version</code></td>
+<td><code>ID</code>, <code>VERSION_ID</code></td>
+</tr>
+<tr>
+<td><code>kernel</code></td>
+<td><code>uname -r</code></td>
+</tr>
+<tr>
+<td><code>arch</code></td>
+<td><code>uname -m</code></td>
+</tr>
+<tr>
+<td><code>cpus</code></td>
+<td>Logical CPUs</td>
+</tr>
+<tr>
+<td><code>memory</code></td>
+<td><code>MemTotal</code> in bytes</td>
+</tr>
+<tr>
+<td><code>disks</code></td>
+<td><code>[{mount, total, used, free}]</code> in bytes, for each mount of a real file system (below)</td>
+</tr>
+<tr>
+<td><code>user</code></td>
+<td>The agent's user name</td>
+</tr>
+<tr>
+<td><code>root</code></td>
+<td>Running as uid 0</td>
+</tr>
+<tr>
+<td><code>boot_time</code></td>
+<td><code>now - uptime</code>, rounded</td>
+</tr>
+<tr>
+<td><code>python</code></td>
+<td>Python agent only: its Python version</td>
+</tr>
+<tr>
+<td><code>agent</code></td>
+<td>Go agent only: <code>"go"</code></td>
+</tr>
+</tbody>
+</table>
+<p>Real file systems: ext2, ext3, ext4, xfs, btrfs, zfs, vfat, f2fs, jfs, reiserfs, bcachefs, from
+<code>/proc/mounts</code> (<code>\040</code> → space), each mount point once, only directories (a bind-mounted file is no
+disk). None: <code>["/"]</code>. <code>used = blocks × frsize − bfree × frsize</code>, <code>free = bavail × frsize</code>.</p>
+<h2 id="metrics">Metrics<a class="headerlink" href="#metrics" title="Permanent link">&para;</a></h2>
+<p>Sent in every heartbeat. All numbers.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cpu_percent</code></td>
+<td>CPU busy since the last heartbeat, one decimal (busy = total − idle − iowait from the <code>cpu</code> line of <code>/proc/stat</code>)</td>
+</tr>
+<tr>
+<td><code>load1</code>, <code>load5</code>, <code>load15</code></td>
+<td>Load averages, two decimals</td>
+</tr>
+<tr>
+<td><code>mem_total</code>, <code>mem_available</code>, <code>swap_total</code>, <code>swap_free</code></td>
+<td>From <code>/proc/meminfo</code>, bytes</td>
+</tr>
+<tr>
+<td><code>root_total</code>, <code>root_used</code></td>
+<td><code>/</code>, bytes</td>
+</tr>
+<tr>
+<td><code>uptime</code></td>
+<td>Seconds, rounded</td>
+</tr>
+<tr>
+<td><code>net_rx_bytes</code>, <code>net_tx_bytes</code></td>
+<td>Sum over every interface but <code>lo</code> in <code>/proc/net/dev</code></td>
+</tr>
+</tbody>
+</table>
+<p>The hub exports them at <code>/api/agents/metrics</code> (Prometheus text format).</p>
+<h2 id="discovery">Discovery<a class="headerlink" href="#discovery" title="Permanent link">&para;</a></h2>
+<p><code>discovery.services</code> is read-only. Result:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">"collected_at"</span><span class="p">:</span><span class="w"> </span><span class="mi">1764000000</span><span class="p">,</span><span class="w"> </span><span class="nt">"listeners"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="err">...</span><span class="p">],</span><span class="w"> </span><span class="nt">"units"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="err">...</span><span class="p">],</span><span class="w"> </span><span class="nt">"containers"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="err">...</span><span class="p">],</span>
+<span class="w"> </span><span class="nt">"processes"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="err">...</span><span class="p">],</span><span class="w"> </span><span class="nt">"notes"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"..."</span><span class="p">]}</span>
+</code></pre></div>
+<p><strong>Listeners.</strong> From <code>ss -Htulpn</code> (privileged); when that fails, from <code>ss -Htuln</code> (no processes) with
+a note:</p>
+<ul>
+<li>stderr holds <code>no new privileges</code> → <code>no processes for listening ports: sudo can't run under NoNewPrivileges (check the service's hardening)</code>;</li>
+<li>stderr holds <code>sudo</code> or the exit code is 1 → <code>no processes for listening ports: the sudo rule for ss is missing</code>;</li>
+<li>else <code>ss with processes failed: &lt;stderr, 200 chars&gt;</code>.</li>
+</ul>
+<p>Parsing <code>ss</code>: split each line on whitespace. Keep lines with at least 5 fields, field 1 <code>tcp</code> or
+<code>udp</code> and field 2 <code>LISTEN</code> or <code>UNCONN</code>. Field 5 is <code>addr:port</code>: split at the last <code>:</code>, the port must
+be digits, strip <code>[]</code> and anything from <code>%</code>, <code>*</code> or empty is <code>0.0.0.0</code>. Processes are every
+<code>("name",pid=N,fd=N)</code> in the fields from 7 on, one per PID. A <code>(proto, address, port)</code> seen before
+is skipped. Each listener: <code>{proto, address, port, pids: [{name, pid}]}</code> sorted by PID; the list is
+sorted by port, proto, address. After joining with processes, each listener gets <code>units</code> (sorted
+unit names of its processes) and, when a container publishes the same proto and port, <code>container:
+{engine, name, image}</code>.</p>
+<p><strong>Processes.</strong> The PIDs of every listener and every unit's main PID, at most 500 (lowest first),
+plus each one's parent when the parent isn't PID 1 and the 500 aren't reached. From <code>/proc/&lt;pid&gt;/</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pid</code>, <code>ppid</code></td>
+<td><code>status</code> (<code>PPid</code>)</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td><code>status</code> (<code>Name</code>)</td>
+</tr>
+<tr>
+<td><code>uid</code>, <code>user</code></td>
+<td>First <code>Uid</code> value; user from the password database, else the number</td>
+</tr>
+<tr>
+<td><code>cmdline</code></td>
+<td><code>cmdline</code> split on NUL, empties dropped, <a href="#redaction">redacted</a>, joined by spaces, cut to 1000 characters; empty → <code>[&lt;name&gt;]</code></td>
+</tr>
+<tr>
+<td><code>unit</code></td>
+<td>Innermost <code>*.service</code> or <code>*.scope</code> in <code>cgroup</code>, else <code>""</code></td>
+</tr>
+<tr>
+<td><code>started</code></td>
+<td>Boot time + field 22 of <code>stat</code> (field 20 after the <code>)</code>) ÷ clock ticks per second, rounded</td>
+</tr>
+<tr>
+<td><code>parent</code></td>
+<td><code>{pid, name}</code>: the parent's name when collected, <code>systemd</code> for PID 1, else <code>""</code></td>
+</tr>
+</tbody>
+</table>
+<p>Sorted by PID.</p>
+<p><strong>Units.</strong> When <code>systemctl</code> is there: <code>systemctl list-units --type=service --state=running
+--no-legend --plain --no-pager</code>, first word of each line; then <code>systemctl show --no-pager -p
+Id,Description,MainPID,User,FragmentPath,ActiveEnterTimestamp -- &lt;names&gt;</code>. Blocks are separated by
+an empty line; each gives <code>{unit, description, pid (null for 0), user ("root" when empty), path,
+since}</code>. No systemd: note <code>no systemd here</code>.</p>
+<p><strong>Containers.</strong> For each of <code>docker</code> and <code>podman</code> that is installed, the privileged <code>docker_ps</code> or
+<code>podman_ps</code>. A failure gives the note <code>&lt;engine&gt; ps failed (is the sudo rule there?): &lt;stderr&gt;</code>.</p>
+<ul>
+<li>Docker, one JSON object per line: <code>{engine: "docker", id: ID[:12], name: Names, image: Image,
+  status: Status, compose_project: &lt;com.docker.compose.project from Labels&gt;, ports}</code>. <code>Ports</code> text
+  like <code>0.0.0.0:8080-&gt;80/tcp, [::]:8080-8081-&gt;80-81/tcp</code> gives one <code>{address, port,
+  container_port, proto}</code> per host port (ranges expanded), address without <code>[]</code>, <code>0.0.0.0</code> when
+  missing.</li>
+<li>Podman, one JSON array: <code>{engine: "podman", id: Id[:12], name: Names[0], image, status: Status
+  or State, compose_project: Labels[...], ports, pid: Pid}</code>; ports from <code>host_ip</code>, <code>host_port</code>,
+  <code>container_port</code>, <code>protocol</code>, <code>range</code>.</li>
+</ul>
+<h3 id="redaction">Redaction<a class="headerlink" href="#redaction" title="Permanent link">&para;</a></h3>
+<p>Command lines MUST NOT leak secrets. A secret word is
+<code>[\w.-]*(pass|passwd|password|passphrase|secret|token|api[-_]?key|access[-_]?key|private[-_]?key|credential|credentials|auth)[\w.-]*</code>,
+case-insensitive. For each argument:</p>
+<ol>
+<li>After a bare secret flag (<code>--password</code>), the next argument becomes <code>***</code>.</li>
+<li><code>--?&lt;secret word&gt;</code> alone: keep it, hide the next. With <code>=value</code>: <code>&lt;flag&gt;=***</code>.</li>
+<li><code>&lt;secret word&gt;=value</code> or <code>&lt;secret word&gt;:value</code> → <code>&lt;word&gt;=***</code> / <code>&lt;word&gt;:***</code>.</li>
+<li>Else any <code>scheme://user:password@</code> → <code>scheme://user:***@</code>.</li>
+</ol>
+<p>The <a href="#conformance">conformance vectors</a> hold the exact cases.</p>
+<h2 id="patch-report">Patch report<a class="headerlink" href="#patch-report" title="Permanent link">&para;</a></h2>
+<p><code>patch.report</code> reads what the package manager already knows; it never refreshes the lists (that
+needs root; <code>patch.apply</code> does it). Result:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">"os"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Debian GNU/Linux 12 (bookworm)"</span><span class="p">,</span><span class="w"> </span><span class="nt">"kernel"</span><span class="p">:</span><span class="w"> </span><span class="s2">"6.1.0-27-amd64"</span><span class="p">,</span><span class="w"> </span><span class="nt">"packages"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"openssl"</span><span class="p">,</span><span class="w"> </span><span class="nt">"from"</span><span class="p">:</span><span class="w"> </span><span class="s2">"3.0.14-1~deb12u2"</span><span class="p">,</span><span class="w"> </span><span class="nt">"to"</span><span class="p">:</span><span class="w"> </span><span class="s2">"3.0.15-1~deb12u1"</span><span class="p">,</span><span class="w"> </span><span class="nt">"security"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">}],</span>
+<span class="w"> </span><span class="nt">"pending"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">"reboot"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="nt">"patched_at"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-11-20T03:12:44+00:00"</span><span class="p">}</span>
+</code></pre></div>
+<p><code>error</code> is added when the package manager failed. The hub takes <code>pending</code>, <code>security</code>, <code>reboot</code>,
+<code>packages</code>, <code>os</code>, <code>kernel</code>, <code>patched_at</code>, <code>error</code>.</p>
+<ul>
+<li><strong>apt</strong> (<code>apt-get</code> on the path): <code>apt-get -s -o Debug::NoLocking=1 dist-upgrade</code>; each line
+  matching <code>^Inst (\S+) (?:\[(\S+)\] )?\((\S+) ([^)]*)\)</code> is a package; <code>security</code> when the last
+  group holds <code>-security</code> or <code>Debian-Security</code>. Non-zero exit: <code>error: apt-get -s dist-upgrade
+  failed</code>. <code>reboot</code> when <code>/var/run/reboot-required</code> exists, or on Proxmox VE (<code>pveversion</code> on the
+  path) when the newest <code>/boot/vmlinuz-*</code> isn't the running kernel. <code>patched_at</code>: the
+  <code>Start-Date</code> of the last entry with an <code>Upgrade:</code> line in <code>/var/log/apt/history.log</code>
+  (<code>%Y-%m-%d  %H:%M:%S</code>, local time) as ISO 8601 with offset, else <code>null</code>.</li>
+<li><strong>dnf/yum</strong>: <code>&lt;dnf&gt; -q --cacheonly check-update</code> (exit 0 or 100 is fine), <code>&lt;dnf&gt; -q --cacheonly
+  updateinfo list --security --available</code>. A check-update line with exactly three fields and a <code>.</code>
+  in the first is a package: name is the first field without its <code>.arch</code>; <code>to</code> is the second;
+  <code>from</code> is <code>""</code>. Security when its name is in the security list (the last field of each line with
+  three or more fields, without <code>-&lt;version&gt;-&lt;release&gt;</code>). <code>reboot</code> when <code>needs-restarting -r</code> exits</li>
+<li><code>patched_at</code>: newest <code>rpm -qa --qf %{INSTALLTIME}\n</code> as UTC ISO 8601.</li>
+<li>Neither: <code>error: no apt-get, dnf or yum here</code>, <code>packages: []</code>.</li>
+</ul>
+<p><code>os</code> is <code>PRETTY_NAME</code>; on Proxmox VE it becomes <code>Proxmox VE &lt;version&gt; (&lt;PRETTY_NAME&gt;)</code> from
+<code>pveversion</code>. <code>pending</code> is the number of packages. Commands run with <code>LC_ALL=C</code>, without sudo.</p>
+<h3 id="patch-apply">Patch apply<a class="headerlink" href="#patch-apply" title="Permanent link">&para;</a></h3>
+<p>Needs <code>patch</code> (and <code>reboot</code> for <code>params.reboot</code>). Parameters other than <code>reboot</code> are refused
+(<code>unknown parameters: …</code>). Under the write lock:</p>
+<ol>
+<li>apt: <code>apt_update</code>, then <code>apt_upgrade</code>; dnf: <code>dnf_upgrade</code>; neither: fail with <code>no apt-get or
+   dnf on this host</code>.</li>
+<li>Each step adds <code>{step, code, output: last 4000 characters of stdout+stderr}</code>. A non-zero code
+   stops: <code>{ok: false, steps, error: "&lt;step&gt; failed (&lt;code&gt;)"}</code>.</li>
+<li><code>apt-get update</code> exits 0 even when a mirror fails, so after <code>apt_update</code> any output line starting
+   with <code>Err:</code>, <code>E:</code>, <code>W: Failed to fetch</code> or <code>W: Some index files failed</code> stops with <code>apt_update
+   couldn't fetch every package list (see its output)</code>.</li>
+<li>A fresh patch report; when <code>params.reboot</code> and the report says <code>reboot</code>, run <code>reboot</code> (in a
+   minute).</li>
+</ol>
+<p>Result: <code>{ok: true, steps, report, rebooting}</code>.</p>
+<h2 id="ansible">Ansible<a class="headerlink" href="#ansible" title="Permanent link">&para;</a></h2>
+<p><code>ansible.run</code> runs a playbook from the site's git repository on this host only. The hub never
+sends a playbook text or a command: the signed job names a bundle by its SHA-256.</p>
+<p>Parameters (anything else is refused):</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bundle</code></td>
+<td><code>^[0-9a-f]{64}$</code></td>
+</tr>
+<tr>
+<td><code>playbook</code></td>
+<td><code>^[A-Za-z0-9_][A-Za-z0-9_./-]*\.ya?ml$</code>, no <code>..</code> part</td>
+</tr>
+<tr>
+<td><code>commit</code></td>
+<td>Git commit, reported back</td>
+</tr>
+<tr>
+<td><code>vars</code></td>
+<td>Object, passed as extra vars</td>
+</tr>
+<tr>
+<td><code>check</code></td>
+<td>Bool: <code>--check --diff</code></td>
+</tr>
+</tbody>
+</table>
+<ol>
+<li>The agent must run as root (<code>ansible.run needs the agent to run as root on this host (install
+   with --root)</code>) and <code>ansible-playbook</code> must be installed.</li>
+<li>Send <code>bundle.get</code>; wait up to <code>BUNDLE_WAIT</code> for <code>bundle</code>. The hub sends only a bundle named in a
+   running job of this agent.</li>
+<li>At most 8 MiB, and its SHA-256 MUST equal <code>bundle</code>.</li>
+<li>Unpack the <code>.tar.gz</code> into <code>&lt;state_dir&gt;/bundles/&lt;sha&gt;/</code>: regular files and folders only, no
+   absolute paths, no <code>..</code>, every path inside the folder, at most 64 MiB unpacked; folders 0700,
+   files 0600.</li>
+<li>Write <code>vars</code> to <code>.labdex-vars.json</code> in that folder.</li>
+<li>Under the write lock: <code>systemd-run --quiet --wait --pipe --collect --unit=labdex-agent-ansible
+   --working-directory=&lt;dir&gt; --setenv=ANSIBLE_NOCOLOR=1 --setenv=ANSIBLE_RETRY_FILES_ENABLED=0
+   &lt;absolute ansible-playbook&gt; -i localhost, -c local -e @&lt;varfile&gt; [--check --diff] &lt;playbook&gt;</code>,
+   timeout 3300 s.</li>
+<li>Remove the folder.</li>
+</ol>
+<p>Result: <code>{ok: code == 0, code, check, commit, recap: from "PLAY RECAP" (2000 chars), output: last 20000 chars}</code>.</p>
+<p>Ansible itself is Python, so a host that runs Ansible jobs needs Python whichever agent starts it.</p>
+<h2 id="the-spool">The spool<a class="headerlink" href="#the-spool" title="Permanent link">&para;</a></h2>
+<p>What the agent has to say while the hub can't take it (results and heartbeats) goes to <code>buffer/</code>.</p>
+<ul>
+<li>One batch per file, named <code>NNNNNNNNNNNN.jsonl</code> (12-digit counter), one JSON record per line, the
+  next counter after the highest existing file. Written to <code>.tmp</code>, synced and renamed.
+  Leftover <code>.tmp</code> files are deleted at start.</li>
+<li>Limits: 64 MiB and 7 days. Past either, the oldest files go first, counted as dropped.</li>
+<li>A file that can't be read or parsed is dropped, so it can't block those behind it.</li>
+<li>After <code>welcome</code>, the agent sends the oldest file's records in order and deletes the file once
+  every record was sent; it stops at the first send that fails. A crash halfway sends one batch
+  twice at most; the hub ignores a second result for a job.</li>
+<li>A disk that can't be written drops the records and logs once until it works again.</li>
+</ul>
+<h2 id="certificates">Certificates<a class="headerlink" href="#certificates" title="Permanent link">&para;</a></h2>
+<p>When mTLS isn't off on the hub (<code>LABDEX_AGENT_MTLS</code>), labdex is a CA for its agents. The certificate
+is <code>CN=&lt;agent id&gt;</code>, <code>O=labdex agent</code>, client auth only, EC P-256 or P-384. The hub checks it on the
+link: issued by its CA, in date, CN is the agent id, and its SHA-256 is the current or previous one
+on record. Behind a reverse proxy the hub reads it from <code>LABDEX_AGENT_CERT_HEADER</code>, only from
+trusted proxies.</p>
+<p>After <code>welcome</code>, the hub sends <code>renew</code> when the agent reported <code>certs: true</code> and its <code>cert_sha256</code>
+isn't the latest on record, or the certificate runs out within 30 days. The agent answers with
+<code>csr</code>; the hub answers <code>cert</code>; the agent saves it and uses it from the next link. The old
+certificate keeps working until the agent links with the new one.</p>
+<h2 id="audit">Audit<a class="headerlink" href="#audit" title="Permanent link">&para;</a></h2>
+<p><code>audit.log</code>: one JSON object per line, <code>ts</code> (Unix time, 3 decimals) and <code>event</code>:</p>
+<table>
+<thead>
+<tr>
+<th><code>event</code></th>
+<th>Fields</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>refused</code></td>
+<td><code>reason</code>, and <code>id</code>, <code>type</code> when known</td>
+</tr>
+<tr>
+<td><code>accepted</code></td>
+<td><code>id</code>, <code>type</code>, <code>params</code>, <code>by</code></td>
+</tr>
+<tr>
+<td><code>finished</code></td>
+<td><code>id</code>, <code>type</code>, <code>ok</code>, <code>error</code> (300 chars), <code>seconds</code></td>
+</tr>
+</tbody>
+</table>
+<p>Never a job's output. A write error MUST NOT stop the agent. The hub keeps its own audit (object
+type <code>agent</code>).</p>
+<h2 id="command-line">Command line<a class="headerlink" href="#command-line" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Does</th>
+<th>Exit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>labdex-agent enrol --url U --token T</code></td>
+<td>Enrol; <code>--token -</code> reads it from stdin; <code>LABDEX_AGENT_TOKEN</code> works too</td>
+<td>0, or non-zero with the reason</td>
+</tr>
+<tr>
+<td><code>labdex-agent run</code></td>
+<td>The service: link and run jobs until SIGTERM</td>
+<td>0 on SIGTERM; 2 not enrolled; 3 refused for good</td>
+</tr>
+<tr>
+<td><code>labdex-agent health</code></td>
+<td>Prints how long ago the hub answered</td>
+<td>0 within <code>HEALTHY_FOR</code>, else 1</td>
+</tr>
+<tr>
+<td><code>labdex-agent sudoers [--user U]</code></td>
+<td>Prints the sudo rules</td>
+<td>0</td>
+</tr>
+<tr>
+<td><code>labdex-agent show facts\|discovery\|patches\|metrics</code></td>
+<td>Runs a read-only collector here and prints JSON; sends nothing</td>
+<td>0</td>
+</tr>
+<tr>
+<td><code>labdex-agent --version</code></td>
+<td>Prints the version</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p>Every command takes <code>--config</code> (default <code>/etc/labdex-agent/agent.conf</code>). Exit code 3 matters: the
+systemd unit has <code>RestartPreventExitStatus=3</code>, so a revoked agent stays stopped.</p>
+<h2 id="install-and-service">Install and service<a class="headerlink" href="#install-and-service" title="Permanent link">&para;</a></h2>
+<p><code>install.sh</code> (served at <code>/api/agents/install.sh</code>) installs the agent, its user, config, sudo rules
+and systemd unit; <code>--uninstall [--purge]</code> removes them. The unit's hardening is part of the
+contract: <code>ProtectSystem=strict</code>, <code>ReadWritePaths=/var/lib/labdex-agent</code>, <code>ProtectHome</code>,
+<code>PrivateTmp</code>, <code>ProtectControlGroups</code>, <code>CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_AUDIT_WRITE
+CAP_DAC_READ_SEARCH CAP_SYS_PTRACE</code>, <code>UMask=0077</code>, <code>MemoryMax=256M</code>, <code>TasksMax=64</code>, and none of the
+settings that imply <code>NoNewPrivileges</code> (sudo can't work under it).</p>
+<h2 id="conformance">Conformance<a class="headerlink" href="#conformance" title="Permanent link">&para;</a></h2>
+<p><code>agent/testdata/conformance.json</code> holds cases both agents MUST pass: a signed job with a fixed test
+key and every check failure, redaction, <code>ss</code>, <code>systemctl show</code>, Docker ports, cgroup units, apt and
+dnf output. The Python tests (<code>backend/tests/test_agent_conformance.py</code>) and the Go tests read the
+same file. A change to the contract changes this page and that file in the same pull request.</p>
+<p>The end-to-end check is the install rehearsal, <code>backend/tools/agent_rehearsal.py</code>: a local labdex
+over TLS with client certificates required, a systemd container standing in for a host, and 13
+checks from install to <code>--uninstall --purge</code>. <code>--agent go</code> runs it with the Go agent.</p>
+<h2 id="what-may-differ-between-agents">What may differ between agents<a class="headerlink" href="#what-may-differ-between-agents" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>version</code> and the <code>python</code> / <code>agent</code> facts.</li>
+<li>Log lines on stdout.</li>
+<li>Internal structure, as long as every MUST above holds.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../cli/" class="md-footer__link md-footer__link--prev" aria-label="Previous: CLI">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                CLI
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../contributing/" class="md-footer__link md-footer__link--next" aria-label="Next: Contributing">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Contributing
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.top", "navigation.footer", "content.code.copy", "search.highlight"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>
