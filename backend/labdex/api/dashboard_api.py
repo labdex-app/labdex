@@ -74,12 +74,22 @@ def dashboard():
     # ---------------------------------------------------------------- failing
     # the newest run of each integration action (and host) that failed in the last week, unless a later one succeeded
     since = now - timedelta(days=7)
-    latest: dict[tuple, Job] = {}
-    for j in db.session.scalars(db.select(Job).where(Job.created_at >= since).order_by(Job.id)):
-        if j.status in ("queued", "running", "applying", "planned", "approved", "stale", "discarded"):
-            continue
-        latest[(j.integration_id, j.action, (j.params or {}).get("host"))] = j
-    failing = [job_dict(j) for j in sorted(latest.values(), key=lambda j: -j.id) if j.status == "failed" and can_view(j)][:10]
+    # a busy week is thousands of scheduled runs: read only the columns this needs, not their logs
+    # and results (that was most of the page's time), and load the few failing ones in full after
+    latest: dict[tuple, tuple] = {}
+    for jid, integ, action, status, params in db.session.execute(
+            db.select(Job.id, Job.integration_id, Job.action, Job.status, Job.params)
+            .where(Job.created_at >= since, Job.status.not_in(("queued", "running", "applying", "planned", "approved", "stale", "discarded")))
+            .order_by(Job.id)):
+        latest[(integ, action, (params or {}).get("host"))] = (jid, status)
+    failed_ids = sorted((jid for jid, status in latest.values() if status == "failed"), reverse=True)
+    failing = []
+    for jid in failed_ids:
+        j = db.session.get(Job, jid)
+        if j is not None and can_view(j):
+            failing.append(job_dict(j))
+            if len(failing) >= 10:
+                break
     running = [job_dict(j) for j in db.session.scalars(db.select(Job).where(Job.status.in_(jobs.ACTIVE)).order_by(Job.id.desc()).limit(10))
                if can_view(j)]
 

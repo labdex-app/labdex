@@ -812,3 +812,157 @@ def test_certificate_expiry_with_old_and_new_cryptography(tmp_path):
             .sign(ca, hashes.SHA256()))
     core.save_certificate(str(tmp_path), key, cert.public_bytes(serialization.Encoding.PEM).decode())
     assert core.certificate_info(str(tmp_path))["not_after"] == "2027-11-24T12:00:00+00:00"
+
+
+# ----------------------------------------------------------------------------- the Agent tab's actions
+def test_the_enrol_command_uses_https(admin, loaded):
+    """install.sh only talks https: the command must never carry the http address labdex is asked on."""
+    from labdex.api.agents_api import hub_url
+    loaded.config["LABDEX_TRUSTED_PROXIES"] = ["10.0.0.0/24"]
+
+    def url(base, headers=None, addr="127.0.0.1"):
+        with loaded.test_request_context("/api/hosts/x/agent/token", base_url=base, headers=headers or {}, environ_base={"REMOTE_ADDR": addr}):
+            return hub_url()
+
+    # straight to labdex over http: https on the same name, and a note that says it's a guess
+    base, note = url("http://labdex.example.com")
+    assert base == "https://labdex.example.com" and "only use https" in note
+    # behind a trusted proxy that ended TLS: what it forwards
+    base, note = url("http://10.0.0.5:8080", {"X-Forwarded-Proto": "https", "X-Forwarded-Host": "lab.example.com"}, "10.0.0.2")
+    assert base == "https://lab.example.com" and "only use https" not in note
+    # the same headers from anyone else count for nothing
+    base, _ = url("http://10.0.0.5:8080", {"X-Forwarded-Host": "evil.example.com"}, "192.0.2.9")
+    assert base == "https://10.0.0.5:8080"
+    # the configured address wins, with no note; and the command carries it
+    r = admin.put("/api/admin/settings", json={"public_url": "https://labdex.lab.example.net/"})
+    assert r.status_code < 300, r.get_json()
+    assert url("http://10.0.0.5:8080") == ("https://labdex.lab.example.net", "")
+    t = admin.post(f"/api/hosts/{DNS}/agent/token", json={}).get_json()
+    assert t["url"] == "https://labdex.lab.example.net" and t["url_note"] == ""
+    assert t["command"].startswith("{ curl -fsSLo install.sh https://labdex.lab.example.net/api/agents/install.sh || "
+                                   "wget -qO install.sh https://labdex.lab.example.net/api/agents/install.sh; } && "
+                                   "sudo sh install.sh --python --url https://labdex.lab.example.net --token lxe_")  # no Go binaries here
+    r = admin.put("/api/admin/settings", json={"public_url": "http://labdex.lab.example.net"})
+    base, note = url("http://10.0.0.5:8080")
+    assert base == "https://labdex.lab.example.net" and "http://" in note
+
+
+def test_the_generated_command_runs(hub, tmp_path):
+    """The command as shown: its install.sh accepts the URL (the script stops before it installs anything)."""
+    import subprocess
+    t = hub["admin"].post(f"/api/hosts/{DNS}/agent/token", json={}).get_json()
+    script = (core.__file__ and Path(core.__file__).parent / "dist" / "install.sh")
+    args = t["command"].split("sudo sh install.sh ", 1)[1].split()
+    # --url … --token … --sha256 …: install.sh checks them first; not root here, so it stops right after
+    r = subprocess.run(["sh", str(script), *args], capture_output=True, text=True, env={"PATH": os.environ["PATH"]})
+    assert "must be https" not in r.stderr and "give --url" not in r.stderr, r.stderr
+
+
+def test_reroll_keeps_the_old_key_until_the_new_one_enrols(hub):
+    cfg, creds = enrol(hub, allow=("patch",))
+    old = creds["agent_id"]
+    r = hub["admin"].post(f"/api/hosts/{DNS}/agent/token", json={"reroll": True})
+    assert r.status_code == 201
+    t = r.get_json()
+    assert '--allow "patch"' in t["command"]  # install.sh rewrites agent.conf: the host keeps what it allowed
+    assert agents.authenticate(creds["key"]) is not None  # still works: nothing ran on the host yet
+    ev = db.session.scalars(db.select(AuditEvent).where(AuditEvent.action == "reroll")).all()
+    assert ev and old in ev[-1].summary
+    cfg2 = core.Config("/nonexistent", url=hub["url"], allow=["patch"], state_dir=str(hub["tmp"] / "a2"))
+    new = core.enrol(cfg2, t["token"], allow_http=True, root=False)
+    db.session.expire_all()
+    assert new["agent_id"] != old and agents.authenticate(creds["key"]) is None
+    assert db.session.get(Agent, old).revoked_at is not None
+
+
+def test_renew_certificate_now(hub, loaded):
+    cfg, creds = enrol(hub)
+    # not linked: nothing to ask
+    r = hub["admin"].post(f"/api/hosts/{DNS}/agent/cert")
+    assert r.status_code == 409 and "linked" in r.get_json()["error"]
+    agent, th, out = start(cfg, creds)
+    wait(lambda: agents.linked(db.session.get(Agent, creds["agent_id"])))
+    first = db.session.get(Agent, creds["agent_id"]).cert_sha256
+    assert first
+    r = hub["admin"].post(f"/api/hosts/{DNS}/agent/cert")
+    assert r.status_code == 202, r.get_json()
+    wait(lambda: db.session.get(Agent, creds["agent_id"]).cert_sha256 not in ("", first))
+    a = db.session.get(Agent, creds["agent_id"])
+    assert a.cert_prev_sha256 == first  # the old one works until the agent links with the new one
+    assert db.session.scalars(db.select(AuditEvent).where(AuditEvent.action == "cert-renew")).first() is not None
+    agent.stop()
+    loaded.config["LABDEX_AGENT_MTLS"] = "off"
+    assert hub["admin"].post(f"/api/hosts/{DNS}/agent/cert").status_code == 409
+
+
+def test_adopt_what_the_agent_found(hub, tmp_path):
+    cfg, creds = enrol(hub)
+    import labdex.agent.discovery as d
+    orig = d.collect
+    d.collect = lambda runner, proc=None: orig(runner, proc=fake_proc(tmp_path))
+    try:
+        agent, th, out = start(cfg, creds)
+        r = hub["admin"].post(f"/api/hosts/{DNS}/agent/jobs", json={"type": "discovery.services"})
+        assert job_done(hub["admin"], r.get_json()["id"])["status"] == "succeeded"
+    finally:
+        d.collect = orig
+    agent.stop()
+    admin = hub["admin"]
+    page = admin.get(f"/api/hosts/{DNS}/agent").get_json()
+    assert "6379/tcp" not in page["declared"]["ports"]
+    r = admin.post(f"/api/hosts/{DNS}/agent/adopt", json={"port": 6379, "proto": "tcp"})
+    assert r.status_code == 201, r.get_json()
+    assert r.get_json()["name"] == "redis" and r.get_json()["port"] == 6379
+    page = admin.get(f"/api/hosts/{DNS}/agent").get_json()
+    assert page["declared"]["ports"]["6379/tcp"] == "redis"
+    host = admin.get(f"/api/hosts/{DNS}").get_json()
+    svc = next(s for s in host["services"] if s["name"] == "redis")
+    assert svc["description"] == "listens on loopback only"
+    # twice is refused, and so is a port the agent never reported
+    assert admin.post(f"/api/hosts/{DNS}/agent/adopt", json={"port": 6379, "proto": "tcp"}).status_code == 409
+    assert admin.post(f"/api/hosts/{DNS}/agent/adopt", json={"port": 9, "proto": "tcp"}).status_code == 409
+    # a systemd unit without a port
+    unit = page["discovery"]["units"][0]["unit"]
+    r = admin.post(f"/api/hosts/{DNS}/agent/adopt", json={"unit": unit})
+    assert r.status_code == 201 and r.get_json()["port"] is None, r.get_json()
+    assert unit in admin.get(f"/api/hosts/{DNS}/agent").get_json()["declared"]["units"]
+    assert db.session.scalars(db.select(AuditEvent).where(AuditEvent.summary.like("from its agent:%"))).first() is not None
+
+
+def test_a_linked_agent_counts_as_up(hub):
+    from labdex import health
+    cfg, creds = enrol(hub)
+    assert not any(x["plugin"] == "agent" for x in health.sources().get(DNS, []))
+    agent, th, out = start(cfg, creds)
+    wait(lambda: agents.linked(db.session.get(Agent, creds["agent_id"])))
+    src = [x for x in health.sources()[DNS] if x["plugin"] == "agent"]
+    assert src and src[0]["state"] == "up"
+    assert health.states()[DNS]["live"] == "up"
+    agent.stop()
+
+
+def test_api_answers_say_where_their_time_went(admin):
+    t = admin.get("/api/dashboard").headers["Server-Timing"]
+    assert t.startswith("app;dur=") and "db;dur=" in t and "queries" in t
+
+
+def test_metrics_history_every_five_minutes_for_48_hours(hub):
+    from datetime import timedelta
+
+    from labdex.models import AgentSample, utcnow
+    cfg, creds = enrol(hub)
+    a = db.session.get(Agent, creds["agent_id"])
+    t0 = utcnow() - timedelta(hours=49)
+    m = {"cpu_percent": 10.0, "mem_total": 1000, "mem_available": 250, "root_total": 200, "root_used": 50,
+         "net_rx_bytes": 1000, "net_tx_bytes": 0}
+    for n in range(0, 49 * 60, 1):  # a heartbeat a minute for 49 hours
+        agents._sample(a, m | {"net_rx_bytes": 1000 + n * 60_000}, now=t0 + timedelta(minutes=n))
+    db.session.flush()
+    assert db.session.scalar(db.select(db.func.count()).select_from(AgentSample)) == 49 * 12
+    agents.tick()
+    h = agents.history(DNS)
+    assert 570 <= len(h) <= 577 and h[-1]["cpu"] == 10.0 and h[-1]["mem"] == 75.0 and h[-1]["disk"] == 25.0
+    assert h[-1]["rx"] == 1000 and h[0]["rx"] is None  # 60 kB a minute: 1 kB/s
+    page = hub["admin"].get(f"/api/hosts/{DNS}/agent").get_json()
+    assert len(page["history"]) == len(h)
+    assert len(hub["admin"].get(f"/api/hosts/{DNS}").get_json()["usage_history"]) == len(h)

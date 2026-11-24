@@ -68,7 +68,17 @@ const lines = computed(() => (text.value.match(/\n/g) || []).length + 1)
 </script>
 
 <template>
-  <div class="page ld" :class="{ picked: !!route.query.item }">
+  <div v-if="data && !stacks.length" class="page">
+    <div class="page-head"><h1>Workloads</h1><span class="h-tag">0 stacks</span></div>
+    <p class="page-lead">Compose stacks the Compose integrations keep: edit a compose file, review the diff, then plan a deploy.</p>
+    <div class="card empty">
+      <div class="e-ic"><Boxes :size="18" /></div>
+      <div class="e-t">No Compose stacks yet</div>
+      <p>Install the Compose stacks plugin and add stacks to one of its integrations; they show here.</p>
+      <div class="e-acts"><RouterLink to="/plugins" class="btn">Open plugins</RouterLink></div>
+    </div>
+  </div>
+  <div v-else class="page ld" :class="{ picked: !!route.query.item }">
     <section class="card flush list-pane" aria-label="Stacks">
       <div class="lp-head"><h1>Workloads</h1><span class="grow"></span>
         <span v-if="data" class="small faint mono">{{ stacks.length }} stack{{ stacks.length === 1 ? '' : 's' }}</span></div>

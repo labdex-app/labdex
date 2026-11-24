@@ -1,5 +1,5 @@
 <script setup>
-import { Plus } from 'lucide-vue-next'
+import { Plus, Workflow } from 'lucide-vue-next'
 import { confirm } from '../confirm'
 import { computed, onMounted, ref } from 'vue'
 import { api, ApiError, enc } from '../api'
@@ -72,10 +72,10 @@ async function remove() {
   <div class="page">
     <div class="page-head">
       <h1>Automation</h1>
-      <span class="h-tag">features</span>
+      <span class="h-tag">{{ list.length }} feature{{ list.length === 1 ? '' : 's' }}</span>
       <span class="grow"></span>
       <RouterLink v-for="r in runners" :key="r.name" :to="`/integrations/${r.name}`" class="btn small">Runner: {{ r.name }}</RouterLink>
-      <button v-if="canEdit" class="btn primary" @click="create()"><Plus :size="15" /> Feature</button>
+      <button v-if="canEdit" class="btn" @click="create()"><Plus :size="15" /> New feature</button>
     </div>
     <p class="page-lead">What runs on a host, as a tree. Children inherit and override their parents' variables.</p>
 
@@ -95,7 +95,12 @@ async function remove() {
                 <td class="small">{{ r.f?.hosts || '' }}</td>
                 <td class="right"><button v-if="canEdit" class="btn small ghost" title="Add a child" @click.stop="create(r.path)">+</button></td>
               </tr>
-              <tr v-if="!rows.length"><td colspan="4" class="empty">No features yet. Start with something like <code>server</code>, then <code>server.packages</code>.</td></tr>
+              <tr v-if="!rows.length"><td colspan="4" class="empty">
+                <div class="e-ic"><Workflow :size="18" /></div>
+                <div class="e-t">No features yet</div>
+                <p>A feature is a set of playbooks, roles and variables. Start with something like <code>server</code>, then <code>server.packages</code>, and add them on a host's page.</p>
+                <div v-if="canEdit" class="e-acts"><button class="btn" @click="create()"><Plus :size="15" /> New feature</button></div>
+              </td></tr>
             </tbody>
           </table>
         </div>

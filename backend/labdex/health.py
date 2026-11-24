@@ -99,7 +99,23 @@ def sources() -> dict[str, list[dict]]:
             "integration": r.integration.name, "plugin": r.integration.plugin_id,
             "state": r.state if fresh else "unknown", "detail": r.detail if fresh else f"no report since {r.checked_at:%Y-%m-%d %H:%M} UTC",
             "data": r.data or {}, "checked_at": r.checked_at.isoformat() + "Z", "since": r.changed_at.isoformat() + "Z"})
+    _agent_sources(out)
     return out
+
+
+def _agent_sources(out: dict[str, list[dict]]) -> None:
+    """A linked host agent is a live source too: its heartbeat says the host is up. An agent that
+    isn't linked says nothing (the service may be stopped while the host runs), so no false alarms."""
+    from . import agents
+    from .models import Agent
+    now = utcnow()
+    for a in db.session.scalars(db.select(Agent).where(Agent.revoked_at.is_(None))):
+        if not agents.linked(a, now):
+            continue
+        seen = a.last_seen.isoformat() + "Z"
+        out.setdefault(a.host, []).append({
+            "integration": "agent", "plugin": "agent", "state": "up", "detail": f"agent {a.id} linked",
+            "data": {}, "checked_at": seen, "since": (a.linked_at or a.last_seen).isoformat() + "Z"})
 
 
 def combine(srcs: list[dict], discovered: str | None) -> str:
@@ -205,9 +221,13 @@ def rename(old: str, new: str) -> None:
         db.session.delete(hh)
     for e in db.session.scalars(db.select(HostHealthEvent).where(HostHealthEvent.host == old)):
         e.host = new
+    from .models import AgentSample
+    db.session.execute(db.update(AgentSample).where(AgentSample.host == old).values(host=new))
 
 
 def forget(name: str) -> None:
     db.session.execute(db.delete(HostStatus).where(HostStatus.host == name))
     db.session.execute(db.delete(HostHealth).where(HostHealth.host == name))
     db.session.execute(db.delete(HostHealthEvent).where(HostHealthEvent.host == name))
+    from .models import AgentSample
+    db.session.execute(db.delete(AgentSample).where(AgentSample.host == name))

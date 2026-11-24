@@ -12,6 +12,30 @@
   `labdex-agent` wrapper use the venv's Python.
 - Fixed: the Python agent failed to enrol with cryptography older than 42 (Ubuntu 24.04 ships 41):
   `'Certificate' object has no attribute 'not_valid_after_utc'`.
+- **The agent's install command uses https.** Behind a reverse proxy that ends TLS, the Agent tab
+  showed an `http://` address, which `install.sh` refuses. The command now takes *Settings ›
+  General › Address of this labdex*, then what a trusted proxy forwards, and is always `https://`;
+  the tab says when the address is a guess. It falls back to `wget` where there is no `curl`. The
+  install rehearsal now runs the command exactly as the tab shows it (15 checks, Python and Go).
+- **Reroll key and Renew certificate** on the Agent tab, each with a confirmation and an audit
+  entry. A reroll gives a new one-time command; the old key works until it runs.
+- **Add as service**: a port, systemd unit or container port the agent discovered becomes a
+  service of the host in one click; what's already declared shows its name.
+- **48 hours of agent metrics in labdex**: a sample every 5 minutes, drawn as small charts on the
+  Agent tab and the host's Overview. A linked agent now counts as a live health source, so a host
+  with an agent no longer shows *down* or an empty health strip without a monitoring plugin.
+- **The Agent tab in the new look**: numbers with their charts on top, the agent and its jobs side
+  by side, one *Discovered* card with ports, services and containers, and settings as rows with
+  switches. **Agents** has a *No agent* tile with the hosts still to enrol, and warns about
+  certificates that run out within 30 days.
+- **Faster Overview**: it no longer loads every run of the past week with its log and result to
+  find the failing ones. Every API answer carries a `Server-Timing` header (time in labdex, in the
+  database, query count), so a browser's network panel shows where a slow page spent its time.
+
+- **Signing in stays on the sign-in page when the server answers with an error.** A 404 or 500
+  while signing in, or while labdex loads right after, used to swap the form for a blank page and
+  then a bare error. The form now stays (busy) until labdex is loaded and says what went wrong;
+  *Retry* on the page-wide error keeps the error up while it asks again.
 - **A host agent in Go (preview)**, next to the Python one: one static binary for amd64 and arm64,
   no Python needed for the agent itself (Ansible jobs still need it). The labdex image builds and
   serves both binaries; `install.sh --go` installs it with the same user, sudo rules and unit. It

@@ -488,11 +488,11 @@ const me = computed(() => state.auth.user.username)
       <aside class="card">
         <h3>Where things are</h3>
         <ul class="plain small">
-          <li><RouterLink to="/zones">Zones</RouterLink>: areas and trust levels (sidebar)</li>
-          <li><RouterLink to="/naming">Naming</RouterLink>: hostname parts and fun name pools (sidebar)</li>
+          <li><RouterLink to="/zones">Zones</RouterLink>: areas and trust levels</li>
+          <li><RouterLink to="/naming">Naming</RouterLink>: hostname parts and fun name pools</li>
           <li><RouterLink to="/about">About</RouterLink>: version, database, plugins, changelog</li>
-          <li><RouterLink to="/plugins?tab=market">Plugins → Marketplace</RouterLink> installs plugins; <RouterLink to="/admin/plugins">Settings → Plugins</RouterLink> uploads, repositories and signing keys</li>
-          <li><RouterLink to="/plugins">Automation → Plugins</RouterLink>: integrations, their settings, jobs and pages</li>
+          <li><RouterLink to="/plugins">Integrations</RouterLink>: plugin instances and the Marketplace</li>
+          <li><RouterLink to="/admin/plugins">Plugins</RouterLink> (here): uploads, repositories and signing keys</li>
         </ul>
       </aside>
     </div>

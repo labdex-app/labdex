@@ -384,7 +384,9 @@ ul.plain li { padding: 3px 0; word-break: break-all; }
 .js-approved { color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); }
 .js-queued, .js-running, .js-applying { color: var(--info); background: color-mix(in srgb, var(--info) 12%, transparent); }
 .js-failed { color: var(--err); background: color-mix(in srgb, var(--err) 12%, transparent); }
-.js-stale, .js-discarded { color: var(--faint); background: var(--raise); }
+.js-stale, .js-discarded, .js-cancelled, .js-expired { color: var(--faint); background: var(--raise); }
+.js-sent { color: var(--info); background: color-mix(in srgb, var(--info) 12%, transparent); }
+.js-refused { color: var(--err); background: color-mix(in srgb, var(--err) 12%, transparent); }
 .op { font-family: var(--mono); font-size: calc(12px * var(--text)); font-weight: 500; }
 .op-create { color: var(--ok); } .op-update { color: var(--warn); } .op-delete { color: var(--err); }
 .op-import, .op-apply, .op-login, .op-revert { color: var(--accent-soft); }

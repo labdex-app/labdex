@@ -13,7 +13,7 @@ from pathlib import Path
 
 from flask import Response, current_app, g, jsonify, request
 
-from .. import agent_pki, agents, audit, auth, rbac, store
+from .. import agent_pki, agents, audit, auth, naming, rbac, store
 from ..agent import protocol
 from ..models import Agent, AgentJob, db, utcnow
 from . import PUBLIC, HOOKS, body, bp, err
@@ -156,6 +156,29 @@ def agent_ca():
     return Response(agent_pki.ca_pem(), mimetype="application/x-pem-file")
 
 
+def hub_url() -> tuple[str, str]:
+    """The https address hosts reach labdex at, and a note when it's a guess.
+
+    install.sh only talks https. Behind a reverse proxy that ends TLS, labdex itself is asked over
+    plain http, so the request's own address is the wrong one: take the configured public address
+    first, then what a trusted proxy says (X-Forwarded-Proto/-Host), and only then the request."""
+    configured = naming.get_setting("public_url").strip().rstrip("/")
+    if configured.startswith("https://"):
+        return configured, ""
+    if configured:
+        return "https://" + configured.removeprefix("http://"), (
+            "The address of this labdex (Settings › General) is http://; agents use https://. Check that it answers there.")
+    scheme, host = request.scheme, request.host
+    if auth._trusted_proxy():
+        scheme = request.headers.get("X-Forwarded-Proto", scheme).split(",")[0].strip() or scheme
+        host = request.headers.get("X-Forwarded-Host", host).split(",")[0].strip() or host
+    note = "Taken from this browser's address. Set the address of this labdex (Settings › General) so the command doesn't depend on it."
+    if scheme != "https":
+        note = ("labdex is reached over http here, but agents only use https: the command assumes https on the same "
+                "name. Set the address of this labdex (Settings › General) if it answers elsewhere.")
+    return f"https://{host}", note
+
+
 @bp.post("/hosts/<name>/agent/token")
 def agent_token(name):
     """A one-time enrolment token for the host, and the command to install the agent with it."""
@@ -166,25 +189,36 @@ def agent_token(name):
     allow_root = bool(data.get("allow_root"))
     if allow_root:
         rbac.require_admin()
-    t, secret = agents.make_token(h, g.principal.label, allow_root)
+    # a new token for a host that has an agent: rerolls its key. The old key works until the host
+    # enrols with the new token (enrol() revokes it then), so a reroll that never runs locks nothing out.
+    old = agents.current(h.name)
+    if old is not None:
+        allow_root = allow_root or old.root
+        if old.root and not old.allow_root:
+            rbac.require_admin()
+    t, secret = agents.make_token(h, g.principal.label, allow_root, replaces=old.id if old else "")
     db.session.commit()
     _, sha = agent_package()
-    base = request.host_url.rstrip("/")
+    base, note = hub_url()
+    keep = ""
+    if old is not None and old.host_allow:  # install.sh rewrites agent.conf: keep what the host allowed
+        keep = f' --allow "{" ".join(old.host_allow)}"'
     root = " --root" if allow_root else ""
+    # curl where there is one, wget on minimal Debian (which has no curl)
+    fetch = f"{{ curl -fsSLo install.sh {base}/api/agents/install.sh || wget -qO install.sh {base}/api/agents/install.sh; }}"
 
-    def command(flags):
-        return (f"curl -fsSLo install.sh {base}/api/agents/install.sh && sudo sh install.sh{flags} --url {base} "
-                f"--token {secret}")
+    def command(flags, shas):
+        return f"{fetch} && sudo sh install.sh{flags} --url {base} --token {secret} {shas}{keep}{root}"
 
     # the Go agent is the default where labdex serves it (the image always does); else the Python one
-    py = {"sha256": sha, "command": command(" --python") + f" --sha256 {sha}{root}"}
+    py = {"sha256": sha, "command": command(" --python", f"--sha256 {sha}")}
     out = {"token": secret, "expires_at": agents._iso(t.expires_at), "sha256": sha, "python": py,
-           "agent": "python", "command": py["command"]}
+           "agent": "python", "command": py["command"], "url": base, "url_note": note}
     go = go_binaries()
     if go:
         # one --sha256 per architecture: install.sh takes the binary that matches any of them
         shas = " ".join(f"--sha256 {v[1]}" for v in go.values())
-        out["go"] = {"sha256": {arch: v[1] for arch, v in go.items()}, "command": command("") + f" {shas}{root}"}
+        out["go"] = {"sha256": {arch: v[1] for arch, v in go.items()}, "command": command("", shas)}
         out |= {"agent": "go", "command": out["go"]["command"]}
     return jsonify(out), 201
 
@@ -211,6 +245,7 @@ def host_agent(name):
         jobs = [agents.job_to_dict(j) for j in db.session.scalars(
             db.select(AgentJob).where(AgentJob.agent_id == a.id).order_by(AgentJob.created_at.desc()).limit(20))]
     return jsonify({"agent": agents.to_dict(a) if a else None, "discovery": (a.discovery if a else None) or None,
+                    "declared": agents.declared(h, a.discovery if a else None), "history": agents.history(h.name),
                     "jobs": jobs, "job_types": protocol.JOB_TYPES, "capabilities": list(protocol.CAPABILITIES)})
 
 
@@ -237,6 +272,42 @@ def revoke_host_agent(name):
     agents.revoke(a)
     db.session.commit()
     return jsonify(agents.to_dict(a))
+
+
+@bp.post("/hosts/<name>/agent/cert")
+def renew_host_agent_cert(name):
+    """Ask the linked agent for a new client certificate now, instead of 30 days before it runs out."""
+    h = _host_or_404(name, "edit")
+    a = agents.current(h.name) if h else None
+    if a is None:
+        return err(404, f"no agent on '{name}'")
+    if agent_pki.mode() == "off":
+        return err(409, "client certificates are off (LABDEX_AGENT_MTLS=off)")
+    if not agents.linked(a):
+        return err(409, "the agent isn't linked; it renews on its own when it links with a certificate that runs out soon")
+    current_app.extensions["labdex"].setdefault("agent_renew", set()).add(a.id)
+    audit.record("cert-renew", "agent", a.host, summary=f"new client certificate asked for agent {a.id}")
+    db.session.commit()
+    agents._wake(a.id)
+    return jsonify(agents.to_dict(a)), 202
+
+
+@bp.post("/hosts/<name>/agent/adopt")
+def adopt_agent_service(name):
+    """{port, proto, name?} or {unit, name?}: declare what the agent discovered as a service of the host."""
+    h = _host_or_404(name, "edit")
+    a = agents.current(h.name) if h else None
+    if a is None:
+        return err(404, f"no agent on '{name}'")
+    try:
+        svc = agents.adopt(h, a, body())
+    except agents.AgentError as e:
+        db.session.rollback()
+        return err(409, str(e))
+    db.session.commit()
+    from ..plugins import jobs
+    jobs.emit("host.updated")
+    return jsonify(svc), 201
 
 
 @bp.post("/hosts/<name>/agent/jobs")
@@ -337,6 +408,8 @@ def _link(ws) -> None:
         ws.send(json.dumps(message, separators=(",", ":"), default=str))
 
     said_hello = False
+    certs = False  # the agent said it handles certificates (hello "certs": true)
+    renew = app.extensions["labdex"].setdefault("agent_renew", set())
     try:
         while not gone.is_set():
             try:
@@ -363,6 +436,7 @@ def _link(ws) -> None:
                             ws.close(reason=protocol.CLOSE_ROOT, message="root isn't allowed for this host")
                             break
                         agents.hello(a, msg, worker, address)
+                        certs = bool(msg.get("certs"))
                         if mtls != "off":
                             agents.cert_seen(a, der)
                         said_hello = True
@@ -388,6 +462,9 @@ def _link(ws) -> None:
                         data = agents.bundle(a, str(msg.get("sha256", "")))
                         send({"t": "bundle", "sha256": msg.get("sha256")} |
                              ({"data": protocol.b64(data)} if data is not None else {"error": "no such bundle for a job of this agent"}))
+            if said_hello and agent_id in renew and mtls != "off" and certs:
+                renew.discard(agent_id)  # asked on the Agent tab (renew_host_agent_cert)
+                send({"t": "renew"})
             if said_hello:
                 for j in agents.to_send(a):
                     send(agents.signed(j))

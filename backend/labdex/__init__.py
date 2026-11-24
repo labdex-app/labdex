@@ -112,6 +112,10 @@ def create_app(config: dict | None = None) -> Flask:
             # WAL lets the CLI work while the server runs.
             event.listen(db.engine, "connect", _sqlite_pragmas)
 
+    from . import timing
+    with app.app_context():
+        timing.init(app, db.engine)
+
     from . import api, cli, naming, rbac
     from .plugins import Registry, jobs
     from .security import Vault

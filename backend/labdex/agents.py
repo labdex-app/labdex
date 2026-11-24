@@ -31,13 +31,15 @@ from flask import current_app
 
 from . import agent_pki, audit, store
 from .agent import protocol
-from .models import Agent, AgentJob, AgentToken, DiscoveredService, Host, db, utcnow
+from .models import Agent, AgentJob, AgentSample, AgentToken, DiscoveredService, Host, Service, db, utcnow
 
 TOKEN_PREFIX = "lxe_"
 TOKEN_TTL = timedelta(hours=1)
 KEY_RE = re.compile(r"^lxa_([0-9a-f]{8})_([A-Za-z0-9_-]{32,64})$")
 LINKED_FOR = timedelta(seconds=protocol.HEARTBEAT * 3)  # no heartbeat this long: not linked any more
 LOST_GRACE = timedelta(minutes=5)
+SAMPLE_EVERY = timedelta(minutes=5)  # metrics history kept in labdex: one sample per host this often…
+SAMPLE_KEEP = timedelta(hours=48)  # …for this long (VictoriaMetrics for longer)
 SOURCE = "agent"
 
 
@@ -86,12 +88,15 @@ def public_key() -> str:
 
 
 # ----------------------------------------------------------------------------- enrolment
-def make_token(host: Host, by: str, allow_root: bool = False) -> tuple[AgentToken, str]:
-    """A one-time enrolment token for the host. The token itself is returned this once."""
+def make_token(host: Host, by: str, allow_root: bool = False, replaces: str = "") -> tuple[AgentToken, str]:
+    """A one-time enrolment token for the host. The token itself is returned this once. With
+    `replaces` (the host's agent id) it rerolls that agent's key: enrolling with it revokes the old one."""
     secret = TOKEN_PREFIX + secrets.token_urlsafe(32)
     t = AgentToken(host=host.name, token_hash=_hash(secret), created_by=by, expires_at=utcnow() + TOKEN_TTL, allow_root=allow_root)
     db.session.add(t)
-    audit.record("enrol-token", "agent", host.name, summary=f"enrolment token for {host.name}, valid an hour" + (", root allowed" if allow_root else ""))
+    what = f"new key for agent {replaces} on {host.name}" if replaces else f"enrolment token for {host.name}"
+    audit.record("reroll" if replaces else "enrol-token", "agent", host.name,
+                 summary=f"{what}, valid an hour" + (", root allowed" if allow_root else ""))
     db.session.flush()
     return t, secret
 
@@ -339,6 +344,52 @@ def heartbeat(a: Agent, msg: dict) -> None:
     if isinstance(msg.get("metrics"), dict) and not msg.get("buffered"):
         clean = {k: v for k, v in msg["metrics"].items() if isinstance(k, str) and isinstance(v, (int, float)) and not isinstance(v, bool)}
         a.metrics = clean | {"at": utcnow().isoformat(timespec="seconds") + "Z"}
+        _sample(a, clean)
+
+
+def _pct(used, total):
+    return round(100 * used / total, 1) if isinstance(used, (int, float)) and total else None
+
+
+def _sample(a: Agent, m: dict, now=None) -> None:
+    """Keep a sample for the charts every SAMPLE_EVERY (heartbeats come every few seconds)."""
+    now = now or utcnow()
+    last = current_app.extensions["labdex"].setdefault("agent_sampled", {})
+    if a.host in last and now - last[a.host] < SAMPLE_EVERY:
+        return
+    if a.host not in last:  # after a restart: the database knows when the last one was
+        at = db.session.scalar(db.select(db.func.max(AgentSample.at)).where(AgentSample.host == a.host))
+        if at is not None and now - at < SAMPLE_EVERY:
+            last[a.host] = at
+            return
+    last[a.host] = now
+    mt, ma = m.get("mem_total"), m.get("mem_available")
+    db.session.add(AgentSample(
+        host=a.host, at=now, cpu=m.get("cpu_percent"), load1=m.get("load1"),
+        mem=_pct(mt - ma, mt) if isinstance(mt, (int, float)) and isinstance(ma, (int, float)) else None,
+        disk=_pct(m.get("root_used"), m.get("root_total")),
+        net_rx=int(m["net_rx_bytes"]) if isinstance(m.get("net_rx_bytes"), (int, float)) else None,
+        net_tx=int(m["net_tx_bytes"]) if isinstance(m.get("net_tx_bytes"), (int, float)) else None))
+
+
+def history(host: str, now=None) -> list[dict]:
+    """The host's samples of the last 48 hours, oldest first; network as bytes per second."""
+    now = now or utcnow()
+    rows = list(db.session.scalars(db.select(AgentSample).where(AgentSample.host == host, AgentSample.at >= now - SAMPLE_KEEP)
+                                   .order_by(AgentSample.at)))
+    out, prev = [], None
+    for r in rows:
+        rate = {}
+        if prev is not None:
+            dt = (r.at - prev.at).total_seconds()
+            for k in ("net_rx", "net_tx"):
+                a, b = getattr(prev, k), getattr(r, k)
+                # a reboot resets the counters: no rate for that step
+                rate[k] = round((b - a) / dt) if dt > 0 and a is not None and b is not None and b >= a else None
+        out.append({"at": _iso(r.at), "cpu": r.cpu, "mem": r.mem, "disk": r.disk, "load1": r.load1,
+                    "rx": rate.get("net_rx"), "tx": rate.get("net_tx")})
+        prev = r
+    return out
 
 
 def unlinked(a: Agent, worker: str) -> None:
@@ -358,6 +409,7 @@ def tick(now=None) -> dict:
         if (j.sent_at or j.created_at) + limit < now:
             j.status, j.error, j.finished_at = "failed", "no result from the agent in time", now
             out["lost"] += 1
+    db.session.execute(db.delete(AgentSample).where(AgentSample.at < now - SAMPLE_KEEP))
     for a in db.session.scalars(db.select(Agent).where(Agent.revoked_at.is_(None), Agent.connected != "")):
         if not linked(a, now):
             continue
@@ -442,6 +494,73 @@ def record_discovery(a: Agent, result: dict) -> dict:
                 closed += 1
     db.session.flush()
     return {"open": len(seen), "closed": closed}
+
+
+# ----------------------------------------------------------------------------- adopting what it found
+def _svc_name(raw: str) -> str:
+    raw = re.sub(r"\.(service|socket)$", "", str(raw or "").strip().lower())
+    return re.sub(r"[^a-z0-9-]+", "-", raw).strip("-")[:56]
+
+
+def _listener_name(s: dict, procs: dict) -> str:
+    """A name for a discovered port: its container, unit or process, else port-<n>."""
+    if s.get("container"):
+        return _svc_name(s["container"].get("name", ""))
+    for u in s.get("units") or []:
+        if u and u != "init.scope":
+            return _svc_name(u)
+    for p in s.get("pids") or []:
+        name = (procs.get(p.get("pid")) or {}).get("name") or p.get("name")
+        if name:
+            return _svc_name(name)
+    return ""
+
+
+def declared(host: Host, disc: dict | None) -> dict:
+    """Which discovered ports and units the host already declares: {"ports": {"22/tcp": name}, "units": {unit: name}}."""
+    by_port = {f"{s.port}/{s.proto or 'tcp'}": s.name for s in host.services if s.port}
+    names = {s.name for s in host.services}
+    units = {}
+    for u in (disc or {}).get("units") or []:
+        if isinstance(u, dict) and _svc_name(u.get("unit", "")) in names:
+            units[u["unit"]] = _svc_name(u["unit"])
+    return {"ports": by_port, "units": units}
+
+
+def adopt(host: Host, a: Agent, data: dict) -> dict:
+    """Declare a port or a systemd unit the agent found as a service of its host (in the site's
+    inventory, like any edit). Only what the last discovery reported can be adopted."""
+    disc = a.discovery or {}
+    procs = {p.get("pid"): p for p in disc.get("processes") or [] if isinstance(p, dict)}
+    before = store.host_to_dict(host)
+    want = _svc_name(data.get("name", ""))
+    if data.get("unit"):
+        unit = next((u for u in disc.get("units") or [] if isinstance(u, dict) and u.get("unit") == data["unit"]), None)
+        if unit is None:
+            raise AgentError(f"the agent didn't report {data['unit']}; run Discover services first")
+        name = want or _svc_name(unit["unit"])
+        if any(s.name == name for s in host.services):
+            raise AgentError(f"{host.name} already has a service {name}")
+        svc = Service(name=name, port=None, proto="tcp", description=str(unit.get("description") or unit["unit"])[:200])
+    else:
+        port, proto = data.get("port"), str(data.get("proto") or "tcp")
+        found = [s for s in disc.get("listeners") or [] if isinstance(s, dict) and s.get("port") == port and s.get("proto", "tcp") == proto]
+        if not found or not isinstance(port, int):
+            raise AgentError(f"the agent didn't report {port}/{proto}; run Discover services first")
+        if any(s.port == port and (s.proto or "tcp") == proto for s in host.services):
+            raise AgentError(f"{host.name} already declares {port}/{proto}")
+        name = want or _listener_name(found[0], procs) or f"port-{port}"
+        if any(s.name == name for s in host.services):
+            name = f"{name}-{port}"[:63]
+        scheme = "https" if port in (443, 8443) else "ssh" if port == 22 else ""
+        # bound only to loopback: reachable on the host alone, nothing for DNS or the firewall
+        local = all(_loopback(str(s.get("address", ""))) for s in found)
+        svc = Service(name=name, port=port, proto=proto, scheme=scheme, description="listens on loopback only" if local else "")
+    host.services.append(svc)
+    db.session.flush()
+    audit.record("update", "host", host.name, before, store.host_to_dict(host),
+                 summary=f"from its agent: service {svc.name}" + (f" ({svc.port}/{svc.proto})" if svc.port else ""))
+    return {"name": svc.name, "port": svc.port, "proto": svc.proto}
 
 
 # ----------------------------------------------------------------------------- ansible bundles
