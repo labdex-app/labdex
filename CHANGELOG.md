@@ -2,14 +2,21 @@
 
 ## Unreleased
 
+- **`install.sh --ansible`** sets an Ubuntu host up for Ansible through the agent (Go agent): the
+  user `labdex-ansible`, an sshd drop-in that lets it in only with labdex's certificates from
+  `127.0.0.1` (no password, TTY or forwarding; other users unchanged, checked with `sshd -t`),
+  sshd's port in `agent.conf`, and `ansible` in `--allow`. `--ansible-become` adds a sudo rule for
+  root; `--packages` installs what the host's modules need. `--uninstall` takes it away again, and
+  **Reroll key** keeps it. New public endpoint `GET /api/agents/ansible-ca.pub`: the SSH CA's public
+  key (made on first use, so the vault must be unsealed).
 - **Ansible through the agent.** A host whose Go agent has `ansible` on at both ends now takes
   part in Ansible runs through its agent's link instead of over the network: labdex makes a key
   and an SSH certificate per run and host (`labdex-ansible@<host>`, an hour, only from
   `127.0.0.1`), signed by a certificate authority kept in the vault (`labdex/ansible-ssh-ca`),
   pins the host keys the agent reported, and opens an `ansible.session` on the agent the first time
   the run reaches the host. Become stays off unless an administrator switches on *Ansible may
-  become root* for the host (`ansible_become`). Other hosts use plain SSH as before. The host side
-  (`install.sh --ansible`) comes next; see *Guide › Host agent › Ansible through the agent*.
+  become root* for the host (`ansible_become`). Other hosts use plain SSH as before. See
+  *Guide › Host agent › Ansible through the agent*.
 - **The Go agent is now the default.** `install.sh` installs it unless you add `--python`, and the
   enrol command on a host's Agent tab is the Go one wherever labdex serves the binaries (the image
   always does), with the Python command under *The Python agent instead*. `--go` is still

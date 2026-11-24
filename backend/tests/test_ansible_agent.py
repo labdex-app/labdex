@@ -98,6 +98,33 @@ def test_become_is_an_administrators_switch(hub, make_user):
     assert r.status_code == 200 and r.get_json()["ansible_become"] is True
 
 
+def test_hosts_fetch_the_ca_public_key_without_signing_in(admin, loaded):
+    from labdex import keyvault
+    keyvault.seal()  # an earlier test may have left it open
+    anon = loaded.test_client()
+    r = anon.get("/api/agents/ansible-ca.pub")
+    assert r.status_code == 503 and "sealed" in r.get_json()["error"]
+    db.session.rollback()
+    unseal(admin)
+    r = anon.get("/api/agents/ansible-ca.pub")
+    assert r.status_code == 200 and r.text == ansible_agent.ca_public() + "\n"
+    assert "PRIVATE" not in r.text
+
+
+def test_a_new_token_keeps_the_hosts_ansible_set_up(hub, loaded):
+    bin_dir = hub["tmp"] / "bin"
+    bin_dir.mkdir()
+    (bin_dir / "labdex-agent-linux-amd64").write_bytes(b"not really an agent")
+    loaded.config["LABDEX_AGENT_BIN_DIR"] = str(bin_dir)
+    cfg, creds = test_agents.enrol(hub)
+    a = db.session.get(Agent, creds["agent_id"])
+    a.jobs, a.host_allow, a.ansible_become = ["ping", "ansible.session"], ["ansible"], True
+    db.session.commit()
+    out = hub["admin"].post(f"/api/hosts/{DNS}/agent/token", json={}).get_json()
+    assert ' --allow "ansible"' in out["python"]["command"] and "--ansible " not in out["python"]["command"] + " "
+    assert '--allow "ansible" --ansible --ansible-become' in out["go"]["command"]
+
+
 # ----------------------------------------------------------------------------- the broker
 class FakeAgent:
     """An agent's end of the link: pipes to a TCP echo server, like the Go agent to its sshd."""
@@ -331,3 +358,105 @@ def test_ansible_runs_through_the_go_agent(go_agent, tls_hub, sshd, tmp_path, mo
     finally:
         p.terminate()
         p.wait(10)
+
+
+# ----------------------------------------------------------------------------- install.sh --ansible
+def _ubuntu() -> bool:
+    try:
+        text = Path("/etc/os-release").read_text()
+    except OSError:
+        return False
+    return "ID=ubuntu" in text or "ID_LIKE=ubuntu" in text or 'ID_LIKE="ubuntu' in text
+
+
+@pytest.mark.skipif(os.environ.get("LABDEX_INSTALL_TEST") != "1" or os.geteuid() != 0 or not _ubuntu(),
+                    reason="changes this machine (users, sshd, sudo): only in a throwaway Ubuntu container "
+                           "as root, with LABDEX_INSTALL_TEST=1")
+def test_install_sh_sets_up_a_host_for_ansible(go_agent, tls_hub, loaded, tmp_path, monkeypatch):
+    """The whole path on a real Ubuntu: install.sh --ansible --ansible-become, the host's own sshd,
+    the Go agent as its own user, a playbook that logs in as labdex-ansible and becomes root, and
+    --uninstall --purge taking it all away again. systemd is stood in for: the test starts the agent
+    and sshd itself."""
+    _need("/usr/sbin/sshd", "ansible-playbook", "runuser")
+    admin = tls_hub["admin"]
+    unseal(admin)
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    shutil.copy(go_agent, bin_dir / "labdex-agent-linux-amd64")
+    loaded.config["LABDEX_AGENT_BIN_DIR"] = str(bin_dir)
+    stub = tmp_path / "stub"
+    stub.mkdir()
+    (stub / "systemctl").write_text(f'#!/bin/sh\necho "$@" >> {tmp_path}/systemctl.log\n')
+    (stub / "systemctl").chmod(0o755)
+    env = os.environ | {"PATH": f"{stub}:{os.environ['PATH']}"}
+    script = Path(test_agents.core.__file__).parent / "dist" / "install.sh"
+    install = shutil.copy(script, tmp_path / "install.sh")
+    # the agent's own user reads the hub's CA: somewhere it can reach, unlike pytest's root-only folders
+    ca_file = Path("/etc/labdex-test-hub-ca.pem")
+    shutil.copy(tls_hub["ca_file"], ca_file)
+    ca_file.chmod(0o644)
+    token = admin.post(f"/api/hosts/{DNS}/agent/token", json={}).get_json()["token"]
+    r = subprocess.run(["sh", install, "--url", tls_hub["url"], "--token", token, "--ca-file", str(ca_file),
+                        "--ansible", "--ansible-become", "--packages", "acl"],
+                       capture_output=True, text=True, env=env, timeout=600)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert f"labdex-ansible@{DNS}, and may become root" in r.stdout
+    conf = Path("/etc/labdex-agent/agent.conf").read_text()
+    assert "allow = ansible" in conf and "ssh_port = 22" in conf
+    assert Path("/etc/ssh/labdex-ansible-principals").read_text() == f'from="127.0.0.1,::1" labdex-ansible@{DNS}\n'
+    assert Path("/etc/ssh/labdex-ansible-ca.pub").read_text().strip() == ansible_agent.ca_public()
+    assert "NOPASSWD: ALL" in Path("/etc/sudoers.d/labdex-ansible").read_text()
+    assert shutil.which("setfacl")  # --packages acl
+    # sshd's view: the drop-in reaches labdex-ansible and nobody else
+    t = subprocess.run(["/usr/sbin/sshd", "-T", "-C", "user=labdex-ansible,host=x,addr=127.0.0.1"],
+                       capture_output=True, text=True, check=True).stdout
+    assert "trustedusercakeys /etc/ssh/labdex-ansible-ca.pub" in t and "permittty no" in t
+    t = subprocess.run(["/usr/sbin/sshd", "-T", "-C", "user=root,host=x,addr=127.0.0.1"],
+                       capture_output=True, text=True, check=True).stdout
+    assert "trustedusercakeys none" in t
+    sshd = subprocess.Popen(["/usr/sbin/sshd", "-D", "-e"], stdout=open(tmp_path / "sshd.log", "w"), stderr=subprocess.STDOUT)
+    agent = subprocess.Popen(["runuser", "-u", "labdex-agent", "--", "/opt/labdex-agent/labdex-agent",
+                              "--config", "/etc/labdex-agent/agent.conf", "run"],
+                             stdout=open(tmp_path / "agent.log", "w"), stderr=subprocess.STDOUT)
+    try:
+        wait(lambda: (x := agents.current(DNS)) is not None and agents.linked(x), timeout=30)
+        a = agents.current(DNS)
+        assert a.host_allow == ["ansible"] and "ansible.session" in a.jobs
+        assert admin.patch(f"/api/hosts/{DNS}/agent", json={"capabilities": ["ansible"], "ansible_become": True}).status_code == 200
+        db.session.expire_all()
+        wait(lambda: (db.session.get(Agent, a.id).facts or {}).get("ssh_host_keys"), timeout=30)
+        run_dir = tmp_path / "run"
+        run_dir.mkdir(mode=0o700)
+        inv = {"all": {"hosts": {DNS: {}}}}
+        run = ansible_agent.attach(inv, run_dir, by="test")
+        assert run is not None
+        import yaml
+        (run_dir / "inventory.yaml").write_text(yaml.safe_dump(inv))
+        (run_dir / "site.yml").write_text(yaml.safe_dump([
+            {"hosts": DNS, "gather_facts": True, "tasks": [
+                {"name": "who", "ansible.builtin.command": "id -un", "register": "who", "changed_when": False},
+                {"name": "root", "ansible.builtin.command": "id -un", "become": True, "register": "root", "changed_when": False},
+                {"name": "say", "ansible.builtin.debug": {"msg": "as {{ who.stdout }} became {{ root.stdout }}"}},
+            ]}]))
+        penv = os.environ | {"HOME": str(run_dir), "ANSIBLE_NOCOLOR": "1", "ANSIBLE_CONFIG": str(run_dir / "none.cfg"),
+                             "ANSIBLE_LOCAL_TEMP": str(run_dir / "atmp")}
+        try:
+            r = subprocess.run(["ansible-playbook", "-i", str(run_dir / "inventory.yaml"), str(run_dir / "site.yml")],
+                               capture_output=True, text=True, env=penv, timeout=300)
+        finally:
+            run.close()
+        out = r.stdout + r.stderr
+        assert r.returncode == 0, out + "\n--- sshd\n" + (tmp_path / "sshd.log").read_text()
+        assert "as labdex-ansible became root" in out
+    finally:
+        agent.terminate()
+        agent.wait(10)
+        sshd.terminate()
+        sshd.wait(10)
+        r = subprocess.run(["sh", install, "--uninstall", "--purge"], capture_output=True, text=True, env=env, timeout=120)
+        ca_file.unlink()
+    assert r.returncode == 0, r.stdout + r.stderr
+    for gone in ("/etc/ssh/sshd_config.d/10-labdex-ansible.conf", "/etc/ssh/labdex-ansible-ca.pub",
+                 "/etc/ssh/labdex-ansible-principals", "/etc/sudoers.d/labdex-ansible", "/var/lib/labdex-ansible"):
+        assert not os.path.exists(gone), gone
+    assert subprocess.run(["id", "labdex-ansible"], capture_output=True).returncode != 0

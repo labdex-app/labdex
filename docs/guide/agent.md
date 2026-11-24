@@ -48,11 +48,14 @@ Options:
 | | |
 | --- | --- |
 | `--allow "patch reboot ansible"` | the writes this host accepts. Without it the agent is read-only. |
-| `--root` | run the agent as root instead of `labdex-agent`. labdex must allow root for this host too: only an administrator can tick *run it as root* when making the token. Ansible needs it. |
+| `--root` | run the agent as root instead of `labdex-agent`. labdex must allow root for this host too: only an administrator can tick *run it as root* when making the token. The older `ansible.run` job needs it; [Ansible through the agent](#ansible-through-the-agent) doesn't. |
 | `--ca-file /path/ca.pem` | for a labdex with a certificate from your own CA. |
 | `--python` | install the Python agent instead of the Go one ([below](#the-python-agent)). |
+| `--ansible` | set the host up for [Ansible through the agent](#ansible-through-the-agent) (Go agent, Ubuntu for now). Adds `ansible` to `--allow`. |
+| `--ansible-become` | with `--ansible`: let those runs become root. |
+| `--packages "python3-apt acl"` | with `--ansible`: distribution packages the host's Ansible modules need. |
 | `--sha256 …` | the agent's hash, from labdex. For the Go agent, once per architecture; the binary for this host must match one of them. |
-| `--uninstall` | stop and remove the agent again: its service, sudo rules, config and program. The key, certificate and audit log stay in `/var/lib/labdex-agent`; add `--purge` to remove them and the `labdex-agent` user too. Revoke the agent on the Agent tab as well. |
+| `--uninstall` | stop and remove the agent again: its service, sudo rules, config and program, and the Ansible set-up. The key, certificate and audit log stay in `/var/lib/labdex-agent`; add `--purge` to remove them and the `labdex-agent` and `labdex-ansible` users too. Revoke the agent on the Agent tab as well. |
 
 Running it again installs the agent anew with a new token, and revokes the older one.
 Without `curl` on the host, it downloads with Python instead; fetch `install.sh` itself the same way:
@@ -191,10 +194,37 @@ certificate authority is made the first time it is needed, as the vault entry
 (`ansible_become`), and the host allows it too. Become runs any code as root, so that is what it
 grants.
 
-The host has to trust the certificate authority and have the `labdex-ansible` user. TODO: until
-`install.sh --ansible` does this (next step), set it up by hand: the CA's public key from the vault
-entry in `/etc/ssh/labdex-ansible-ca.pub`, `TrustedUserCAKeys` and an `AuthorizedPrincipalsFile`
-for `labdex-ansible` with the line `from="127.0.0.1,::1" labdex-ansible@<host>`.
+### Setting up the host
+
+Install the agent with `--ansible` (and `--ansible-become` for root), on Ubuntu for now:
+
+```sh
+sudo sh install.sh --url https://lantern.example.net --token lxe_… --sha256 … --ansible --ansible-become
+```
+
+On top of the usual install it:
+
+1. installs `python3` and `openssh-server` when they are missing, and the `--packages` you give;
+2. fetches labdex's SSH certificate authority (`GET /api/agents/ansible-ca.pub`, the public key
+   only) before it enrols, so a sealed vault doesn't use up the token. The first fetch makes the
+   CA, so the vault has to be unsealed then;
+3. creates the user `labdex-ansible` (no password, home `/var/lib/labdex-ansible`);
+4. writes `/etc/ssh/labdex-ansible-ca.pub`, `/etc/ssh/labdex-ansible-principals`
+   (`from="127.0.0.1,::1" labdex-ansible@<host>`, the name labdex knows the host by) and
+   `/etc/ssh/sshd_config.d/10-labdex-ansible.conf`, a `Match User labdex-ansible` block:
+   certificate only, no password, TTY or forwarding. Other users' SSH stays as it was. It checks
+   sshd's config with `sshd -t` before reloading sshd;
+5. puts sshd's port in `agent.conf` (`ssh_port`), which is where the agent's pipe connects;
+6. with `--ansible-become`, writes `/etc/sudoers.d/labdex-ansible` (root without a password,
+   checked with `visudo`). Without it, it removes that file.
+
+Running `install.sh` again without `--ansible` takes the sshd and sudo set-up away again (the user
+stays until `--uninstall --purge`). **Reroll key** keeps `--ansible`, and `--ansible-become` where
+an administrator switched become on for the host.
+
+`/etc/ssh/sshd_config` has to include `/etc/ssh/sshd_config.d/*.conf` (Ubuntu's does), and sshd
+has to listen on `127.0.0.1`. `AllowUsers` or `AllowGroups` in sshd's config must let
+`labdex-ansible` in.
 
 The agent's audit log has a line for every session and pipe (bytes each way, never the bytes
 themselves), labdex's history has the `ansible.session` job, and sshd's log names the run in the
@@ -220,7 +250,8 @@ its service's name instead of the button.
 ## Reroll the key, renew the certificate
 
 **Reroll key** on the Agent tab gives you a new one-time command for the host. It is the install
-command again, with the writes the host allowed (`--allow`) and `--root` if the agent runs as root.
+command again, with the writes the host allowed (`--allow`), `--root` if the agent runs as root, and
+`--ansible` if the host is set up for Ansible through the agent.
 When it runs, the host gets a new key and labdex revokes the old one. Until then the old key keeps
 working, so a reroll you never run locks nothing out.
 

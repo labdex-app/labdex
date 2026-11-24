@@ -179,17 +179,26 @@ Two users, so the agent itself never holds what Ansible needs:
 | `labdex-ansible` (new) | SSH only, certificate only, from `127.0.0.1` only | none, or root with **become** (opt-in) |
 
 `install.sh --ansible` creates `labdex-ansible` (no password, shell `/bin/sh`, home
-`/var/lib/labdex-ansible`) and writes `/etc/ssh/sshd_config.d/labdex-ansible.conf`:
+`/var/lib/labdex-ansible`) and writes `/etc/ssh/sshd_config.d/10-labdex-ansible.conf`. Everything
+is inside the `Match`, `TrustedUserCAKeys` too, and a `Match` in an included file ends with that
+file (checked with OpenSSH 9.6 and `sshd -T -C user=…`), so no other user's login changes:
 
 ```text
-TrustedUserCAKeys /etc/ssh/labdex-ansible-ca.pub
 Match User labdex-ansible
+    TrustedUserCAKeys /etc/ssh/labdex-ansible-ca.pub
     AuthorizedPrincipalsFile /etc/ssh/labdex-ansible-principals
+    AuthorizedKeysFile none
     AuthenticationMethods publickey
-    AllowTcpForwarding no
-    AllowAgentForwarding no
-    X11Forwarding no
+    PasswordAuthentication no
+    KbdInteractiveAuthentication no
     PermitTTY no
+    PermitUserRC no
+    X11Forwarding no
+    AllowAgentForwarding no
+    AllowTcpForwarding no
+    AllowStreamLocalForwarding no
+    PermitTunnel no
+    GatewayPorts no
 ```
 
 and the principals file, whose `from=` option refuses the user from anywhere but the host itself
@@ -212,7 +221,7 @@ ship a rule that only looks narrow.
 So **root is opt-in per host, at both ends**, like the root agent today:
 
 - on the host: `install.sh --ansible-become` writes
-  `labdex-ansible ALL=(root) NOPASSWD: ALL` to `/etc/sudoers.d/labdex-ansible` (checked with
+  `labdex-ansible ALL=(ALL:ALL) NOPASSWD: ALL` to `/etc/sudoers.d/labdex-ansible` (checked with
   `visudo`). Without it `labdex-ansible` has no sudo, and tasks with `become: true` fail;
 - in labdex: an administrator ticks *Ansible may become root* on the host's Agent tab.
 
@@ -282,7 +291,8 @@ Each step a draft pull request of its own:
 2. (merged into 1)
 3. **labdex**: SSH CA, per-run certificates, the pipe broker and `labdex agent-pipe`, the runner
    choosing the agent pipe per host (hosts without one keep plain SSH).
-4. **install.sh**: `--ansible`, `--ansible-become`, `--packages`; the user, sshd drop-in, sudoers.
+4. **install.sh** (done): `--ansible`, `--ansible-become`, `--packages`; the user, sshd drop-in,
+   sudoers, and `GET /api/agents/ansible-ca.pub` for the CA's public key.
 5. **Requirements**: the module table, the module scan, the prepare play.
 6. **Agent tab** (with the UI thread).
 7. **Docs** and a full rehearsal: a real playbook through the pipe in an Ubuntu container.
