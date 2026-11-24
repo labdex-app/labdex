@@ -7602,6 +7602,10 @@
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>Signing in stays on the sign-in page when the server answers with an error.</strong> A 404 or 500
+  while signing in, or while labdex loads right after, used to swap the form for a blank page and
+  then a bare error. The form now stays (busy) until labdex is loaded and says what went wrong;
+  <em>Retry</em> on the page-wide error keeps the error up while it asks again.</li>
 <li><strong>A host agent in Go (preview)</strong>, next to the Python one: one static binary for amd64 and arm64,
   no Python needed for the agent itself (Ansible jobs still need it). The labdex image builds and
   serves both binaries; <code>install.sh --go</code> installs it with the same user, sudo rules and unit. It
