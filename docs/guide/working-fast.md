@@ -154,7 +154,15 @@ the server, so it follows you to other browsers. Until you change the pages, the
 default: administrators set it with *Make these pages the default*, and *Use the default
 pages* goes back to it (your pins stay).
 
-A click on a host opens its own page. On Networks a click on a row shows that network in a
+A click on a host opens its own page (on Updates, its *Updates* tab). On a host's page,
+**Preview diff** next to *Save changes* shows the host's lines in its site file before and
+after your changes. The **YAML** tab shows the host's whole entry as the site file lists it and
+where that file lives in git; *Edit YAML* changes it as text (left-out fields take their
+defaults, like a file from git; cables stay on the Network tab), with the same *Preview diff*
+before saving. Saving either way is checked, recorded in Activity and, when the site has a git
+repository, written to it (*Save and commit*).
+
+On Networks a click on a row shows that network in a
 panel on the right, beside the list, with what you need most often and a button to its full
 page; a double click goes straight to the page, and <kbd>Esc</kbd> closes the panel. The
 address keeps the open panel (`?peek=…`), so a link or a reload brings it back.

@@ -21,6 +21,8 @@ import HostAgent from '../components/HostAgent.vue'
 import HostDashboard from '../components/HostDashboard.vue'
 import HostGuests from '../components/HostGuests.vue'
 import HostUpdates from '../components/HostUpdates.vue'
+import HostYaml from '../components/HostYaml.vue'
+import CodeDiff from '../components/CodeDiff.vue'
 import SecretList from '../components/SecretList.vue'
 import { stringify as toYaml } from 'yaml'
 import ZoneChip from '../components/ZoneChip.vue'
@@ -244,7 +246,7 @@ const tabs = computed(() => [
   ...(isNew.value ? [] : [{ id: 'updates', label: 'Updates', count: derived.value?.patches?.pending || 0 }]),
   // features and vars: what Ansible and the generators get for this host
   { id: 'ansible', label: 'Config', count: form.features.length, err: !!(errors.value.features || errors.value.vars) },
-  ...(isNew.value ? [] : [{ id: 'integrations', label: 'Plugins' }, { id: 'agent', label: 'Agent' }, { id: 'secrets', label: 'Secrets' }, { id: 'runs', label: 'Runs' }, { id: 'history', label: 'History' }]),
+  ...(isNew.value ? [] : [{ id: 'yaml', label: 'YAML' }, { id: 'integrations', label: 'Plugins' }, { id: 'agent', label: 'Agent' }, { id: 'secrets', label: 'Secrets' }, { id: 'runs', label: 'Runs' }, { id: 'history', label: 'History' }]),
 ])
 // <category>-<type>-<role>-<nn> from the lists under Naming
 const parts = ref({ category: [], type: [], role: [] })
@@ -520,6 +522,22 @@ async function save() {
   }
 }
 
+// Preview diff: the host's lines in its site file before and after the form's changes, nothing saved
+const formDiff = ref(null)
+async function previewDiff() {
+  errors.value = {}
+  try {
+    formDiff.value = await api.put(`/api/hosts/${encodeURIComponent(props.name)}`, { ...payload(), dry_run: true })
+  } catch (e) {
+    if (e instanceof ApiError && e.errors.length) {
+      errors.value = e.fields
+      toast('Please fix the highlighted fields', 'error')
+    } else toast(e.message, 'error')
+  }
+}
+async function saveFromDiff() { await save(); if (!dirty.value) formDiff.value = null }
+function yamlSaved(h) { draft.clear(); derived.value = h; fill(h) }
+
 async function remove() {
   const name = derived.value?.name || props.name
   if (!(await confirm({ title: `Delete ${name}?`, body: `Its interfaces and services go with it.`, action: 'Delete', danger: true }))) return
@@ -593,6 +611,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
           <span v-if="readOnly" class="lock" title="Your roles don't allow changing this host">🔒 read-only for you</span>
           <template v-else>
             <button v-if="!isNew" class="btn danger" @click="remove">Delete</button>
+            <button v-if="!isNew && dirty" class="btn" :disabled="busy" @click="previewDiff">Preview diff</button>
             <button class="btn primary" :disabled="busy || (!dirty && !isNew)" @click="save">
               {{ busy ? 'Saving…' : isNew ? 'Create host' : dirty ? 'Save changes' : 'Saved' }}
             </button>
@@ -1096,6 +1115,7 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
         <HostGuests :host="derived.name" />
       </section>
       <HostUpdates v-if="!isNew && derived && tab === 'updates'" :host="derived" />
+      <HostYaml v-if="!isNew && derived && tab === 'yaml'" :key="saved" :host="derived" :can-edit="!readOnly" :form-dirty="dirty" @saved="yamlSaved" />
       <div v-if="!isNew && derived" v-show="tab === 'integrations'">
         <HostModules :host="derived.name" :key="`m${saved}`" />
       </div>
@@ -1118,6 +1138,14 @@ const nameHint = computed(() => `<category>-<type>-<role>-<nn>, categories: ${st
 
       <datalist id="port-speeds"><option v-for="x in SPEEDS" :key="x" :value="x" /></datalist>
       <!-- several interfaces from a pattern -->
+      <Modal v-if="formDiff" title="Preview diff" wide :busy="busy" @close="formDiff = null">
+        <CodeDiff :before="formDiff.before" :after="formDiff.after" :file="formDiff.git?.path || `${formDiff.site}.yaml`" />
+        <p class="hint mb-0">{{ formDiff.git ? `Saving commits this to ${formDiff.git.mode === 'mr' ? 'a merge request into ' : ''}${formDiff.git.branch}.` : 'This site has no git source; the change is saved in labdex and recorded in Activity.' }}</p>
+        <template #foot>
+          <button class="btn ghost" @click="formDiff = null">Back to the form</button>
+          <button class="btn primary" :disabled="busy" @click="saveFromDiff">{{ busy ? 'Saving…' : formDiff.git ? 'Save and commit' : 'Save changes' }}</button>
+        </template>
+      </Modal>
       <Modal v-if="traceOf" :title="`Trace ${traceOf.port}`" @close="traceOf = null">
         <CableTrace :host="props.name" :port="traceOf.port" />
         <p v-if="dirty" class="small faint mb-0">Shows what's saved; save the host to trace your changes.</p>

@@ -408,7 +408,7 @@ onMounted(() => { start(); window.addEventListener('keydown', sideKey) })
 
 .areatabs { display: flex; gap: 4px; padding: 14px 22px 0; overflow-x: auto; scrollbar-width: none; }
 .areatabs a { padding: 4px 12px; border-radius: var(--r-chip); border: 1px solid var(--line); background: var(--card); color: var(--muted);
-  font-size: calc(13px * var(--text)); white-space: nowrap; }
+  font-size: calc(13px * var(--text)); font-weight: 500; white-space: nowrap; }
 .areatabs a:hover { color: var(--ink); text-decoration: none; border-color: var(--line-strong); }
 .areatabs a.on { color: var(--ink); border-color: var(--accent); background: var(--accent-faint); }
 

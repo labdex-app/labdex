@@ -1,4 +1,4 @@
-"""Quick edit beside the Hosts list: PATCH some fields, a dry run for the diff, the host's YAML."""
+"""Editing a host on its page: PATCH some fields, a dry run for the diff (PATCH and PUT), the host's YAML."""
 from labdex.models import Site, db
 
 
@@ -20,6 +20,23 @@ def test_patch_dry_run_saves_nothing(admin):
     assert "function: Changed" in d["after"] and "function: Changed" not in d["before"]
     assert d["site"] == "home" and d["git"] is None
     assert admin.get("/api/hosts/srv-pm-pve-01").get_json()["function"] != "Changed"
+
+
+def test_put_dry_run_shows_the_diff_and_saves_nothing(admin):
+    full = admin.get("/api/hosts/srv-pm-pve-01").get_json()
+    r = admin.put("/api/hosts/srv-pm-pve-01", json={**full, "function": "Changed by form", "dry_run": True})
+    assert r.status_code == 200, r.get_json()
+    d = r.get_json()
+    assert "function: Changed by form" in d["after"] and "function: Changed by form" not in d["before"]
+    assert d["site"] == "home"
+    assert admin.get("/api/hosts/srv-pm-pve-01").get_json()["function"] == full["function"]
+    assert not [e for e in admin.get("/api/history?type=host&name=srv-pm-pve-01").get_json() if e["action"] == "update"]
+
+
+def test_put_dry_run_checks_like_put(admin):
+    full = admin.get("/api/hosts/srv-pm-pve-01").get_json()
+    r = admin.put("/api/hosts/srv-pm-pve-01", json={**full, "name": "Not A Name", "dry_run": True})
+    assert r.status_code == 422
 
 
 def test_patch_refuses_other_fields(admin):

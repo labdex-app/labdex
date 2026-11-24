@@ -370,13 +370,18 @@ def get_host(name):
 
 @bp.put("/hosts/<name>")
 def update_host(name):
+    """Replace the host. With "dry_run": true nothing is saved; the answer is the host's entry in
+    its site file before and after, like PATCH."""
     h = _host(name)
     if h is None:
         return err(404, f"no host '{name}'")
     before = store.host_to_dict(h)
     data = body()
+    dry = bool(data.pop("dry_run", False))
     rbac.require("host", "edit", rbac.host_facts(before))
     rbac.require("host", "edit", _payload_facts(data))
+    if dry:  # the host page's Preview diff: the site file's entry before and after, nothing saved
+        return _dry_run(h, data)
     store.save_host(data, existing=h)
     db.session.flush()
     from .. import hostmodules
@@ -387,7 +392,23 @@ def update_host(name):
     return jsonify(_host_detail(h))
 
 
-# what the quick edit beside the Hosts list may change; everything else stays as it is
+def _dry_run(h, after: dict):
+    """Save `after` inside a savepoint, read the host's entry in its site file, and roll back:
+    {"before": yaml, "after": yaml, "site", "git"} for a diff to look at before saving."""
+    old = inventory.host_yaml(h)
+    nested = db.session.begin_nested()
+    try:
+        store.save_host(after, existing=h)
+        db.session.flush()
+        new = inventory.host_yaml(h)
+    finally:
+        nested.rollback()
+    db.session.expire_all()
+    site = after.get("site") or h.site
+    return jsonify({"before": old, "after": new, "site": site, "git": _git_target(site)})
+
+
+# the fields PATCH may change; everything else stays as it is; everything else stays as it is
 QUICK_FIELDS = ("name", "kind", "site", "zone", "status", "function", "fun_names", "tags", "features", "notes")
 
 
@@ -434,16 +455,7 @@ def patch_host(name):
     after = {**before, **changes}
     rbac.require("host", "edit", _payload_facts(after))
     if data.get("dry_run"):
-        old = inventory.host_yaml(h)
-        nested = db.session.begin_nested()
-        try:
-            store.save_host(after, existing=h)
-            db.session.flush()
-            new = inventory.host_yaml(h)
-        finally:
-            nested.rollback()
-        db.session.expire_all()
-        return jsonify({"before": old, "after": new, "site": after["site"], "git": _git_target(after["site"])})
+        return _dry_run(h, after)
     store.save_host(after, existing=h)
     db.session.flush()
     from .. import hostmodules
@@ -483,16 +495,7 @@ def put_host_yaml(name):
     after = {"site": h.site, **parsed}
     rbac.require("host", "edit", _payload_facts(after))
     if data.get("dry_run"):
-        old = inventory.host_yaml(h)
-        nested = db.session.begin_nested()
-        try:
-            store.save_host(after, existing=h)
-            db.session.flush()
-            new = inventory.host_yaml(h)
-        finally:
-            nested.rollback()
-        db.session.expire_all()
-        return jsonify({"before": old, "after": new, "site": after["site"], "git": _git_target(after["site"])})
+        return _dry_run(h, after)
     store.save_host(after, existing=h)
     db.session.flush()
     from .. import hostmodules
