@@ -1569,6 +1569,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../threat-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Threat model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2087,10 +2115,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#open-decisions" class="md-nav__link">
+  <a href="#decisions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Open decisions
+        Decisions
       
     </span>
   </a>
@@ -2389,10 +2417,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#open-decisions" class="md-nav__link">
+  <a href="#decisions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Open decisions
+        Decisions
       
     </span>
   </a>
@@ -2420,8 +2448,8 @@
 
 
 <h1 id="design-ansible-through-the-agent">Design: Ansible through the agent<a class="headerlink" href="#design-ansible-through-the-agent" title="Permanent link">&para;</a></h1>
-<p>Status: <strong>proposal</strong>, waiting for decisions (see <a href="#open-decisions">Open decisions</a>). Nothing here is
-built yet. The Python agent stays as it is; the new parts are for the Go agent only.</p>
+<p>Status: <strong>decided</strong>, being built (see <a href="#decisions">Decisions</a>). The pipe in the protocol and the Go
+agent is the first part: <a href="../../agent-protocol/#ansible-over-the-link">Ansible over the link</a>. The Python agent stays as it is; the new parts are for the Go agent only.</p>
 <h2 id="goal">Goal<a class="headerlink" href="#goal" title="Permanent link">&para;</a></h2>
 <p>labdex runs Ansible against a host <strong>through the agent's link</strong> instead of over the network:</p>
 <ul>
@@ -2528,7 +2556,7 @@ that, is reviewed far more than anything we would write, and keeps the agent a d
 </tr>
 <tr>
 <td><strong>SSH user CA</strong> (new, Ed25519)</td>
-<td>in the vault, or <code>&lt;data&gt;/ansible-ssh-ca.key</code> (decision D3)</td>
+<td>in the vault (D3)</td>
 <td>signing per-run SSH certificates</td>
 </tr>
 <tr>
@@ -2673,7 +2701,7 @@ It needs:</p>
    which of the listed packages are installed in its facts (new; it asks the package manager the
    way the patch report does).</li>
 </ol>
-<p>Only distribution packages by default; PyPI is decision D4.</p>
+<p>Only distribution packages (D4). Ubuntu first (D6); the RHEL column waits until another distribution is wanted.</p>
 <h2 id="4-privileges">4. Privileges<a class="headerlink" href="#4-privileges" title="Permanent link">&para;</a></h2>
 <p>Two users, so the agent itself never holds what Ansible needs:</p>
 <table>
@@ -2783,56 +2811,57 @@ certificates and read the vault, so they are root on every host with become. Tha
 <h2 id="plan-after-the-decisions">Plan, after the decisions<a class="headerlink" href="#plan-after-the-decisions" title="Permanent link">&para;</a></h2>
 <p>Each step a draft pull request of its own:</p>
 <ol>
-<li><strong>Protocol</strong>: <code>ansible.session</code> and the <code>pipe.*</code> messages in
-   <a href="../../agent-protocol/">agent-protocol.md</a>, with conformance cases.</li>
-<li><strong>Go agent</strong>: the pipe (to <code>127.0.0.1:&lt;ssh_port&gt;</code> only), sshd host keys in facts, rehearsal
-   checks in the Debian container.</li>
+<li><strong>Protocol and Go agent</strong>: <code>ansible.session</code>, the <code>pipe.*</code> messages and <code>ssh_port</code> in
+   <a href="../../agent-protocol/">agent-protocol.md</a>; the pipe (to <code>127.0.0.1:&lt;ssh_port&gt;</code> only) and sshd's
+   host keys in the facts, with Go tests.</li>
+<li>(merged into 1)</li>
 <li><strong>labdex</strong>: SSH CA, per-run certificates, the pipe broker and <code>labdex agent-pipe</code>, the runner
    choosing the agent pipe per host (hosts without one keep plain SSH).</li>
 <li><strong>install.sh</strong>: <code>--ansible</code>, <code>--ansible-become</code>, <code>--packages</code>; the user, sshd drop-in, sudoers.</li>
 <li><strong>Requirements</strong>: the module table, the module scan, the prepare play.</li>
 <li><strong>Agent tab</strong> (with the UI thread).</li>
-<li><strong>Docs</strong> and a full rehearsal: a real playbook through the pipe in the Debian container.</li>
+<li><strong>Docs</strong> and a full rehearsal: a real playbook through the pipe in an Ubuntu container.</li>
 </ol>
-<h2 id="open-decisions">Open decisions<a class="headerlink" href="#open-decisions" title="Permanent link">&para;</a></h2>
+<h2 id="decisions">Decisions<a class="headerlink" href="#decisions" title="Permanent link">&para;</a></h2>
+<p>Decided by Mike on 2026-11-24:</p>
 <table>
 <thead>
 <tr>
 <th></th>
 <th>Question</th>
-<th>Recommended</th>
+<th>Decision</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>D1</td>
-<td>Transport: SSH inside the agent pipe, or an own connection plugin that runs commands over the link?</td>
-<td><strong>Decided 2026-11-24: SSH inside the pipe</strong></td>
+<td>Transport</td>
+<td>SSH inside the agent pipe</td>
 </tr>
 <tr>
 <td>D2</td>
-<td>Become: root opt-in per host at both ends, accepting that it is full root (no narrow allowlist is possible)?</td>
-<td>Yes</td>
+<td>Become</td>
+<td>Root opt-in per host, at both ends, knowing it is full root</td>
 </tr>
 <tr>
 <td>D3</td>
-<td>SSH CA key: in the vault (runs need it unsealed) or in the data folder (scheduled runs work after a restart without unsealing)?</td>
-<td>Vault</td>
+<td>SSH CA key</td>
+<td>In the vault: Ansible runs need the vault unsealed</td>
 </tr>
 <tr>
 <td>D4</td>
-<td>Module requirements: distribution packages only, or also PyPI into a venv for modules without a package?</td>
-<td>Distribution only, for now</td>
+<td>Module requirements</td>
+<td>Distribution packages only</td>
 </tr>
 <tr>
 <td>D5</td>
-<td>The existing <code>ansible.run</code> (local, root agent): keep, or remove once the pipe works?</td>
-<td>Remove after the pipe has run on real hosts</td>
+<td>The existing <code>ansible.run</code></td>
+<td>Remove it once the pipe has run on real hosts</td>
 </tr>
 <tr>
 <td>D6</td>
-<td>Which distributions first?</td>
-<td>Debian/Ubuntu and the RHEL family, as for patching</td>
+<td>First distribution</td>
+<td>Ubuntu only; other distributions later</td>
 </tr>
 </tbody>
 </table>

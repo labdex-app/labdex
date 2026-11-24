@@ -1569,6 +1569,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../threat-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Threat model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2176,6 +2204,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ansible-over-the-link" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ansible over the link
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#the-spool" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2689,6 +2728,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ansible-over-the-link" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ansible over the link
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#the-spool" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2967,9 +3017,11 @@ file, so a reader never sees half a file.</p>
 <span class="c1"># a CA bundle for a hub with a private certificate authority</span>
 <span class="na">ca_file</span><span class="w"> </span><span class="o">=</span>
 <span class="na">state_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">/var/lib/labdex-agent</span>
+<span class="c1"># the one port ansible.session pipes reach, on 127.0.0.1 (Go agent)</span>
+<span class="na">ssh_port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">22</span>
 </code></pre></div>
 <p>An unknown capability in <code>allow</code> is a fatal config error: the agent MUST exit non-zero and say
-which. A trailing <code>/</code> on <code>url</code> is dropped. <code>#</code> and <code>;</code> start comment lines.</p>
+which. So is an <code>ssh_port</code> that isn't a number from 1 to 65535. A trailing <code>/</code> on <code>url</code> is dropped. <code>#</code> and <code>;</code> start comment lines.</p>
 <h3 id="credentialsjson">credentials.json<a class="headerlink" href="#credentialsjson" title="Permanent link">&para;</a></h3>
 <p>Written at enrolment. The agent MUST NOT change it afterwards.</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
@@ -3119,6 +3171,21 @@ Unknown types and fields MUST be ignored. Text that isn't a JSON object MUST be 
 <td><code>sha256</code></td>
 <td><code>ansible.run</code> needs its bundle</td>
 </tr>
+<tr>
+<td><code>pipe.opened</code></td>
+<td><code>id</code></td>
+<td>A pipe reached sshd (<a href="#ansible-over-the-link">Ansible over the link</a>)</td>
+</tr>
+<tr>
+<td><code>pipe.data</code></td>
+<td><code>id</code>, <code>data</code> (base64, at most <code>PIPE_CHUNK</code> bytes decoded)</td>
+<td>Bytes from sshd</td>
+</tr>
+<tr>
+<td><code>pipe.close</code></td>
+<td><code>id</code>, <code>error</code> (absent on a normal end)</td>
+<td>A pipe ended or was refused</td>
+</tr>
 </tbody>
 </table>
 <p>Hub → agent:</p>
@@ -3160,6 +3227,26 @@ Unknown types and fields MUST be ignored. Text that isn't a JSON object MUST be 
 <td><code>bundle</code></td>
 <td><code>sha256</code>, <code>data</code> (base64); or <code>sha256</code>, <code>error</code></td>
 <td>Hand the bytes (or the error) to the waiting <code>ansible.run</code></td>
+</tr>
+<tr>
+<td><code>pipe.open</code></td>
+<td><code>id</code>, <code>session</code></td>
+<td>Open a pipe to sshd in that session, answer <code>pipe.opened</code> or <code>pipe.close</code></td>
+</tr>
+<tr>
+<td><code>pipe.data</code></td>
+<td><code>id</code>, <code>data</code> (base64)</td>
+<td>Write the bytes to that pipe's sshd connection</td>
+</tr>
+<tr>
+<td><code>pipe.close</code></td>
+<td><code>id</code></td>
+<td>Close that pipe; no answer</td>
+</tr>
+<tr>
+<td><code>session.end</code></td>
+<td><code>session</code></td>
+<td>Close the session's pipes (each answered with <code>pipe.close</code>) and forget it</td>
 </tr>
 </tbody>
 </table>
@@ -3416,6 +3503,13 @@ dropped whenever an id is added.</p>
 <td><code>bundle</code>, <code>playbook</code>, <code>commit</code>, <code>vars</code>, <code>check</code></td>
 <td><a href="#ansible">Ansible</a></td>
 </tr>
+<tr>
+<td><code>ansible.session</code></td>
+<td><code>ansible</code></td>
+<td>3600 s</td>
+<td><code>session</code>, <code>minutes</code></td>
+<td><a href="#ansible-over-the-link">Ansible over the link</a>; Go agent only</td>
+</tr>
 </tbody>
 </table>
 <p>Capabilities: <code>patch</code>, <code>reboot</code>, <code>ansible</code>. The hub refuses to queue a job whose capability is off
@@ -3557,6 +3651,10 @@ escaped by a backslash. A command whose program is missing gives a comment line
 <tr>
 <td><code>agent</code></td>
 <td>Go agent only: <code>"go"</code></td>
+</tr>
+<tr>
+<td><code>ssh_host_keys</code></td>
+<td>Go agent only: <code>&lt;type&gt; &lt;base64&gt;</code> of each <code>/etc/ssh/ssh_host_*_key.pub</code> whose type starts with <code>ssh-</code> or <code>ecdsa-</code>, sorted, comments dropped; <code>[]</code> without sshd</td>
 </tr>
 </tbody>
 </table>
@@ -3782,6 +3880,129 @@ sends a playbook text or a command: the signed job names a bundle by its SHA-256
 </ol>
 <p>Result: <code>{ok: code == 0, code, check, commit, recap: from "PLAY RECAP" (2000 chars), output: last 20000 chars}</code>.</p>
 <p>Ansible itself is Python, so a host that runs Ansible jobs needs Python whichever agent starts it.</p>
+<h2 id="ansible-over-the-link">Ansible over the link<a class="headerlink" href="#ansible-over-the-link" title="Permanent link">&para;</a></h2>
+<p>Go agent only, so the hub sends <code>ansible.session</code> only to an agent whose <code>hello</code> lists it in
+<code>jobs</code>. labdex runs <code>ansible-playbook</code> itself, with SSH certificates of its own that live for one
+run, and reaches the host's sshd through <strong>pipes</strong>: byte streams inside the link. The agent only
+moves bytes; it never sees a key, a playbook or a variable. The design and its reasons are in
+<a href="../design/ansible-through-the-agent/">Ansible through the agent</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Constant</th>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MAX_SESSION_MINUTES</code></td>
+<td>60</td>
+<td>Longest session</td>
+</tr>
+<tr>
+<td><code>MAX_PIPES_PER_SESSION</code></td>
+<td>4</td>
+<td>Pipes open at once in one session</td>
+</tr>
+<tr>
+<td><code>MAX_PIPES</code></td>
+<td>8</td>
+<td>Pipes open at once in all sessions</td>
+</tr>
+<tr>
+<td><code>PIPE_CHUNK</code></td>
+<td>32768</td>
+<td>Largest <code>pipe.data</code>, in bytes before base64</td>
+</tr>
+<tr>
+<td><code>PIPE_QUEUE</code></td>
+<td>256</td>
+<td><code>pipe.data</code> messages from the hub that may wait for sshd, per pipe</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>ansible.session</code></strong> takes exactly two parameters (anything else is refused, <code>unknown parameters:
+…</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Rule</th>
+<th>Refusal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>session</code></td>
+<td><code>^[A-Za-z0-9_-]{8,64}$</code></td>
+<td><code>session must be 8 to 64 letters, digits, - or _</code></td>
+</tr>
+<tr>
+<td><code>minutes</code></td>
+<td>Whole number, 1 to <code>MAX_SESSION_MINUTES</code></td>
+<td><code>minutes must be a whole number from 1 to 60</code></td>
+</tr>
+</tbody>
+</table>
+<p>The agent records the session as open until now + <code>minutes</code> (a session id that is open already is
+refused) and answers at once: <code>{"ok": true, "session": "&lt;id&gt;", "until": &lt;Unix time&gt;}</code>. The job does
+not hold a worker while the session lasts.</p>
+<p><strong>Pipes.</strong> The hub sends <code>pipe.open {id, session}</code>, <code>id</code> matching <code>^[A-Za-z0-9_-]{1,64}$</code> (any other
+id is ignored, there is nothing to answer). The agent refuses with <code>pipe.close {id, error}</code> when:</p>
+<table>
+<thead>
+<tr>
+<th>Error</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>no such session</code></td>
+<td>The session isn't open (never was, ended, or expired)</td>
+</tr>
+<tr>
+<td><code>the session is over</code></td>
+<td>Its time is up</td>
+</tr>
+<tr>
+<td><code>a pipe with this id is open already</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>the session has 4 pipes open already</code></td>
+<td><code>MAX_PIPES_PER_SESSION</code></td>
+</tr>
+<tr>
+<td><code>8 pipes are open already</code></td>
+<td><code>MAX_PIPES</code></td>
+</tr>
+<tr>
+<td><code>can't reach sshd on 127.0.0.1:&lt;port&gt;: …</code></td>
+<td>The TCP connection failed (5 s timeout)</td>
+</tr>
+</tbody>
+</table>
+<p>Otherwise it connects to <strong><code>127.0.0.1:&lt;ssh_port&gt;</code></strong> from <code>agent.conf</code>. No message carries an address
+or a port, so a pipe can't reach anything else. Connecting MUST NOT hold up the link's read loop.
+On success it sends <code>pipe.opened {id}</code>; the hub sends <code>pipe.data</code> only after that.</p>
+<p>Bytes go both ways as <code>pipe.data {id, data}</code>, in order. The agent reads at most <code>PIPE_CHUNK</code> bytes
+at a time from sshd and sends each read at once. A <code>pipe.data</code> from the hub that isn't base64 or is
+larger than <code>PIPE_CHUNK</code> closes the pipe (<code>bad pipe.data</code>). The agent MUST NOT block the read loop
+on a slow sshd: when <code>PIPE_QUEUE</code> messages wait already, it closes the pipe (<code>too much data waiting
+for sshd</code>). <code>pipe.data</code> is never spooled: a pipe is live or gone.</p>
+<p>A pipe ends when sshd closes the connection (<code>pipe.close {id}</code>, no error), the hub sends
+<code>pipe.close {id}</code> (no answer), the hub sends <code>session.end {session}</code>, the session's time is up
+(<code>the session's time is up</code>, checked at least every 5 s), or the link drops (no message; the hub
+counts every pipe of a dropped link as closed). Sessions outlive a dropped link until their time
+is up, so a run can go on over the next link with new pipes.</p>
+<p>Audit lines: <code>session.open</code> (<code>session</code>, <code>until</code>, <code>port</code>), <code>session.end</code> (<code>session</code>, <code>reason</code>),
+<code>pipe.open</code> (<code>id</code>, <code>session</code>), <code>pipe.close</code> (<code>id</code>, <code>session</code>, <code>up</code> and <code>down</code> in bytes, <code>reason</code>),
+<code>pipe.refused</code> (<code>id</code>, <code>session</code>, <code>reason</code>). Never the bytes themselves.</p>
+<p>The agent's user needs no sudo rule for this: it only opens a TCP connection to localhost. What
+the run may do on the host is up to the SSH user labdex logs in as (<code>labdex-ansible</code>, set up by
+<code>install.sh --ansible</code>).</p>
 <h2 id="the-spool">The spool<a class="headerlink" href="#the-spool" title="Permanent link">&para;</a></h2>
 <p>What the agent has to say while the hub can't take it (results and heartbeats) goes to <code>buffer/</code>.</p>
 <ul>
@@ -3892,7 +4113,10 @@ over TLS with client certificates required, a systemd container standing in for 
 checks from install to <code>--uninstall --purge</code>. <code>--agent go</code> runs it with the Go agent.</p>
 <h2 id="what-may-differ-between-agents">What may differ between agents<a class="headerlink" href="#what-may-differ-between-agents" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>version</code> and the <code>python</code> / <code>agent</code> facts.</li>
+<li><code>version</code> and the <code>python</code> / <code>agent</code> / <code>ssh_host_keys</code> facts.</li>
+<li><code>ansible.session</code>, the <code>pipe.*</code> and <code>session.end</code> messages and <code>ssh_port</code>: the Go agent only. The
+  Python agent stays as it is, and the hub uses them only with an agent whose <code>hello</code> lists
+  <code>ansible.session</code>. The shared cases in <code>conformance.json</code> leave them out; the Go tests cover them.</li>
 <li>Log lines on stdout.</li>
 <li>Internal structure, as long as every MUST above holds.</li>
 </ul>
