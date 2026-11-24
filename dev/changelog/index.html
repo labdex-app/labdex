@@ -7630,10 +7630,33 @@
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Signing in stays on the sign-in page when the server answers with an error.</strong> A 404 or 500
+<li><strong>The agent's install command uses https.</strong> Behind a reverse proxy that ends TLS, the Agent tab
+  showed an <code>http://</code> address, which <code>install.sh</code> refuses. The command now takes <em>Settings ›
+  General › Address of this labdex</em>, then what a trusted proxy forwards, and is always <code>https://</code>;
+  the tab says when the address is a guess. It falls back to <code>wget</code> where there is no <code>curl</code>. The
+  install rehearsal now runs the command exactly as the tab shows it (15 checks, Python and Go).</li>
+<li><strong>Reroll key and Renew certificate</strong> on the Agent tab, each with a confirmation and an audit
+  entry. A reroll gives a new one-time command; the old key works until it runs.</li>
+<li><strong>Add as service</strong>: a port, systemd unit or container port the agent discovered becomes a
+  service of the host in one click; what's already declared shows its name.</li>
+<li><strong>48 hours of agent metrics in labdex</strong>: a sample every 5 minutes, drawn as small charts on the
+  Agent tab and the host's Overview. A linked agent now counts as a live health source, so a host
+  with an agent no longer shows <em>down</em> or an empty health strip without a monitoring plugin.</li>
+<li><strong>The Agent tab in the new look</strong>: numbers with their charts on top, the agent and its jobs side
+  by side, one <em>Discovered</em> card with ports, services and containers, and settings as rows with
+  switches. <strong>Agents</strong> has a <em>No agent</em> tile with the hosts still to enrol, and warns about
+  certificates that run out within 30 days.</li>
+<li>
+<p><strong>Faster Overview</strong>: it no longer loads every run of the past week with its log and result to
+  find the failing ones. Every API answer carries a <code>Server-Timing</code> header (time in labdex, in the
+  database, query count), so a browser's network panel shows where a slow page spent its time.</p>
+</li>
+<li>
+<p><strong>Signing in stays on the sign-in page when the server answers with an error.</strong> A 404 or 500
   while signing in, or while labdex loads right after, used to swap the form for a blank page and
   then a bare error. The form now stays (busy) until labdex is loaded and says what went wrong;
-  <em>Retry</em> on the page-wide error keeps the error up while it asks again.</li>
+  <em>Retry</em> on the page-wide error keeps the error up while it asks again.</p>
+</li>
 <li><strong>A host agent in Go (preview)</strong>, next to the Python one: one static binary for amd64 and arm64,
   no Python needed for the agent itself (Ansible jobs still need it). The labdex image builds and
   serves both binaries; <code>install.sh --go</code> installs it with the same user, sudo rules and unit. It

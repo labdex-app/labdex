@@ -769,6 +769,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#adopt-what-it-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adopt what it found
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reroll-the-key-renew-the-certificate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reroll the key, renew the certificate
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#revoke" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2189,6 +2211,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#adopt-what-it-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adopt what it found
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reroll-the-key-renew-the-certificate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reroll the key, renew the certificate
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#revoke" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2303,6 +2347,12 @@ a one-time token that works for an hour. Run it on the host as root:</p>
 <div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-fsSLo<span class="w"> </span>install.sh<span class="w"> </span>https://lantern.example.net/api/agents/install.sh
 sudo<span class="w"> </span>sh<span class="w"> </span>install.sh<span class="w"> </span>--url<span class="w"> </span>https://lantern.example.net<span class="w"> </span>--token<span class="w"> </span>lxe_…<span class="w"> </span>--sha256<span class="w"> </span>…
 </code></pre></div>
+<p>The address in the command is always <code>https://</code>, because the agent only talks to labdex over TLS.
+labdex takes it from <em>Settings › General › Address of this labdex</em>; without one, from what a
+trusted reverse proxy forwards (<code>X-Forwarded-Proto</code> and <code>X-Forwarded-Host</code> from
+<code>LABDEX_TRUSTED_PROXIES</code>), and last from your browser's address. When it had to guess, the Agent
+tab says so under the command. Behind a proxy that ends TLS, set the address once. On hosts without
+<code>curl</code> (a minimal Debian), the command falls back to <code>wget</code>.</p>
 <p>Read <code>install.sh</code> before you run it. It:</p>
 <ol>
 <li>installs Python 3 (3.11 or newer), its <code>cryptography</code> package and <code>sudo</code> from the distribution,
@@ -2484,7 +2534,23 @@ absolute paths, no <code>..</code> and no links, then runs <code>ansible-playboo
 <p><strong>Agents</strong> in the sidebar lists every host's agent: linked or not, when it was last seen, whether it
 runs as root, which writes are on at both ends, whether the link used its client certificate, and
 its latest CPU, memory and <code>/</code> use. The tiles filter the list, for example to agents that link
-without a certificate before you switch <code>LABDEX_AGENT_MTLS</code> to <code>required</code>.</p>
+without a certificate before you switch <code>LABDEX_AGENT_MTLS</code> to <code>required</code>. <em>No agent</em> lists the
+hosts that have none yet, each with a link to enrol one.</p>
+<h2 id="adopt-what-it-found">Adopt what it found<a class="headerlink" href="#adopt-what-it-found" title="Permanent link">&para;</a></h2>
+<p>The <strong>Discovered</strong> card on the Agent tab lists the host's listening ports, its running systemd
+services and its containers. <strong>Add as service</strong> declares one as a service of the host, in the
+host's site file like any other edit (and in the audit). A port takes its name from its container,
+unit or process (<code>redis</code> for <code>redis-server</code> on 6379); a port bound only to loopback gets the note
+"listens on loopback only". A unit is added without a port. What the host already declares shows
+its service's name instead of the button.</p>
+<h2 id="reroll-the-key-renew-the-certificate">Reroll the key, renew the certificate<a class="headerlink" href="#reroll-the-key-renew-the-certificate" title="Permanent link">&para;</a></h2>
+<p><strong>Reroll key</strong> on the Agent tab gives you a new one-time command for the host. It is the install
+command again, with the writes the host allowed (<code>--allow</code>) and <code>--root</code> if the agent runs as root.
+When it runs, the host gets a new key and labdex revokes the old one. Until then the old key keeps
+working, so a reroll you never run locks nothing out.</p>
+<p><strong>Renew certificate</strong> asks the linked agent for a new client certificate now, rather than 30 days
+before the current one runs out. The current certificate works until the agent links with the new
+one. It needs a linked agent. Both actions are in the audit (<code>reroll</code>, <code>cert-renew</code>).</p>
 <h2 id="revoke">Revoke<a class="headerlink" href="#revoke" title="Permanent link">&para;</a></h2>
 <p><strong>Revoke</strong> on the Agent tab stops the key at once: labdex closes the live connection within a
 second, and the agent stops and stays stopped (<code>RestartPreventExitStatus=3</code>). Enrolling a host again
@@ -2582,7 +2648,10 @@ for every job it accepted, refused or finished, without the job's output.</p>
 <h2 id="metrics">Metrics<a class="headerlink" href="#metrics" title="Permanent link">&para;</a></h2>
 <p><code>GET /api/agents/metrics</code> returns each connected agent's latest heartbeat in the Prometheus text
 format, as <code>labdex_agent_*</code> with <code>host</code> and <code>agent</code> labels. Point VictoriaMetrics at it with an API
-token. labdex itself keeps no history of these numbers.</p>
+token for longer history.</p>
+<p>labdex keeps 48 hours itself: one sample per host every 5 minutes (CPU, memory, <code>/</code>, load and
+network). The Agent tab and the host's Overview draw them as small charts, and a linked agent
+counts as a live source for the host's health, so its 48 h strip fills without a monitoring plugin.</p>
 <p>The latest values also show in labdex while the agent is linked: CPU, memory and disk use (<code>/</code>)
 on the host page, as columns on the hosts list and in a host's Guests table, and as each site's
 average under <em>Capacity</em> in the Overview's Sites table. Hosts without a linked agent show a dash.</p>
