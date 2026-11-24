@@ -27,6 +27,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, UTC
 from concurrent.futures import Future, ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
 
@@ -132,7 +133,16 @@ def certificate_info(state_dir: str) -> dict:
         return {}
     from cryptography import x509
     cert = x509.load_der_x509_certificate(der)
-    return {"sha256": hashlib.sha256(der).hexdigest(), "not_after": cert.not_valid_after_utc.isoformat()}
+    return {"sha256": hashlib.sha256(der).hexdigest(), "not_after": not_after(cert).isoformat()}
+
+
+def not_after(cert) -> datetime:
+    """When a certificate runs out, as an aware UTC time. cryptography 42 added not_valid_after_utc;
+    distributions still ship older ones (Ubuntu 24.04: 41), which only have the naive not_valid_after."""
+    value = getattr(cert, "not_valid_after_utc", None)
+    if value is None:
+        value = cert.not_valid_after.replace(tzinfo=UTC)
+    return value
 
 
 def _write_private(path: str, data: str) -> None:

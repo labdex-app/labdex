@@ -2,24 +2,27 @@
 # Install the labdex agent on this host (Debian, Ubuntu, Proxmox VE, Fedora, RHEL and friends).
 #
 #   curl -fsSLo install.sh https://lantern.example.net/api/agents/install.sh
-#   sudo sh install.sh --url https://lantern.example.net --token <one-time token> [--sha256 <of the agent>]
-#        [--allow "patch reboot"] [--root] [--ca-file /path/ca.pem] [--go]
+#   sudo sh install.sh --url https://lantern.example.net --token <one-time token> [--sha256 <of the agent>]...
+#        [--allow "patch reboot"] [--root] [--ca-file /path/ca.pem] [--python]
 #   sudo sh install.sh --uninstall [--purge]
 #
 # --allow      write capabilities this host accepts (patch, reboot, ansible). Default: none, read-only.
 # --root       run the agent as root instead of its own user. The hub must allow root for this host too.
-# --go         install the Go agent (one static binary, no Python needed for the agent itself) instead
-#              of the Python one. --sha256 may then be given once per architecture; the binary for
-#              this host's must match one of them. Ansible jobs still need Python on the host.
+# --python     install the Python agent instead of the Go one. By default it installs the Go agent:
+#              one static binary, no Python needed for the agent itself. --sha256 may be given once
+#              per architecture; the binary for this host's must match one of them. Ansible jobs
+#              still need Python on the host. (--go is the default and still accepted.)
 # --uninstall  stop and remove the agent: its service, sudo rules, config and program. Its state
 #              (key, certificate, audit log) stays in /var/lib/labdex-agent unless you add --purge,
 #              which also removes the labdex-agent user. Revoke the agent in labdex as well.
 # Read it before you run it: it creates a user, a sudo rule file, a config and a systemd service.
-# It installs packages only when something is missing: python3 (3.11+), its cryptography package
-# and sudo (with --go only sudo). The agent brings its other libraries along, so nothing comes from PyPI.
+# It installs packages only when something is missing: sudo (with --python also python3 3.11+).
+# The Python agent runs from its own venv, /opt/labdex-agent/venv, with cryptography from PyPI. Where
+# PyPI or the venv module's pip can't be had, the venv uses the distribution's python3-cryptography
+# instead. The agent brings its other libraries along.
 set -eu
 
-URL="" TOKEN="${LABDEX_AGENT_TOKEN:-}" SHA="" ALLOW="" ROOT=0 CA="" UNINSTALL=0 PURGE=0 GO=0
+URL="" TOKEN="${LABDEX_AGENT_TOKEN:-}" SHA="" ALLOW="" ROOT=0 CA="" UNINSTALL=0 PURGE=0 GO=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --url) URL="$2"; shift 2 ;;
@@ -28,6 +31,7 @@ while [ $# -gt 0 ]; do
     --allow) ALLOW="$2"; shift 2 ;;
     --root) ROOT=1; shift ;;
     --go) GO=1; shift ;;
+    --python) GO=0; shift ;;
     --ca-file) CA="$2"; shift 2 ;;
     --uninstall) UNINSTALL=1; shift ;;
     --purge) PURGE=1; shift ;;
@@ -67,7 +71,6 @@ URL="${URL%/}"
 need=""
 if [ "$GO" = 0 ]; then
   command -v python3 >/dev/null || need="$need python3"
-  python3 -c 'import cryptography' 2>/dev/null || need="$need python3-cryptography"
 fi
 command -v sudo >/dev/null || need="$need sudo"
 if [ -n "$need" ]; then
@@ -86,7 +89,7 @@ else
   case "$(uname -m)" in
     x86_64|amd64) GOARCH=amd64 ;;
     aarch64|arm64) GOARCH=arm64 ;;
-    *) echo "no Go agent for $(uname -m); leave out --go for the Python agent" >&2; exit 1 ;;
+    *) echo "no Go agent for $(uname -m); add --python for the Python agent" >&2; exit 1 ;;
   esac
   command -v curl >/dev/null || command -v python3 >/dev/null || { echo "needs curl to download the agent" >&2; exit 1; }
 fi
@@ -115,7 +118,8 @@ PY
 TMP="$(mktemp)"
 trap 'rm -f "$TMP"' EXIT
 if [ "$GO" = 1 ]; then
-  fetch "$URL/api/agents/download/labdex-agent-linux-$GOARCH" "$TMP"
+  fetch "$URL/api/agents/download/labdex-agent-linux-$GOARCH" "$TMP" ||
+    { echo "labdex serves no Go agent for $GOARCH; add --python for the Python agent" >&2; exit 1; }
 else
   fetch "$URL/api/agents/download/labdex-agent.pyz" "$TMP"
 fi
@@ -126,16 +130,37 @@ if [ -n "$SHA" ]; then
   [ "$match" = 1 ] || { echo "the agent doesn't match --sha256" >&2; exit 1; }
 fi
 install -d -m 0755 /opt/labdex-agent
-rm -rf /opt/labdex-agent/venv  # left by an older install script
+# a package the distribution has, installed only when missing; false when it can't be
+pkg() {
+  if command -v apt-get >/dev/null; then apt-get install -y -q "$@" >/dev/null 2>&1
+  elif command -v dnf >/dev/null; then dnf install -y -q "$@" >/dev/null 2>&1
+  else return 1; fi
+}
+VENV=/opt/labdex-agent/venv
 if [ "$GO" = 1 ]; then
+  rm -rf "$VENV"
   rm -f /opt/labdex-agent/labdex-agent.pyz
   install -m 0755 "$TMP" /opt/labdex-agent/labdex-agent
   ln -sf /opt/labdex-agent/labdex-agent /usr/local/bin/labdex-agent
 else
   rm -f /opt/labdex-agent/labdex-agent
   install -m 0644 "$TMP" /opt/labdex-agent/labdex-agent.pyz
+  # the agent's own venv, made anew: a current cryptography from PyPI, apart from the system's packages
+  rm -rf "$VENV"
+  python3 -c 'import ensurepip' 2>/dev/null || pkg python3-venv || true
+  if python3 -m venv "$VENV" >/dev/null 2>&1 &&
+     "$VENV/bin/python" -m pip install -q --disable-pip-version-check "cryptography>=42" >/dev/null 2>&1; then
+    echo "Python agent: venv $VENV, cryptography $("$VENV/bin/python" -c 'import cryptography; print(cryptography.__version__)') from PyPI"
+  else
+    # no pip for venvs, or no PyPI: the venv sees the distribution's cryptography instead
+    rm -rf "$VENV"
+    python3 -c 'import cryptography' 2>/dev/null || pkg python3-cryptography ||
+      { echo "needs cryptography: PyPI isn't reachable and python3-cryptography couldn't be installed" >&2; exit 1; }
+    python3 -m venv --without-pip --system-site-packages "$VENV"
+    echo "Python agent: venv $VENV with the distribution's cryptography $("$VENV/bin/python" -c 'import cryptography; print(cryptography.__version__)') (no PyPI)"
+  fi
   rm -f /usr/local/bin/labdex-agent  # a symlink from a Go install: don't write through it
-  printf '#!/bin/sh\nexec /usr/bin/python3 -I /opt/labdex-agent/labdex-agent.pyz "$@"\n' > /usr/local/bin/labdex-agent
+  printf '#!/bin/sh\nexec /opt/labdex-agent/venv/bin/python -I /opt/labdex-agent/labdex-agent.pyz "$@"\n' > /usr/local/bin/labdex-agent
   chmod 0755 /usr/local/bin/labdex-agent
 fi
 AGENT=/usr/local/bin/labdex-agent

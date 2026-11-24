@@ -24,11 +24,10 @@ sudo sh install.sh --url https://lantern.example.net --token lxe_… --sha256 �
 
 Read `install.sh` before you run it. It:
 
-1. installs Python 3 (3.11 or newer), its `cryptography` package and `sudo` from the distribution,
-   but only what is missing. The agent brings its other libraries along, so nothing comes from
-   PyPI;
-2. downloads the agent (`/opt/labdex-agent/labdex-agent.pyz`) from labdex and checks it against
-   `--sha256`;
+1. installs `sudo` from the distribution, but only if it is missing;
+2. downloads the agent from labdex and checks it against `--sha256`. By default this is the Go
+   agent, one static binary (`/opt/labdex-agent/labdex-agent`) for amd64 or arm64. With `--python`
+   it is the Python agent instead, [below](#the-python-agent);
 3. creates the system user `labdex-agent` (no shell, no home);
 4. writes `/etc/labdex-agent/agent.conf` and the sudo rules in `/etc/sudoers.d/labdex-agent`
    (checked with `visudo` first);
@@ -44,7 +43,8 @@ Options:
 | `--allow "patch reboot ansible"` | the writes this host accepts. Without it the agent is read-only. |
 | `--root` | run the agent as root instead of `labdex-agent`. labdex must allow root for this host too: only an administrator can tick *run it as root* when making the token. Ansible needs it. |
 | `--ca-file /path/ca.pem` | for a labdex with a certificate from your own CA. |
-| `--go` | install the Go agent instead of the Python one (preview, below). |
+| `--python` | install the Python agent instead of the Go one ([below](#the-python-agent)). |
+| `--sha256 …` | the agent's hash, from labdex. For the Go agent, once per architecture; the binary for this host must match one of them. |
 | `--uninstall` | stop and remove the agent again: its service, sudo rules, config and program. The key, certificate and audit log stay in `/var/lib/labdex-agent`; add `--purge` to remove them and the `labdex-agent` user too. Revoke the agent on the Agent tab as well. |
 
 Running it again installs the agent anew with a new token, and revokes the older one.
@@ -56,25 +56,39 @@ python3 -c "import urllib.request as u; open('install.sh','wb').write(u.urlopen(
 
 The hub URL must be `https://`: the key travels over it.
 
-### The Go agent (preview)
+### The Go agent and the Python agent
 
-There is a second agent written in Go: one static binary for amd64 or arm64, so the host needs no
-Python for the agent itself. It speaks the same [protocol](../develop/agent-protocol.md), installs
-with the same script, the same user, sudo rules and systemd unit, and passes the same install
-rehearsal. The Python agent stays the default until the Go agent has run on real hosts.
+There are two agents. They speak the same [protocol](../develop/agent-protocol.md), pass the same
+shared test cases and the same install rehearsal, and install with the same script, user, sudo
+rules and systemd unit.
 
-The labdex image builds both binaries and serves them; `POST /api/hosts/<name>/agent/token` then
-answers with a `go.command` as well. Install with `--go`, and one `--sha256` per architecture (the
-binary for this host must match one of them):
+The **Go agent** is the default: one static binary, so the host needs no Python for the agent
+itself. The labdex image builds the binaries for amd64 and arm64 and serves them, and the command
+on the Agent tab installs it, with one `--sha256` per architecture:
 
 ```sh
-sudo sh install.sh --go --url https://lantern.example.net --token lxe_… --sha256 <amd64> --sha256 <arm64>
+sudo sh install.sh --url https://lantern.example.net --token lxe_… --sha256 <amd64> --sha256 <arm64>
 ```
 
 Ansible jobs still need Python on the host: the agent only starts `ansible-playbook`. When labdex
 runs from source, build the binaries into `backend/labdex/agent/bin/` (or point
 `LABDEX_AGENT_BIN_DIR` at them): `cd agent && GOOS=linux GOARCH=amd64 go build -o
-../backend/labdex/agent/bin/labdex-agent-linux-amd64 ./cmd/labdex-agent`.
+../backend/labdex/agent/bin/labdex-agent-linux-amd64 ./cmd/labdex-agent`. Without them, labdex
+offers only the Python agent, and the Agent tab's command says `--python`.
+
+#### The Python agent
+
+With `--python`, `install.sh` installs the Python agent (`/opt/labdex-agent/labdex-agent.pyz`). It
+needs Python 3.11 or newer, which the script installs from the distribution if it is missing. The
+agent runs from its own venv, `/opt/labdex-agent/venv`, apart from the system's packages:
+
+- the venv gets a current `cryptography` (42 or newer) from PyPI;
+- where PyPI or the venv module's pip can't be had, the venv uses the distribution's
+  `python3-cryptography` instead (installed if missing). The agent works with older versions too,
+  such as 41 on Ubuntu 24.04.
+
+The agent brings its other libraries along. The Agent tab shows its command under *The Python
+agent instead*.
 
 ## What runs with privileges
 
@@ -265,7 +279,9 @@ labdex-agent show discovery         # what discovery would report, printed here,
 labdex-agent sudoers                # the sudo rules for this host's capabilities
 ```
 
-`labdex-agent` (in `/usr/local/bin`) runs `/usr/bin/python3 -I /opt/labdex-agent/labdex-agent.pyz`.
+`labdex-agent` (in `/usr/local/bin`) is the Go agent, a link to `/opt/labdex-agent/labdex-agent`. For
+the Python agent it is a wrapper that runs `/opt/labdex-agent/venv/bin/python -I
+/opt/labdex-agent/labdex-agent.pyz`.
 Its log is in the journal: `journalctl -u labdex-agent`. Write jobs log there too, as
 `labdex-agent-patch` and `labdex-agent-ansible`.
 

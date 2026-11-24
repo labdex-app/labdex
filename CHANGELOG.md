@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **The Go agent is now the default.** `install.sh` installs it unless you add `--python`, and the
+  enrol command on a host's Agent tab is the Go one wherever labdex serves the binaries (the image
+  always does), with the Python command under *The Python agent instead*. `--go` is still
+  accepted. `POST /api/hosts/<name>/agent/token` adds `agent` (`go` or `python`) and
+  `python.command`; `command` is the default one.
+- **The Python agent runs from its own venv**, `/opt/labdex-agent/venv`, with a current
+  `cryptography` from PyPI, or the distribution's where PyPI can't be reached. The unit and the
+  `labdex-agent` wrapper use the venv's Python.
+- Fixed: the Python agent failed to enrol with cryptography older than 42 (Ubuntu 24.04 ships 41):
+  `'Certificate' object has no attribute 'not_valid_after_utc'`.
 - **A host agent in Go (preview)**, next to the Python one: one static binary for amd64 and arm64,
   no Python needed for the agent itself (Ansible jobs still need it). The labdex image builds and
   serves both binaries; `install.sh --go` installs it with the same user, sudo rules and unit. It

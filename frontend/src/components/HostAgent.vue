@@ -11,7 +11,7 @@ import Loading from './Loading.vue'
 
 const props = defineProps({ host: { type: String, required: true } })
 const data = ref(null)
-const enrolment = ref(null) // {token, command, expires_at}
+const enrolment = ref(null) // {token, command, agent, python: {command}, go?: {command}, expires_at}
 const allowRoot = ref(false)
 const reboot = ref(false)
 const playbook = ref('ansible/site.yml')
@@ -78,6 +78,11 @@ const statusClass = (s) => ({ succeeded: 'ok', failed: 'bad', refused: 'bad', ex
         <p class="small m-0">Run this on {{ host }} as root before {{ stamp(enrolment.expires_at) }}. The token works once.</p>
         <pre class="mono small cmd" role="button" tabindex="0" title="Copy" @click="copy(enrolment.command)">{{ enrolment.command }}</pre>
         <p class="small faint m-0">Add <code>--allow "patch reboot ansible"</code> for the writes this host may accept; without it the agent stays read-only.</p>
+        <details v-if="enrolment.agent === 'go'" class="small mt-1">
+          <summary>The Python agent instead</summary>
+          <p class="faint m-0">Needs Python 3.11 or newer on the host, and runs from its own venv in <code>/opt/labdex-agent/venv</code>.</p>
+          <pre class="mono small cmd" role="button" tabindex="0" title="Copy" @click="copy(enrolment.python.command)">{{ enrolment.python.command }}</pre>
+        </details>
       </div>
     </template>
   </div>

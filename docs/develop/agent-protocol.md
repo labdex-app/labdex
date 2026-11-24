@@ -624,7 +624,8 @@ same file. A change to the contract changes this page and that file in the same 
 
 The end-to-end check is the install rehearsal, `backend/tools/agent_rehearsal.py`: a local labdex
 over TLS with client certificates required, a systemd container standing in for a host, and 13
-checks from install to `--uninstall --purge`. `--agent go` runs it with the Go agent.
+checks from install to `--uninstall --purge`. It installs the Go agent, like `install.sh`;
+`--agent python` runs it with the Python agent.
 
 ## What may differ between agents
 
