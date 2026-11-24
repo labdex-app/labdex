@@ -41,6 +41,21 @@ LOST_GRACE = timedelta(minutes=5)
 SAMPLE_EVERY = timedelta(minutes=5)  # metrics history kept in labdex: one sample per host this often…
 SAMPLE_KEEP = timedelta(hours=48)  # …for this long (VictoriaMetrics for longer)
 SOURCE = "agent"
+# Job types only the Go agent runs. The shared list (agent.protocol.JOB_TYPES) belongs to the
+# Python agent too, which stays as it is, so these live here and go only to an agent whose hello
+# lists them.
+HUB_ONLY_JOBS = {
+    "ansible.session": {"write": "ansible", "timeout": 3600,
+                        "about": "let labdex reach this host's sshd through the link for one Ansible run"},
+}
+JOB_TYPES = {**protocol.JOB_TYPES, **HUB_ONLY_JOBS}
+SESSION_RE = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
+MAX_SESSION_MINUTES = 60
+
+
+def capabilities_for(job_type: str, params: dict) -> set[str]:
+    spec = HUB_ONLY_JOBS.get(job_type)
+    return {spec["write"]} if spec else protocol.capabilities_for(job_type, params)
 
 
 class AgentError(ValueError):
@@ -197,6 +212,7 @@ def linked(a: Agent, now=None) -> bool:
 
 def _audit_view(a: Agent) -> dict:
     return {"id": a.id, "host": a.host, "capabilities": list(a.capabilities or []), "allow_root": a.allow_root,
+            "ansible_become": a.ansible_become,
             "discovery_every": a.discovery_every, "patches_every": a.patches_every, "revoked": a.revoked_at is not None}
 
 
@@ -212,6 +228,8 @@ def update_settings(a: Agent, data: dict) -> None:
             a.capabilities = sorted(set(caps))
     if "allow_root" in data:
         a.allow_root = bool(data["allow_root"])
+    if "ansible_become" in data:
+        a.ansible_become = bool(data["ansible_become"])
     for field in ("discovery_every", "patches_every"):
         if field in data:
             v = data[field]
@@ -229,9 +247,11 @@ def queue(a: Agent, job_type: str, params: dict | None = None, by: str = "system
     params = dict(params or {})
     if a.revoked_at is not None:
         raise AgentError("this agent is revoked")
-    if job_type not in protocol.JOB_TYPES:
-        raise AgentError(f"unknown job type {job_type!r}; there are: {', '.join(protocol.JOB_TYPES)}")
-    need = protocol.capabilities_for(job_type, params)
+    if job_type not in JOB_TYPES:
+        raise AgentError(f"unknown job type {job_type!r}; there are: {', '.join(JOB_TYPES)}")
+    if job_type in HUB_ONLY_JOBS and job_type not in (a.jobs or []):
+        raise AgentError(f"this agent doesn't run {job_type}; the Go agent does")
+    need = capabilities_for(job_type, params)
     off_here = need - set(a.capabilities or [])
     if off_here:
         raise AgentError(f"switch on {', '.join(sorted(off_here))} for this agent first (administrators)")
@@ -240,6 +260,11 @@ def queue(a: Agent, job_type: str, params: dict | None = None, by: str = "system
         raise AgentError(f"the host's agent.conf doesn't allow {', '.join(sorted(off_there))}")
     if job_type == "ansible.run":
         params = _ansible_params(a, params)
+    elif job_type == "ansible.session":
+        m = params.get("minutes")
+        if set(params) - {"session", "minutes"} or not SESSION_RE.match(str(params.get("session", ""))) or \
+                not isinstance(m, int) or isinstance(m, bool) or not 1 <= m <= MAX_SESSION_MINUTES:
+            raise AgentError(f"ansible.session takes session (8 to 64 letters, digits, - or _) and minutes (1 to {MAX_SESSION_MINUTES})")
     elif job_type == "patch.apply":
         if set(params) - {"reboot"}:
             raise AgentError("patch.apply takes only reboot")
@@ -333,6 +358,7 @@ def hello(a: Agent, msg: dict, worker: str, address: str = "") -> None:
     a.hostname = str(msg.get("hostname", ""))[:253]
     a.root = bool(msg.get("root"))
     a.host_allow = _caps(msg.get("allow"))
+    a.jobs = sorted({str(t) for t in msg.get("jobs") or [] if str(t) in JOB_TYPES})
     if isinstance(msg.get("facts"), dict):
         a.facts = msg["facts"]
     a.address = address[:64]
@@ -405,7 +431,7 @@ def tick(now=None) -> dict:
         j.status, j.error, j.finished_at = "expired", "the agent wasn't linked in time", now
         out["expired"] += 1
     for j in db.session.scalars(db.select(AgentJob).where(AgentJob.status.in_(("sent", "running")))):
-        limit = timedelta(seconds=protocol.JOB_TYPES.get(j.type, {}).get("timeout", 600)) + LOST_GRACE
+        limit = timedelta(seconds=JOB_TYPES.get(j.type, {}).get("timeout", 600)) + LOST_GRACE
         if (j.sent_at or j.created_at) + limit < now:
             j.status, j.error, j.finished_at = "failed", "no result from the agent in time", now
             out["lost"] += 1
@@ -647,6 +673,7 @@ def to_dict(a: Agent, now=None) -> dict:
             "enrolled_at": _iso(a.enrolled_at), "enrolled_by": a.enrolled_by, "revoked_at": _iso(a.revoked_at), "revoked_by": a.revoked_by,
             "last_seen": _iso(a.last_seen), "linked_at": _iso(a.linked_at), "version": a.version, "hostname": a.hostname,
             "address": a.address, "root": a.root, "allow_root": a.allow_root, "capabilities": list(a.capabilities or []),
+            "jobs": list(a.jobs or []), "ansible_become": a.ansible_become,
             "host_allow": list(a.host_allow or []), "discovery_every": a.discovery_every, "patches_every": a.patches_every,
             "facts": a.facts or {}, "metrics": a.metrics or {},
             "cert": {"mode": agent_pki.mode(), "issued": bool(a.cert_sha256), "sha256": a.cert_sha256,

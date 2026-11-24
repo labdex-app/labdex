@@ -1132,6 +1132,9 @@ class Agent(db.Model):
     # write capabilities the hub may send jobs for (patch, reboot, ansible); the host must allow them too
     capabilities: Mapped[list] = mapped_column(JSONList, default=list)
     allow_root: Mapped[bool] = mapped_column(default=False)  # a root agent may link (the per-host opt-in)
+    # Ansible through the agent may become root on this host (labdex's half; the host's is
+    # install.sh --ansible-become). Become is full root, so it is an administrator's switch.
+    ansible_become: Mapped[bool] = mapped_column(default=False)
     # its client certificate (agent_pki.py): the SHA-256 of the current one, and of the one before
     # it while a renewal hasn't been used on a link yet
     cert_sha256: Mapped[str] = mapped_column(String(64), default="")
@@ -1146,6 +1149,7 @@ class Agent(db.Model):
     address: Mapped[str] = mapped_column(String(64), default="")
     root: Mapped[bool] = mapped_column(default=False)
     host_allow: Mapped[list] = mapped_column(JSONList, default=list)  # capabilities switched on on the host
+    jobs: Mapped[list] = mapped_column(JSONList, default=list)  # job types the agent said it runs
     facts: Mapped[dict] = mapped_column(JSONValue, default=dict)
     metrics: Mapped[dict] = mapped_column(JSONValue, default=dict)
     # the last discovery.services result; deferred: it's large, and each link reloads the row every second

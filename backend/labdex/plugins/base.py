@@ -356,6 +356,18 @@ class Context:
                 with os.fdopen(fd, "w") as f:
                     f.write(s["ssh_private_key"].strip() + "\n")
                 allvars["ansible_ssh_private_key_file"] = str(keyfile)
+            # hosts whose Go agent carries the SSH connections: certificates of this run only.
+            # Not for an isolated plugin (no app here, inside its sandbox): like global secrets,
+            # labdex's SSH CA isn't the plugin's to use.
+            from flask import has_app_context
+
+            from .. import ansible_agent
+            pipes = None
+            if has_app_context():
+                try:
+                    pipes = ansible_agent.attach(inv, tmpp, by=f"plugin:{self.spec.id}", log=self.log)
+                except ansible_agent.AnsibleAgentError as exc:
+                    raise PluginError(str(exc)) from exc
             _private(tmpp / "inventory.yaml", yaml.safe_dump(inv))
             if inline is not None:
                 pb = tmpp / "inline.yml"
@@ -390,13 +402,17 @@ class Context:
             self.log("$ " + " ".join(c if not c.startswith("@") else "@vars.json" for c in cmd[1:]).replace(str(tmpp) + "/", ""))
             secret_keys_all = {f["key"] for f in getattr(self.spec, "settings", []) or [] if f.get("type") == "secret"}
             mask = ansiblevault.masker(seen | {str(s[k]) for k in secret_keys_all if s.get(k)})
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env, cwd=base)
-            lines = []
-            for line in proc.stdout:
-                line = mask(line.rstrip())
-                lines.append(line)
-                self.log(line)
-            rc = proc.wait()
+            try:
+                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env, cwd=base)
+                lines = []
+                for line in proc.stdout:
+                    line = mask(line.rstrip())
+                    lines.append(line)
+                    self.log(line)
+                rc = proc.wait()
+            finally:
+                if pipes is not None:
+                    pipes.close()
         out = "\n".join(lines)
         changed = failed = unreachable = 0
         for m in RECAP.finditer(out):
