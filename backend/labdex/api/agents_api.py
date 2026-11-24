@@ -79,8 +79,7 @@ def agent_package() -> tuple[bytes, str]:
 
 
 # The Go agent (agent/ in the repository, docs/develop/agent-protocol.md): one static binary per
-# architecture, built into the image. Python stays the default until the Go agent passes the same
-# install rehearsal (tools/agent_rehearsal.py --agent go); `install.sh --go` picks it.
+# architecture, built into the image. It is install.sh's default; `--python` picks the Python agent.
 GO_ARCHES = ("amd64", "arm64")
 
 
@@ -204,18 +203,23 @@ def agent_token(name):
     keep = ""
     if old is not None and old.host_allow:  # install.sh rewrites agent.conf: keep what the host allowed
         keep = f' --allow "{" ".join(old.host_allow)}"'
+    root = " --root" if allow_root else ""
     # curl where there is one, wget on minimal Debian (which has no curl)
     fetch = f"{{ curl -fsSLo install.sh {base}/api/agents/install.sh || wget -qO install.sh {base}/api/agents/install.sh; }}"
-    cmd = (f"{fetch} && sudo sh install.sh --url {base} "
-           f"--token {secret} --sha256 {sha}" + keep + (" --root" if allow_root else ""))
-    out = {"token": secret, "expires_at": agents._iso(t.expires_at), "sha256": sha, "command": cmd, "url": base, "url_note": note}
+
+    def command(flags, shas):
+        return f"{fetch} && sudo sh install.sh{flags} --url {base} --token {secret} {shas}{keep}{root}"
+
+    # the Go agent is the default where labdex serves it (the image always does); else the Python one
+    py = {"sha256": sha, "command": command(" --python", f"--sha256 {sha}")}
+    out = {"token": secret, "expires_at": agents._iso(t.expires_at), "sha256": sha, "python": py,
+           "agent": "python", "command": py["command"], "url": base, "url_note": note}
     go = go_binaries()
     if go:
         # one --sha256 per architecture: install.sh takes the binary that matches any of them
         shas = " ".join(f"--sha256 {v[1]}" for v in go.values())
-        out["go"] = {"sha256": {arch: v[1] for arch, v in go.items()},
-                     "command": (f"{fetch} && sudo sh install.sh --go --url {base} "
-                                 f"--token {secret} {shas}" + keep + (" --root" if allow_root else ""))}
+        out["go"] = {"sha256": {arch: v[1] for arch, v in go.items()}, "command": command("", shas)}
+        out |= {"agent": "go", "command": out["go"]["command"]}
     return jsonify(out), 201
 
 

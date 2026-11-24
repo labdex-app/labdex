@@ -14,7 +14,7 @@ import Spark from './Spark.vue'
 
 const props = defineProps({ host: { type: String, required: true } })
 const data = ref(null)
-const enrolment = ref(null) // {token, command, expires_at, url, url_note, reroll}
+const enrolment = ref(null) // {token, command, agent, python: {command}, go?, expires_at, url, url_note, reroll}
 const allowRoot = ref(false)
 const reboot = ref(false)
 const playbook = ref('ansible/site.yml')
@@ -167,6 +167,12 @@ const CAP_TEXT = { patch: 'Install updates', reboot: 'Reboot after updates', ans
       <div class="row" style="gap: 8px"><button class="btn small" @click="copy(enrolment.command)">Copy</button></div>
       <p v-if="enrolment.url_note" class="warnbox small mt-2 mb-0">{{ enrolment.url_note }}
         <RouterLink v-if="isAdmin" to="/admin/general">Settings › General</RouterLink></p>
+      <details v-if="enrolment.agent === 'go'" class="small mt-2">
+        <summary>The Python agent instead</summary>
+        <p class="faint m-0">Needs Python 3.11 or newer on the host, and runs from its own venv in <code>/opt/labdex-agent/venv</code>.</p>
+        <pre class="mono small cmd">{{ enrolment.python.command }}</pre>
+        <div class="row" style="gap: 8px"><button class="btn small" @click="copy(enrolment.python.command)">Copy</button></div>
+      </details>
     </div>
 
     <div class="two">
@@ -321,6 +327,12 @@ const CAP_TEXT = { patch: 'Install updates', reboot: 'Reboot after updates', ans
     <p v-if="enrolment.url_note" class="warnbox small mt-2 mb-0">{{ enrolment.url_note }}
       <RouterLink v-if="isAdmin" to="/admin/general">Settings › General</RouterLink></p>
     <p class="small faint mb-0">Add <code>--allow "patch reboot ansible"</code> for the writes this host may accept; without it the agent stays read-only.</p>
+    <details v-if="enrolment.agent === 'go'" class="small mt-2">
+      <summary>The Python agent instead</summary>
+      <p class="faint m-0">Needs Python 3.11 or newer on the host, and runs from its own venv in <code>/opt/labdex-agent/venv</code>.</p>
+      <pre class="mono small cmd">{{ enrolment.python.command }}</pre>
+      <div class="row" style="gap: 8px"><button class="btn small" @click="copy(enrolment.python.command)">Copy</button></div>
+    </details>
   </div>
 </template>
 

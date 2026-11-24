@@ -140,14 +140,19 @@ def test_the_hub_serves_the_go_binaries_it_has(hub, loaded):
     bin_dir.mkdir()
     loaded.config["LABDEX_AGENT_BIN_DIR"] = str(bin_dir)
     r = hub["admin"].post(f"/api/hosts/{DNS}/agent/token", json={}).get_json()
-    assert "go" not in r
+    # no Go binaries served: the Python agent is the command
+    assert "go" not in r and r["agent"] == "python" and r["command"] == r["python"]["command"]
+    assert "install.sh --python" in r["command"] and f"--sha256 {r['sha256']}" in r["command"]
     assert client(loaded).get("/api/agents/download/labdex-agent-linux-amd64").status_code == 404
     (bin_dir / "labdex-agent-linux-amd64").write_bytes(b"\x7fELF amd64")
     (bin_dir / "labdex-agent-linux-riscv64").write_bytes(b"not offered")
     sha = hashlib.sha256(b"\x7fELF amd64").hexdigest()
     r = hub["admin"].post(f"/api/hosts/{DNS}/agent/token", json={}).get_json()
     assert r["go"]["sha256"] == {"amd64": sha}
-    assert "install.sh --go" in r["go"]["command"] and f"--sha256 {sha}" in r["go"]["command"] and r["token"] in r["go"]["command"]
+    assert f"--sha256 {sha}" in r["go"]["command"] and r["token"] in r["go"]["command"] and "--python" not in r["go"]["command"]
+    # the Go agent is the default command once served, the Python one is still offered
+    assert r["agent"] == "go" and r["command"] == r["go"]["command"]
+    assert "install.sh --python" in r["python"]["command"] and r["token"] in r["python"]["command"]
     d = client(loaded).get("/api/agents/download/labdex-agent-linux-amd64")  # hosts need no login
     assert d.status_code == 200 and d.data == b"\x7fELF amd64" and d.headers["X-Labdex-SHA256"] == sha
     assert client(loaded).get("/api/agents/download/labdex-agent-linux-riscv64").status_code == 404
@@ -157,7 +162,7 @@ def test_the_hub_serves_the_go_binaries_it_has(hub, loaded):
     assert r["go"]["sha256"]["amd64"] == hashlib.sha256(b"\x7fELF amd64 v2").hexdigest()
 
 
-def test_install_script_has_a_go_option():
+def test_install_script_installs_go_by_default():
     text = (Path(__file__).resolve().parents[1] / "labdex" / "agent" / "dist" / "install.sh").read_text()
-    assert "--go) GO=1" in text and "labdex-agent-linux-$GOARCH" in text
+    assert "GO=1\n" in text and "--python) GO=0" in text and "--go) GO=1" in text and "labdex-agent-linux-$GOARCH" in text
     assert "ExecStart=/opt/labdex-agent/labdex-agent run" in text

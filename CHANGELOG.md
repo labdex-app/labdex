@@ -10,6 +10,16 @@
   the run reaches the host. Become stays off unless an administrator switches on *Ansible may
   become root* for the host (`ansible_become`). Other hosts use plain SSH as before. The host side
   (`install.sh --ansible`) comes next; see *Guide › Host agent › Ansible through the agent*.
+- **The Go agent is now the default.** `install.sh` installs it unless you add `--python`, and the
+  enrol command on a host's Agent tab is the Go one wherever labdex serves the binaries (the image
+  always does), with the Python command under *The Python agent instead*. `--go` is still
+  accepted. `POST /api/hosts/<name>/agent/token` adds `agent` (`go` or `python`) and
+  `python.command`; `command` is the default one.
+- **The Python agent runs from its own venv**, `/opt/labdex-agent/venv`, with a current
+  `cryptography` from PyPI, or the distribution's where PyPI can't be reached. The unit and the
+  `labdex-agent` wrapper use the venv's Python.
+- Fixed: the Python agent failed to enrol with cryptography older than 42 (Ubuntu 24.04 ships 41):
+  `'Certificate' object has no attribute 'not_valid_after_utc'`.
 - **Go agent: pipes to sshd for Ansible runs** (first part of running Ansible through the agent,
   see *Develop › Design: Ansible through the agent*). A signed `ansible.session` job (capability
   `ansible`) opens a session of up to 60 minutes in which labdex can open up to 4 byte pipes to

@@ -508,7 +508,7 @@ def test_the_unit_keeps_sudo_working():
                    "SystemCallFilter", "DynamicUser"}
     assert not implies_nnp & set(lines)
     assert "ProtectSystem" in lines and "CapabilityBoundingSet" in lines
-    assert "ExecStart=/usr/bin/python3 -I /opt/labdex-agent/labdex-agent.pyz run" in unit
+    assert "ExecStart=/opt/labdex-agent/venv/bin/python -I /opt/labdex-agent/labdex-agent.pyz run" in unit
 
 
 def test_install_script_parses_and_can_roll_back():
@@ -516,7 +516,7 @@ def test_install_script_parses_and_can_roll_back():
     script = Path(core.__file__).parent / "dist" / "install.sh"
     assert subprocess.run(["sh", "-n", str(script)]).returncode == 0
     text = script.read_text()
-    assert "--uninstall" in text and "--purge" in text and "pip install" not in text and "venv/bin" not in text
+    assert "--uninstall" in text and "--purge" in text and "/opt/labdex-agent/venv/bin/python -I" in text
 
 
 def test_sudoers_rules():
@@ -783,6 +783,37 @@ def test_mtls_renewal_over_the_link(hub):
     agent.stop()
 
 
+def test_certificate_expiry_with_old_and_new_cryptography(tmp_path):
+    """cryptography 42 added not_valid_after_utc; Ubuntu 24.04 ships 41, which only has the naive
+    not_valid_after. The agent reads either."""
+    from datetime import UTC, datetime
+
+    class Old:  # cryptography < 42
+        not_valid_after = datetime(2027, 11, 24, 12, 0, 0)
+
+    class New:
+        not_valid_after_utc = datetime(2027, 11, 24, 12, 0, 0, tzinfo=UTC)
+
+        @property
+        def not_valid_after(self):
+            raise AssertionError("deprecated: not used when not_valid_after_utc is there")
+    assert core.not_after(Old()) == core.not_after(New()) == datetime(2027, 11, 24, 12, 0, 0, tzinfo=UTC)
+    # and the real thing, end to end: a saved certificate's expiry
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.x509.oid import NameOID
+    key, csr = core.new_request()
+    ca = ec.generate_private_key(ec.SECP256R1())
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "ca")])
+    cert = (x509.CertificateBuilder().subject_name(name).issuer_name(name)
+            .public_key(x509.load_pem_x509_csr(csr.encode()).public_key()).serial_number(1)
+            .not_valid_before(datetime(2026, 11, 24, tzinfo=UTC)).not_valid_after(datetime(2027, 11, 24, 12, tzinfo=UTC))
+            .sign(ca, hashes.SHA256()))
+    core.save_certificate(str(tmp_path), key, cert.public_bytes(serialization.Encoding.PEM).decode())
+    assert core.certificate_info(str(tmp_path))["not_after"] == "2027-11-24T12:00:00+00:00"
+
+
 # ----------------------------------------------------------------------------- the Agent tab's actions
 def test_the_enrol_command_uses_https(admin, loaded):
     """install.sh only talks https: the command must never carry the http address labdex is asked on."""
@@ -810,7 +841,7 @@ def test_the_enrol_command_uses_https(admin, loaded):
     assert t["url"] == "https://labdex.lab.example.net" and t["url_note"] == ""
     assert t["command"].startswith("{ curl -fsSLo install.sh https://labdex.lab.example.net/api/agents/install.sh || "
                                    "wget -qO install.sh https://labdex.lab.example.net/api/agents/install.sh; } && "
-                                   "sudo sh install.sh --url https://labdex.lab.example.net --token lxe_")
+                                   "sudo sh install.sh --python --url https://labdex.lab.example.net --token lxe_")  # no Go binaries here
     r = admin.put("/api/admin/settings", json={"public_url": "http://labdex.lab.example.net"})
     base, note = url("http://10.0.0.5:8080")
     assert base == "https://labdex.lab.example.net" and "http://" in note

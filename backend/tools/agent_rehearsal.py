@@ -1,6 +1,6 @@
 """Rehearse the host agent's install in a throwaway systemd container, before you touch a real host.
 
-    cd backend && python tools/agent_rehearsal.py [--image IMAGE] [--keep] [--agent python|go]
+    cd backend && python tools/agent_rehearsal.py [--image IMAGE] [--keep] [--agent go|python]
 
 It starts a local labdex (gunicorn over TLS, client certificates required, the example inventory)
 and a container with systemd that stands in for a host. Then it does what the guide *A first agent,
@@ -8,8 +8,9 @@ read-only* says: it fetches install.sh from labdex, installs read-only, and chec
 link, the client certificate and the read-only jobs. It revokes the agent, which must stop for good,
 and uninstalls with --purge, which must leave nothing behind.
 
-With --agent go it installs the Go agent (agent/, built here with `go build` unless
-LABDEX_AGENT_BIN_DIR already holds the binaries) through `install.sh --go`, and runs the same checks.
+By default it installs the Go agent, as install.sh does (agent/, built here with `go build` unless
+LABDEX_AGENT_BIN_DIR already holds the binaries). With --agent python it installs the Python agent
+in its venv through `install.sh --python`, and runs the same checks.
 
 Needs Docker (privileged containers, cgroup v2), openssl, and this backend installed with
 `.[server]`. The container shares the host's network to reach labdex on 127.0.0.1. Nothing outside
@@ -183,7 +184,7 @@ def rehearse(image: str, keep: bool, agent: str = "python") -> list[str]:
         t = hub.call("POST", f"/api/hosts/{HOST}/agent/token", {})
         if agent == "go" and not t.get("go"):
             raise Failed("labdex offers no Go agent: no binaries in LABDEX_AGENT_BIN_DIR")
-        command = t["go"]["command"] if agent == "go" else t["command"]
+        command = t["go"]["command"] if agent == "go" else t["python"]["command"]
         if f"curl -fsSLo install.sh {hub.url}/api/agents/install.sh" not in command:
             raise Failed(f"the Agent tab's command doesn't use {hub.url}: {command}")
         # a real labdex has a certificate the host trusts; here the host learns to trust the test one,
@@ -193,8 +194,11 @@ def rehearse(image: str, keep: bool, agent: str = "python") -> list[str]:
         if "running as labdex-agent" not in out:
             raise Failed(f"install.sh: {out[-500:]}")
         if agent == "go" and "/opt/labdex-agent/labdex-agent run" not in box.run("systemctl cat labdex-agent").stdout:
-            raise Failed("install.sh --go didn't point the service at the Go agent")
+            raise Failed("install.sh didn't point the service at the Go agent")
         ok(f"install.sh installed the {agent} agent read-only, as labdex-agent")
+        for line in out.splitlines():
+            if line.startswith("Python agent:"):
+                print(f"      {line}")
         for _ in range(30):
             if box.run("labdex-agent health", check=False).returncode == 0:
                 break
@@ -266,7 +270,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--image", default="geerlingguy/docker-debian12-ansible:latest", help="a container image with systemd")
     ap.add_argument("--keep", action="store_true", help="leave the container and labdex running to look around")
-    ap.add_argument("--agent", choices=["python", "go"], default="python", help="which agent to install (default: python)")
+    ap.add_argument("--agent", choices=["python", "go"], default="go", help="which agent to install (default: go)")
     args = ap.parse_args()
     for tool in ("docker", "openssl") + (("go",) if args.agent == "go" and not os.environ.get("LABDEX_AGENT_BIN_DIR") else ()):
         if not shutil.which(tool):
