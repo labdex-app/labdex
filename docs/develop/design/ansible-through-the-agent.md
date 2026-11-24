@@ -1,7 +1,8 @@
 # Design: Ansible through the agent
 
 Status: **decided**, being built (see [Decisions](#decisions)). The pipe in the protocol and the Go
-agent is the first part: [Ansible over the link](../agent-protocol.md#ansible-over-the-link). The Python agent stays as it is; the new parts are for the Go agent only.
+agent is the first part: [Ansible over the link](../agent-protocol.md#ansible-over-the-link). labdex's side (SSH CA, certificates, the broker, the runner) is the second:
+[Ansible through the agent](../../guide/agent.md#ansible-through-the-agent). The Python agent stays as it is; the new parts are for the Go agent only.
 
 ## Goal
 

@@ -136,6 +136,7 @@ Debian 12 with systemd 252.
 | `patch.report` | no | updates waiting, reboot needed |
 | `patch.apply` | `patch` (and `reboot` to reboot) | install the waiting updates, then report again |
 | `ansible.run` | `ansible`, and a root agent | run a playbook from the site's git repository on this host |
+| `ansible.session` | `ansible`, Go agent only | let labdex reach this host's sshd through the link for one Ansible run ([below](#ansible-through-the-agent)) |
 
 Every job is signed with labdex's own key (`<data>/agent-signing.key`). The agent saved the public
 half when it enrolled. It runs a job only when all of these hold:
@@ -161,6 +162,43 @@ agent the bundle's SHA-256, the commit, the playbook path and the variables, all
 fetches the bundle over the same connection and checks the hash. It unpacks the bundle with no
 absolute paths, no `..` and no links, then runs `ansible-playbook -i localhost, -c local` through
 `systemd-run`. Tick *check only* for `--check --diff`.
+
+## Ansible through the agent
+
+With the **Go agent**, labdex can run Ansible on a host without reaching its SSH port over the
+network: `ansible-playbook` runs in labdex as usual, and its SSH connections go through the agent's
+link to the host's own sshd on `127.0.0.1`. labdex holds every key; the host keeps none. The design
+and its reasons are in [Ansible through the agent](../develop/design/ansible-through-the-agent.md).
+
+A host goes through its agent in every Ansible run (features, the Ansible runner, plugins) when all
+of these hold; otherwise it uses plain SSH with the integration's settings, as before:
+
+- its agent is the Go agent and is linked;
+- `ansible` is on at both ends: `--allow ansible` on the host, and the switch on the Agent tab;
+- the agent reported sshd's host keys (it does when `/etc/ssh/ssh_host_*_key.pub` exist);
+- the vault is unsealed: the SSH certificate authority lives there.
+
+Plugins that run isolated don't go through the agent: labdex's SSH certificate authority isn't
+theirs to use, like global secrets.
+
+For each run, labdex makes a key and a certificate per host, for the user `labdex-ansible@<host>`,
+valid for an hour and only from `127.0.0.1`, so it is useless anywhere but through that host's
+agent. Host keys are pinned from what the agent reported, never trusted on first use. The
+certificate authority is made the first time it is needed, as the vault entry
+`labdex/ansible-ssh-ca`.
+
+**Become** (root) is off unless an administrator ticks *Ansible may become root* on the Agent tab
+(`ansible_become`), and the host allows it too. Become runs any code as root, so that is what it
+grants.
+
+The host has to trust the certificate authority and have the `labdex-ansible` user. TODO: until
+`install.sh --ansible` does this (next step), set it up by hand: the CA's public key from the vault
+entry in `/etc/ssh/labdex-ansible-ca.pub`, `TrustedUserCAKeys` and an `AuthorizedPrincipalsFile`
+for `labdex-ansible` with the line `from="127.0.0.1,::1" labdex-ansible@<host>`.
+
+The agent's audit log has a line for every session and pipe (bytes each way, never the bytes
+themselves), labdex's history has the `ansible.session` job, and sshd's log names the run in the
+certificate's key id (`run-…/<who>/<host>`).
 
 ## All agents
 

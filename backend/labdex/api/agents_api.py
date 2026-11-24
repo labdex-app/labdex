@@ -13,7 +13,7 @@ from pathlib import Path
 
 from flask import Response, current_app, g, jsonify, request
 
-from .. import agent_pki, agents, audit, auth, naming, rbac, store
+from .. import agent_pipes, agent_pki, agents, audit, auth, naming, rbac, store
 from ..agent import protocol
 from ..models import Agent, AgentJob, db, utcnow
 from . import PUBLIC, HOOKS, body, bp, err
@@ -231,7 +231,7 @@ def list_agents():
         h = store.find_host(a.host)
         if h is not None and g.principal.can("host", "view", rbac.host_facts(store.host_access(h))):
             out.append(agents.to_dict(a))
-    return jsonify({"agents": out, "job_types": protocol.JOB_TYPES, "capabilities": list(protocol.CAPABILITIES)})
+    return jsonify({"agents": out, "job_types": agents.JOB_TYPES, "capabilities": list(protocol.CAPABILITIES)})
 
 
 @bp.get("/hosts/<name>/agent")
@@ -246,7 +246,7 @@ def host_agent(name):
             db.select(AgentJob).where(AgentJob.agent_id == a.id).order_by(AgentJob.created_at.desc()).limit(20))]
     return jsonify({"agent": agents.to_dict(a) if a else None, "discovery": (a.discovery if a else None) or None,
                     "declared": agents.declared(h, a.discovery if a else None), "history": agents.history(h.name),
-                    "jobs": jobs, "job_types": protocol.JOB_TYPES, "capabilities": list(protocol.CAPABILITIES)})
+                    "jobs": jobs, "job_types": agents.JOB_TYPES, "capabilities": list(protocol.CAPABILITIES)})
 
 
 @bp.patch("/hosts/<name>/agent")
@@ -256,7 +256,7 @@ def update_host_agent(name):
     if a is None:
         return err(404, f"no agent on '{name}'")
     data = body()
-    if "capabilities" in data or "allow_root" in data:
+    if "capabilities" in data or "allow_root" in data or "ansible_become" in data:
         rbac.require_admin()  # switching on writes or root is an administrator's call
     agents.update_settings(a, data)
     db.session.commit()
@@ -394,8 +394,19 @@ def _link(ws) -> None:
         try:
             while not gone.is_set():
                 raw = ws.receive(timeout=5)
-                if raw is not None:
-                    inbox.put(raw)
+                if raw is None:
+                    continue
+                # pipe traffic (Ansible over the link) skips the database loop below: straight to
+                # the broker, in order, without waiting for the next tick
+                if '"pipe.' in raw:
+                    try:
+                        msg = json.loads(raw)
+                    except ValueError:
+                        msg = None
+                    if isinstance(msg, dict) and str(msg.get("t", "")).startswith("pipe."):
+                        agent_pipes.from_agent(agent_id, msg)
+                        continue
+                inbox.put(raw)
         except Exception:  # closed by either side
             pass
         finally:
@@ -404,8 +415,12 @@ def _link(ws) -> None:
 
     threading.Thread(target=read, name=f"agent-link-{agent_id}", daemon=True).start()
 
+    send_lock = threading.Lock()  # the pipe broker sends from its own threads too
+
     def send(message: dict) -> None:
-        ws.send(json.dumps(message, separators=(",", ":"), default=str))
+        text = json.dumps(message, separators=(",", ":"), default=str)
+        with send_lock:
+            ws.send(text)
 
     said_hello = False
     certs = False  # the agent said it handles certificates (hello "certs": true)
@@ -440,6 +455,7 @@ def _link(ws) -> None:
                         if mtls != "off":
                             agents.cert_seen(a, der)
                         said_hello = True
+                        agent_pipes.linked(agent_id, send, gone)
                         send({"t": "welcome", "host": a.host, "heartbeat": protocol.HEARTBEAT, "server_time": utcnow().timestamp()})
                         if mtls != "off" and msg.get("certs") and (msg.get("cert_sha256") != a.cert_sha256 or
                                                                    agent_pki.needs_renewal(a.cert_not_after)):
@@ -474,6 +490,7 @@ def _link(ws) -> None:
         db.session.rollback()
     finally:
         gone.set()
+        agent_pipes.unlinked(agent_id, send)
         if wakes.get(agent_id) is not None and wakes[agent_id].inbox is inbox:
             wakes.pop(agent_id, None)
         try:
