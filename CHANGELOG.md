@@ -12,6 +12,12 @@
   `labdex-agent` wrapper use the venv's Python.
 - Fixed: the Python agent failed to enrol with cryptography older than 42 (Ubuntu 24.04 ships 41):
   `'Certificate' object has no attribute 'not_valid_after_utc'`.
+- **Go agent: pipes to sshd for Ansible runs** (first part of running Ansible through the agent,
+  see *Develop › Design: Ansible through the agent*). A signed `ansible.session` job (capability
+  `ansible`) opens a session of up to 60 minutes in which labdex can open up to 4 byte pipes to
+  the host's sshd on `127.0.0.1:<ssh_port>` (new in `agent.conf`, default 22); nothing in a
+  message can point a pipe anywhere else. The Go agent also reports sshd's public host keys in its
+  facts (`ssh_host_keys`). labdex doesn't use any of it yet; the Python agent is unchanged.
 - **The agent's install command uses https.** Behind a reverse proxy that ends TLS, the Agent tab
   showed an `http://` address, which `install.sh` refuses. The command now takes *Settings ›
   General › Address of this labdex*, then what a trusted proxy forwards, and is always `https://`;

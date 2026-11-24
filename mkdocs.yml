@@ -91,6 +91,7 @@ nav:
       - Upgrading: operate/upgrading.md
       - Security: operate/security.md
       - Security review: operate/security-review.md
+      - Threat model: threat-model.md
   - Developing:
       - Writing a plugin: develop/plugins.md
       - Plugin API reference: develop/plugin-api.md

@@ -89,10 +89,12 @@ allow =
 # a CA bundle for a hub with a private certificate authority
 ca_file =
 state_dir = /var/lib/labdex-agent
+# the one port ansible.session pipes reach, on 127.0.0.1 (Go agent)
+ssh_port = 22
 ```
 
 An unknown capability in `allow` is a fatal config error: the agent MUST exit non-zero and say
-which. A trailing `/` on `url` is dropped. `#` and `;` start comment lines.
+which. So is an `ssh_port` that isn't a number from 1 to 65535. A trailing `/` on `url` is dropped. `#` and `;` start comment lines.
 
 ### credentials.json
 
@@ -193,6 +195,9 @@ Agent → hub:
 | `result` | `id`, `ok`, `result`, `error`, `started`, `finished`; or `id`, `ok: false`, `refused: true`, `error` | A job finished or was refused |
 | `csr` | `csr` (PEM) | Answer to `renew` |
 | `bundle.get` | `sha256` | `ansible.run` needs its bundle |
+| `pipe.opened` | `id` | A pipe reached sshd ([Ansible over the link](#ansible-over-the-link)) |
+| `pipe.data` | `id`, `data` (base64, at most `PIPE_CHUNK` bytes decoded) | Bytes from sshd |
+| `pipe.close` | `id`, `error` (absent on a normal end) | A pipe ended or was refused |
 
 Hub → agent:
 
@@ -204,6 +209,10 @@ Hub → agent:
 | `renew` | — | Make a new key and CSR, send `csr`, keep the key until `cert` arrives |
 | `cert` | `cert` (PEM), `ca`; or `error` | Save `cert` with the pending key in `client.pem`; used from the next link |
 | `bundle` | `sha256`, `data` (base64); or `sha256`, `error` | Hand the bytes (or the error) to the waiting `ansible.run` |
+| `pipe.open` | `id`, `session` | Open a pipe to sshd in that session, answer `pipe.opened` or `pipe.close` |
+| `pipe.data` | `id`, `data` (base64) | Write the bytes to that pipe's sshd connection |
+| `pipe.close` | `id` | Close that pipe; no answer |
+| `session.end` | `session` | Close the session's pipes (each answered with `pipe.close`) and forget it |
 
 A record replayed from the spool carries `"buffered": true`. The hub uses a buffered heartbeat's
 time for "last seen" but not its metrics, and doesn't answer it with `ok`.
@@ -310,6 +319,7 @@ Nothing else runs. `write` is the capability a job needs at both ends.
 | `patch.report` | — | 600 s | none | [Patch report](#patch-report) |
 | `patch.apply` | `patch` (+ `reboot` when `params.reboot`) | 3600 s | `reboot` (bool) | [Patch apply](#patch-apply) |
 | `ansible.run` | `ansible` | 3600 s | `bundle`, `playbook`, `commit`, `vars`, `check` | [Ansible](#ansible) |
+| `ansible.session` | `ansible` | 3600 s | `session`, `minutes` | [Ansible over the link](#ansible-over-the-link); Go agent only |
 
 Capabilities: `patch`, `reboot`, `ansible`. The hub refuses to queue a job whose capability is off
 in labdex (an administrator's switch) or missing from the `allow` the agent reported in `hello`.
@@ -379,6 +389,7 @@ Read from `/proc`, `/etc/os-release` and `statvfs`: no commands, no root.
 | `boot_time` | `now - uptime`, rounded |
 | `python` | Python agent only: its Python version |
 | `agent` | Go agent only: `"go"` |
+| `ssh_host_keys` | Go agent only: `<type> <base64>` of each `/etc/ssh/ssh_host_*_key.pub` whose type starts with `ssh-` or `ecdsa-`, sorted, comments dropped; `[]` without sshd |
 
 Real file systems: ext2, ext3, ext4, xfs, btrfs, zfs, vfat, f2fs, jfs, reiserfs, bcachefs, from
 `/proc/mounts` (`\040` → space), each mount point once, only directories (a bind-mounted file is no
@@ -552,6 +563,70 @@ Result: `{ok: code == 0, code, check, commit, recap: from "PLAY RECAP" (2000 cha
 
 Ansible itself is Python, so a host that runs Ansible jobs needs Python whichever agent starts it.
 
+## Ansible over the link
+
+Go agent only, so the hub sends `ansible.session` only to an agent whose `hello` lists it in
+`jobs`. labdex runs `ansible-playbook` itself, with SSH certificates of its own that live for one
+run, and reaches the host's sshd through **pipes**: byte streams inside the link. The agent only
+moves bytes; it never sees a key, a playbook or a variable. The design and its reasons are in
+[Ansible through the agent](design/ansible-through-the-agent.md).
+
+| Constant | Value | Meaning |
+| --- | --- | --- |
+| `MAX_SESSION_MINUTES` | 60 | Longest session |
+| `MAX_PIPES_PER_SESSION` | 4 | Pipes open at once in one session |
+| `MAX_PIPES` | 8 | Pipes open at once in all sessions |
+| `PIPE_CHUNK` | 32768 | Largest `pipe.data`, in bytes before base64 |
+| `PIPE_QUEUE` | 256 | `pipe.data` messages from the hub that may wait for sshd, per pipe |
+
+**`ansible.session`** takes exactly two parameters (anything else is refused, `unknown parameters:
+…`):
+
+| Field | Rule | Refusal |
+| --- | --- | --- |
+| `session` | `^[A-Za-z0-9_-]{8,64}$` | `session must be 8 to 64 letters, digits, - or _` |
+| `minutes` | Whole number, 1 to `MAX_SESSION_MINUTES` | `minutes must be a whole number from 1 to 60` |
+
+The agent records the session as open until now + `minutes` (a session id that is open already is
+refused) and answers at once: `{"ok": true, "session": "<id>", "until": <Unix time>}`. The job does
+not hold a worker while the session lasts.
+
+**Pipes.** The hub sends `pipe.open {id, session}`, `id` matching `^[A-Za-z0-9_-]{1,64}$` (any other
+id is ignored, there is nothing to answer). The agent refuses with `pipe.close {id, error}` when:
+
+| Error | When |
+| --- | --- |
+| `no such session` | The session isn't open (never was, ended, or expired) |
+| `the session is over` | Its time is up |
+| `a pipe with this id is open already` | — |
+| `the session has 4 pipes open already` | `MAX_PIPES_PER_SESSION` |
+| `8 pipes are open already` | `MAX_PIPES` |
+| `can't reach sshd on 127.0.0.1:<port>: …` | The TCP connection failed (5 s timeout) |
+
+Otherwise it connects to **`127.0.0.1:<ssh_port>`** from `agent.conf`. No message carries an address
+or a port, so a pipe can't reach anything else. Connecting MUST NOT hold up the link's read loop.
+On success it sends `pipe.opened {id}`; the hub sends `pipe.data` only after that.
+
+Bytes go both ways as `pipe.data {id, data}`, in order. The agent reads at most `PIPE_CHUNK` bytes
+at a time from sshd and sends each read at once. A `pipe.data` from the hub that isn't base64 or is
+larger than `PIPE_CHUNK` closes the pipe (`bad pipe.data`). The agent MUST NOT block the read loop
+on a slow sshd: when `PIPE_QUEUE` messages wait already, it closes the pipe (`too much data waiting
+for sshd`). `pipe.data` is never spooled: a pipe is live or gone.
+
+A pipe ends when sshd closes the connection (`pipe.close {id}`, no error), the hub sends
+`pipe.close {id}` (no answer), the hub sends `session.end {session}`, the session's time is up
+(`the session's time is up`, checked at least every 5 s), or the link drops (no message; the hub
+counts every pipe of a dropped link as closed). Sessions outlive a dropped link until their time
+is up, so a run can go on over the next link with new pipes.
+
+Audit lines: `session.open` (`session`, `until`, `port`), `session.end` (`session`, `reason`),
+`pipe.open` (`id`, `session`), `pipe.close` (`id`, `session`, `up` and `down` in bytes, `reason`),
+`pipe.refused` (`id`, `session`, `reason`). Never the bytes themselves.
+
+The agent's user needs no sudo rule for this: it only opens a TCP connection to localhost. What
+the run may do on the host is up to the SSH user labdex logs in as (`labdex-ansible`, set up by
+`install.sh --ansible`).
+
 ## The spool
 
 What the agent has to say while the hub can't take it (results and heartbeats) goes to `buffer/`.
@@ -629,6 +704,9 @@ checks from install to `--uninstall --purge`. It installs the Go agent, like `in
 
 ## What may differ between agents
 
-- `version` and the `python` / `agent` facts.
+- `version` and the `python` / `agent` / `ssh_host_keys` facts.
+- `ansible.session`, the `pipe.*` and `session.end` messages and `ssh_port`: the Go agent only. The
+  Python agent stays as it is, and the hub uses them only with an agent whose `hello` lists
+  `ansible.session`. The shared cases in `conformance.json` leave them out; the Go tests cover them.
 - Log lines on stdout.
 - Internal structure, as long as every MUST above holds.
