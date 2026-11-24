@@ -9,6 +9,20 @@ COPY frontend/ ./
 # vite writes to ../backend/labdex/static
 RUN mkdir -p /src/backend/labdex && npm run build
 
+# ---- the Go host agent ---------------------------------------------------------
+# One static binary per host architecture, built once on the build machine (Go cross-compiles), so
+# every image serves both to hosts (GET /api/agents/download/labdex-agent-linux-<arch>).
+FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS agent
+WORKDIR /src/agent
+COPY agent/go.mod agent/go.sum ./
+RUN go mod download
+COPY agent/ ./
+# no build id and no paths: the same source gives the same SHA-256
+RUN for arch in amd64 arm64; do \
+      CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -trimpath -buildvcs=false -ldflags "-s -w -buildid=" \
+        -o /out/labdex-agent-linux-$arch ./cmd/labdex-agent || exit 1; \
+    done
+
 # ---- app --------------------------------------------------------------------
 FROM python:3.15-slim
 # what the GHCR package page and `docker inspect` show
@@ -28,6 +42,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     LABDEX_DATA=/data \
     LABDEX_CONTAINER=1 \
+    LABDEX_AGENT_BIN_DIR=/app/agent-bin \
     HOME=/tmp
 WORKDIR /app
 # System packages and Python dependencies first: they change rarely, so this layer comes
@@ -50,6 +65,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends nmap git openss
 COPY backend/labdex ./labdex
 COPY CHANGELOG.md ./labdex/CHANGELOG.md
 COPY --from=ui /src/backend/labdex/static ./labdex/static
+COPY --from=agent /out/ /app/agent-bin/
 RUN pip install --no-cache-dir --no-deps . && rm -rf build *.egg-info
 COPY examples /app/examples
 

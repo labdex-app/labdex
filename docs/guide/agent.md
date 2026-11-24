@@ -44,6 +44,7 @@ Options:
 | `--allow "patch reboot ansible"` | the writes this host accepts. Without it the agent is read-only. |
 | `--root` | run the agent as root instead of `labdex-agent`. labdex must allow root for this host too: only an administrator can tick *run it as root* when making the token. Ansible needs it. |
 | `--ca-file /path/ca.pem` | for a labdex with a certificate from your own CA. |
+| `--go` | install the Go agent instead of the Python one (preview, below). |
 | `--uninstall` | stop and remove the agent again: its service, sudo rules, config and program. The key, certificate and audit log stay in `/var/lib/labdex-agent`; add `--purge` to remove them and the `labdex-agent` user too. Revoke the agent on the Agent tab as well. |
 
 Running it again installs the agent anew with a new token, and revokes the older one.
@@ -54,6 +55,26 @@ python3 -c "import urllib.request as u; open('install.sh','wb').write(u.urlopen(
 ```
 
 The hub URL must be `https://`: the key travels over it.
+
+### The Go agent (preview)
+
+There is a second agent written in Go: one static binary for amd64 or arm64, so the host needs no
+Python for the agent itself. It speaks the same [protocol](../develop/agent-protocol.md), installs
+with the same script, the same user, sudo rules and systemd unit, and passes the same install
+rehearsal. The Python agent stays the default until the Go agent has run on real hosts.
+
+The labdex image builds both binaries and serves them; `POST /api/hosts/<name>/agent/token` then
+answers with a `go.command` as well. Install with `--go`, and one `--sha256` per architecture (the
+binary for this host must match one of them):
+
+```sh
+sudo sh install.sh --go --url https://lantern.example.net --token lxe_… --sha256 <amd64> --sha256 <arm64>
+```
+
+Ansible jobs still need Python on the host: the agent only starts `ansible-playbook`. When labdex
+runs from source, build the binaries into `backend/labdex/agent/bin/` (or point
+`LABDEX_AGENT_BIN_DIR` at them): `cd agent && GOOS=linux GOARCH=amd64 go build -o
+../backend/labdex/agent/bin/labdex-agent-linux-amd64 ./cmd/labdex-agent`.
 
 ## What runs with privileges
 

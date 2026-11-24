@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **A host agent in Go (preview)**, next to the Python one: one static binary for amd64 and arm64,
+  no Python needed for the agent itself (Ansible jobs still need it). The labdex image builds and
+  serves both binaries; `install.sh --go` installs it with the same user, sudo rules and unit. It
+  passes the same 13-check install rehearsal (`tools/agent_rehearsal.py --agent go`). The Python
+  agent stays the default. **The agent protocol is written down** (Developing › Agent protocol),
+  with shared test cases both agents must pass (`agent/testdata/conformance.json`).
 - **Pages use the whole width** beside the sidebar, as in the mockups; only running text keeps a
   reading measure. **A host opens on its own page**: a click on a row in Hosts goes straight to it,
   and on Updates to its *Updates* tab; the host side panel and its quick edit are gone (*Edit* in

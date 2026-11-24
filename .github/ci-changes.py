@@ -8,7 +8,8 @@ Prints KEY=value lines for $GITHUB_OUTPUT:
     e2e       the UI build and the browser tests (frontend, or the API it calls)
     perf      the performance budget (backend code)
     docs      the docs build
-    image     the Docker image build (Dockerfile, dependencies)
+    image     the Docker image build (Dockerfile, dependencies, the Go agent it builds)
+    agent     the Go agent (agent/): its tests against this backend, which testmon can't see
 
 A version bump (bump.py) changes nothing that needs testing: the version lines of
 pyproject.toml, package.json, package-lock.json and labdex/__init__.py are ignored.
@@ -75,7 +76,7 @@ def js_deps_changed(base: str) -> bool:
 def main() -> None:
     base_ref = (sys.argv[1] if len(sys.argv) > 1 else "").strip()
     full = os.environ.get("FULL") == "true" or not base_ref
-    out = dict.fromkeys(("backend", "full", "e2e", "perf", "docs", "image"), False)
+    out = dict.fromkeys(("backend", "full", "e2e", "perf", "docs", "image", "agent"), False)
     pg = full
     if full:
         out = dict.fromkeys(out, True)
@@ -105,11 +106,12 @@ def main() -> None:
         else:
             code = has(r"^backend/labdex/(?!static/).*") or has(r"^examples/")
             out["full"] = has(r"^backend/labdex/migrations/|^backend/labdex/models\.py$|^plugins/|^\.gitmodules$")
-            out["backend"] = code or out["full"] or has(r"^backend/tests/|^backend/tools/|^backend/pyproject\.toml$")
+            out["agent"] = has(r"^agent/")
+            out["backend"] = code or out["full"] or out["agent"] or has(r"^backend/tests/|^backend/tools/|^backend/pyproject\.toml$")
             out["perf"] = has(r"^backend/labdex/(?!static/|migrations/).*\.py$")
             out["e2e"] = js_deps or has(r"^frontend/(?!package)") or has(r"^backend/labdex/api/") or has(r"^backend/tests/e2e/")
             out["docs"] = has(r"^docs/|^mkdocs\.yml$|^CHANGELOG\.md$|^README\.md$")
-            out["image"] = js_deps or has(r"^Dockerfile$|^\.dockerignore$")
+            out["image"] = js_deps or out["agent"] or has(r"^Dockerfile$|^\.dockerignore$")
             pg = out["full"] or base_ref.startswith("release/")
             if not pg and out["backend"]:
                 pg = any(DB_CODE.search(ln) for f in real if f.endswith(".py") and f.startswith(("backend/labdex/", "plugins/"))

@@ -15,3 +15,4 @@ site/
 *.pem
 .ruff_cache/
 .testmondata*
+backend/labdex/agent/bin/
