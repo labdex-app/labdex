@@ -647,3 +647,68 @@ def test_agents_page(page, server, tmp_path):
     page.screenshot(path=str(tmp_path / "agents.png"))
     page.click("td a >> text=srv-vm-dns-01")
     page.wait_for_selector(".tabs a.router-link-active >> text=Agent")
+
+
+# What the app shows, recorded on every DOM change: a flicker is any other view in between.
+_VIEWS = """() => { window.__views = []; const look = () => {
+  const v = document.querySelector('main.signin') ? 'signin' : document.querySelector('.shell') ? 'shell'
+    : document.querySelector('.errbox') ? 'error' : 'blank'
+  if (window.__views.at(-1) !== v) window.__views.push(v) }
+  look(); new MutationObserver(look).observe(document, {subtree: true, childList: true}) }"""
+
+
+@pytest.fixture
+def signin(server):
+    """The sign-in page, not signed in yet, with the views recorded from here on."""
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        p = browser.new_context(viewport={"width": 1400, "height": 900}).new_page()
+        p.goto(server + "/")
+        p.wait_for_selector("main.signin input[type=password]")
+        p.evaluate(_VIEWS)
+        yield p
+        browser.close()
+
+
+def _sign_in(p):
+    p.fill("input[autocomplete=username]", USER)
+    p.fill("input[type=password]", PASSWORD)
+    p.click("button.go")
+
+
+@pytest.mark.parametrize("path", ["/api/auth/login", "/api/meta"])
+@pytest.mark.parametrize("status", [404, 500])
+def test_sign_in_stays_put_on_a_backend_error(signin, path, status):
+    """A 404 or 500 on signing in, or right after: the form stays, says what went wrong, and works once the server does."""
+    signin.route(f"**{path}", lambda r: r.fulfill(status=status, content_type="text/html", body="<h1>nope</h1>"))
+    _sign_in(signin)
+    signin.wait_for_selector(f"main.signin .errbox >> text={status}")
+    assert signin.locator("main.signin .errbox").inner_text().startswith(
+        "Signed in, but labdex didn't load" if path == "/api/meta" else "labdex answered with")
+    signin.wait_for_selector("button.go:text-is('Sign in')")  # not stuck on "Signing in…"
+    assert signin.evaluate("window.__views") == ["signin"]
+    signin.unroute(f"**{path}")
+    _sign_in(signin)
+    signin.wait_for_selector(".shell")
+    assert signin.evaluate("window.__views") == ["signin", "shell"]  # no blank page between
+
+
+def test_retry_keeps_the_error_until_it_knows(server):
+    """The page-wide error (labdex unreachable on load): Retry doesn't blank the page while it asks again."""
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        p = browser.new_page()
+        p.route("**/api/auth/status", lambda r: r.fulfill(status=500, content_type="text/html", body="<h1>nope</h1>"))
+        p.goto(server + "/")
+        p.wait_for_selector(".errbox >> text=500")
+        p.evaluate(_VIEWS)
+        p.click(".errbox button")
+        p.wait_for_selector(".errbox button:text-is('Retry'):enabled")
+        assert p.evaluate("window.__views") == ["error"]
+        p.unroute("**/api/auth/status")
+        p.click(".errbox button")
+        p.wait_for_selector("main.signin")
+        assert p.evaluate("window.__views") == ["error", "signin"]
+        browser.close()
