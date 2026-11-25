@@ -702,6 +702,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guide/ssh-keys/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SSH keys through the agent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guide/working-fast/" class="md-nav__link">
         
   
@@ -2215,6 +2243,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ssh-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSH keys
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#the-spool" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2315,6 +2354,34 @@
     
   
     Design: Ansible through the agent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design/ssh-certificates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design: SSH certificates (later)
   
 
     
@@ -2739,6 +2806,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ssh-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSH keys
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#the-spool" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3019,9 +3097,12 @@ file, so a reader never sees half a file.</p>
 <span class="na">state_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">/var/lib/labdex-agent</span>
 <span class="c1"># the one port ansible.session pipes reach, on 127.0.0.1 (Go agent)</span>
 <span class="na">ssh_port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">22</span>
+<span class="c1"># the only users whose SSH keys labdex may manage, with ssh_keys in allow (Go agent)</span>
+<span class="na">ssh_users</span><span class="w"> </span><span class="o">=</span>
 </code></pre></div>
 <p>An unknown capability in <code>allow</code> is a fatal config error: the agent MUST exit non-zero and say
-which. So is an <code>ssh_port</code> that isn't a number from 1 to 65535. A trailing <code>/</code> on <code>url</code> is dropped. <code>#</code> and <code>;</code> start comment lines.</p>
+which. So is an <code>ssh_port</code> that isn't a number from 1 to 65535, and an <code>ssh_users</code> entry that
+isn't a user name (<code>^[a-z_][a-z0-9_.-]{0,31}$</code>). A trailing <code>/</code> on <code>url</code> is dropped. <code>#</code> and <code>;</code> start comment lines.</p>
 <h3 id="credentialsjson">credentials.json<a class="headerlink" href="#credentialsjson" title="Permanent link">&para;</a></h3>
 <p>Written at enrolment. The agent MUST NOT change it afterwards.</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
@@ -3510,9 +3591,23 @@ dropped whenever an id is added.</p>
 <td><code>session</code>, <code>minutes</code></td>
 <td><a href="#ansible-over-the-link">Ansible over the link</a>; Go agent only</td>
 </tr>
+<tr>
+<td><code>ssh_keys.report</code></td>
+<td>—</td>
+<td>120 s</td>
+<td>none</td>
+<td><a href="#ssh-keys">SSH keys</a>; Go agent only</td>
+</tr>
+<tr>
+<td><code>ssh_keys.apply</code></td>
+<td><code>ssh_keys</code></td>
+<td>300 s</td>
+<td><code>users</code>, <code>break_glass</code> (optional)</td>
+<td><a href="#ssh-keys">SSH keys</a>; Go agent only</td>
+</tr>
 </tbody>
 </table>
-<p>Capabilities: <code>patch</code>, <code>reboot</code>, <code>ansible</code>. The hub refuses to queue a job whose capability is off
+<p>Capabilities: <code>patch</code>, <code>reboot</code>, <code>ansible</code>, and <code>ssh_keys</code> (Go agent only). The hub refuses to queue a job whose capability is off
 in labdex (an administrator's switch) or missing from the <code>allow</code> the agent reported in <code>hello</code>.
 The agent checks its own <code>allow</code> again (check 10).</p>
 <h2 id="privileges">Privileges<a class="headerlink" href="#privileges" title="Permanent link">&para;</a></h2>
@@ -3564,13 +3659,23 @@ them directly. Nothing else runs privileged.</p>
 <td><code>reboot</code></td>
 <td><code>shutdown -r +1 labdex-agent: reboot after updates</code></td>
 </tr>
+<tr>
+<td><code>ssh_keys_report</code></td>
+<td>—</td>
+<td><code>systemd-run … --unit=labdex-agent-ssh-keys /opt/labdex-agent/labdex-agent ssh-keys report</code> (Go agent)</td>
+</tr>
+<tr>
+<td><code>ssh_keys_apply</code></td>
+<td><code>ssh_keys</code></td>
+<td><code>systemd-run … --unit=labdex-agent-ssh-keys /opt/labdex-agent/labdex-agent ssh-keys apply</code> (Go agent; the keys on stdin)</td>
+</tr>
 </tbody>
 </table>
 <p>The program (and, for <code>systemd-run</code>, the program it starts) is resolved to an absolute path:
 <code>argv[0]</code> on <code>/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin</code>, the started program
 on <code>/usr/sbin:/usr/bin:/sbin:/bin</code>. Write jobs go through <code>systemd-run</code> so they run outside the
 agent's own sandbox (<code>ProtectSystem=strict</code> would make <code>/usr</code> read-only for apt too).</p>
-<p>Every command runs with no stdin, the environment <code>PATH=/usr/sbin:/usr/bin:/sbin:/bin</code> and
+<p>Every command runs with no stdin (except <code>ssh_keys_apply</code>, which reads its JSON there), the environment <code>PATH=/usr/sbin:/usr/bin:/sbin:/bin</code> and
 <code>LC_ALL=C</code> only, and a timeout. A missing program gives exit code 127, a timeout 124, another start
 failure 126.</p>
 <h3 id="sudoers">sudoers<a class="headerlink" href="#sudoers" title="Permanent link">&para;</a></h3>
@@ -4003,6 +4108,60 @@ is up, so a run can go on over the next link with new pipes.</p>
 <p>The agent's user needs no sudo rule for this: it only opens a TCP connection to localhost. What
 the run may do on the host is up to the SSH user labdex logs in as (<code>labdex-ansible</code>, set up by
 <code>install.sh --ansible</code>).</p>
+<h2 id="ssh-keys">SSH keys<a class="headerlink" href="#ssh-keys" title="Permanent link">&para;</a></h2>
+<p>Go agent only. labdex manages who may log in over SSH, without ever editing a user's own
+<code>~/.ssh/authorized_keys</code>: its keys go into root-owned files in <code>/etc/ssh/labdex</code>, which an sshd
+drop-in (<code>/etc/ssh/sshd_config.d/05-labdex-keys.conf</code>, written by <code>install.sh --ssh-keys</code>) adds to
+<code>AuthorizedKeysFile</code>:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/etc/ssh/labdex/&lt;user&gt;.keys</code></td>
+<td>labdex's keys for the user, one per line, under a comment that says edits are overwritten</td>
+</tr>
+<tr>
+<td><code>/etc/ssh/labdex/&lt;user&gt;.break-glass</code></td>
+<td>the host's break-glass key, for one user</td>
+</tr>
+</tbody>
+</table>
+<p><code>hello</code> carries <code>ssh_users</code> (a list, <code>[]</code> when none). Both jobs run the agent's own program as root
+through a fixed sudo line (the service's sandbox hides home folders, and only root writes
+<code>/etc/ssh</code>). The root side reads <code>ssh_users</code> and <code>allow</code> from <code>agent.conf</code> itself, never from the
+job.</p>
+<p><strong><code>ssh_keys.report</code></strong> takes no parameters. The result: <code>users</code> (root, every user from uid 1000 with a
+login shell, and every user in <code>ssh_users</code>), each with <code>user</code>, <code>uid</code>, <code>managed</code> (in <code>ssh_users</code>),
+<code>missing</code> (in <code>ssh_users</code>, no account), <code>own</code> (the files <code>~/.ssh/authorized_keys</code> and
+<code>authorized_keys2</code>), <code>labdex</code> and <code>break_glass</code> (the two files above). A file is
+<code>{path, keys: [{type, sha256, comment, bits?, options?}], other, error?}</code>: fingerprints, never
+the keys, and lines that are no key are only counted. Files are opened without following a
+symbolic link (a link gives <code>error</code>). Also <code>sshd</code> (from <code>sshd -T</code>: <code>authorizedkeysfile</code>,
+<code>passwordauthentication</code>, <code>kbdinteractiveauthentication</code>, <code>permitrootlogin</code>,
+<code>pubkeyauthentication</code>, <code>trustedusercakeys</code>, <code>authorizedprincipalsfile</code>), <code>sshd_error</code>,
+<code>drop_in</code>, <code>uses</code> (sshd reads labdex's files), <code>exclusive</code> (and no others) and <code>at</code>.</p>
+<p><strong><code>ssh_keys.apply</code></strong> takes <code>users</code> (<code>{user: [key, …]}</code>, the whole wanted set: a user in <code>ssh_users</code>
+that is left out gets an empty file) and optionally <code>break_glass</code> (<code>{user, key}</code>). The agent refuses
+the job when a user isn't in <code>ssh_users</code>, when <code>ssh_users</code> is empty, when any key isn't a plain
+public key, or when there are other parameters. A key is <code>&lt;type&gt; &lt;base64&gt; [comment]</code>:
+<code>ssh-ed25519</code>, <code>ecdsa-sha2-nistp256/384/521</code>, <code>sk-ssh-ed25519@openssh.com</code>,
+<code>sk-ecdsa-sha2-nistp256@openssh.com</code>, or <code>ssh-rsa</code> with 3072 bits or more; never options in front
+(<code>command=</code>, <code>from=</code>, …); the comment up to 100 characters of <code>A-Za-z0-9 @._+:=/()-</code>; at most 200
+keys per user. Then, as root:</p>
+<ol>
+<li><code>/etc/ssh/labdex</code> must be a real folder, root's, not writable by group or others (made <code>0755</code> if missing).</li>
+<li>Each managed user's <code>&lt;user&gt;.keys</code> is replaced at once (a new file <code>0644</code> beside it, synced, renamed). Duplicates go.</li>
+<li>A <code>*.keys</code> file of a user no longer in <code>ssh_users</code> is removed: those keys must stop working.</li>
+<li>With <code>break_glass</code>, <code>&lt;user&gt;.break-glass</code> is written, and only then any other <code>*.break-glass</code> removed.
+   Without it, the break-glass file stays: an apply never leaves a host without one it had.</li>
+</ol>
+<p>The result: <code>ok</code>, <code>changes</code> (<code>[{user, keys, added: [sha256], removed: [sha256]}]</code>), <code>break_glass</code>
+(<code>"set for &lt;user&gt;"</code> when it changed) and <code>report</code>, a fresh <code>ssh_keys.report</code>.</p>
 <h2 id="the-spool">The spool<a class="headerlink" href="#the-spool" title="Permanent link">&para;</a></h2>
 <p>What the agent has to say while the hub can't take it (results and heartbeats) goes to <code>buffer/</code>.</p>
 <ul>
@@ -4086,6 +4245,11 @@ type <code>agent</code>).</p>
 <td><code>labdex-agent show facts\|discovery\|patches\|metrics</code></td>
 <td>Runs a read-only collector here and prints JSON; sends nothing</td>
 <td>0</td>
+</tr>
+<tr>
+<td><code>labdex-agent ssh-keys report\|apply</code></td>
+<td>As root only (through <code>ssh_keys_report</code> and <code>ssh_keys_apply</code>): the root side of <a href="#ssh-keys">SSH keys</a></td>
+<td>0, or 1 with the reason</td>
 </tr>
 <tr>
 <td><code>labdex-agent --version</code></td>

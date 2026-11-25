@@ -700,6 +700,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../guide/ssh-keys/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SSH keys through the agent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../guide/working-fast/" class="md-nav__link">
         
   
@@ -1865,6 +1893,34 @@
     
   
     Design: Ansible through the agent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../develop/design/ssh-certificates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design: SSH certificates (later)
   
 
     
@@ -7658,6 +7714,16 @@
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>SSH keys through the agent</strong> (Go agent). labdex keeps people's public keys and where each may
+  log in, and puts them on hosts through their agents: into root-owned
+  <code>/etc/ssh/labdex/&lt;user&gt;.keys</code>, never into <code>~/.ssh/authorized_keys</code>, and only for the users the
+  host's <code>agent.conf</code> names in <code>ssh_users</code>, with the new capability <code>ssh_keys</code> on at both ends.
+  <em>Agents › SSH keys</em> shows each host's state against the agent's report (in sync, differs, no
+  break-glass key, other keys), the plan per user, and applies it. Each host gets a break-glass key
+  that labdex makes (the private key shown once, never stored) or that you paste; an apply never
+  removes it. New jobs <code>ssh_keys.report</code> and <code>ssh_keys.apply</code>; <code>install.sh --ssh-keys --ssh-users
+  "…" [--ssh-keys-only]</code> writes the sshd drop-in and checks it with <code>sshd -t</code>. See <em>Guide › SSH keys
+  through the agent</em>.</li>
 <li><strong>Ansible through the agent.</strong> A host whose Go agent has <code>ansible</code> on at both ends now takes
   part in Ansible runs through its agent's link instead of over the network: labdex makes a key
   and an SSH certificate per run and host (<code>labdex-ansible@&lt;host&gt;</code>, an hour, only from

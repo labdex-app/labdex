@@ -702,6 +702,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../guide/ssh-keys/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SSH keys through the agent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../guide/working-fast/" class="md-nav__link">
         
   
@@ -1659,6 +1687,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#ssh-keys-through-the-agent-go-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSH keys through the agent (Go agent)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1958,6 +1997,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../develop/design/ssh-certificates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design: SSH certificates (later)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../develop/contributing/" class="md-nav__link">
         
   
@@ -2061,6 +2128,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#ssh-keys-through-the-agent-go-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSH keys through the agent (Go agent)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2146,6 +2224,37 @@ they are, see <a href="../operate/security-review/">Security review (1.0)</a> an
 <tr>
 <td>Left</td>
 <td>labdex holds every key (job signing, SSH CA, vault), so a compromised labdex is root on every host with become. Hardening and backups: <a href="../develop/design/ansible-through-the-agent/#5-risks">Ansible through the agent</a>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ssh-keys-through-the-agent-go-agent">SSH keys through the agent (Go agent)<a class="headerlink" href="#ssh-keys-through-the-agent-go-agent" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Way in</td>
+<td>A signed <code>ssh_keys.apply</code> job makes the agent run its own program as root (one fixed sudo line through <code>systemd-run</code>) with the wanted keys on stdin. <code>ssh_keys.report</code> does the same, read-only, for every login user's key fingerprints.</td>
+</tr>
+<tr>
+<td>Who can use it</td>
+<td>Only labdex administrators: the job is built from the keys and grants in labdex, and the generic job API refuses it. On a host whose <code>agent.conf</code> allows <code>ssh_keys</code> and names <code>ssh_users</code>, and whose agent an administrator switched <code>ssh_keys</code> on for.</td>
+</tr>
+<tr>
+<td>What it can do</td>
+<td>Decide which public keys may log in as the users in <code>ssh_users</code>, by writing <code>/etc/ssh/labdex/&lt;user&gt;.keys</code> and <code>&lt;user&gt;.break-glass</code>. With <code>--ssh-keys-only</code> that is everyone who can log in as those users. Never a user outside <code>ssh_users</code>, never a home folder, never a key with options.</td>
+</tr>
+<tr>
+<td>Guards</td>
+<td>The root side reads <code>ssh_users</code> and <code>allow</code> from root-owned <code>agent.conf</code> itself; strict key checks at both ends; <code>/etc/ssh/labdex</code> must be root's and not writable by others; files replaced at once; files opened without following links; an apply never removes a break-glass key; audit in labdex for every key, grant, break-glass key and apply, and in the agent's log. labdex keeps only public keys; a break-glass private key it makes is shown once and not stored.</td>
+</tr>
+<tr>
+<td>Left</td>
+<td>A compromised labdex (or its job-signing key) can put its own key on every host with <code>ssh_keys</code> on, as any user in <code>ssh_users</code>. Keep <code>root</code> out of <code>ssh_users</code> unless needed, and keep the break-glass key offline.</td>
 </tr>
 </tbody>
 </table>
