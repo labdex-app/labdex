@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **SSH keys through the agent** (Go agent). labdex keeps people's public keys and where each may
+  log in, and puts them on hosts through their agents: into root-owned
+  `/etc/ssh/labdex/<user>.keys`, never into `~/.ssh/authorized_keys`, and only for the users the
+  host's `agent.conf` names in `ssh_users`, with the new capability `ssh_keys` on at both ends.
+  *Agents › SSH keys* shows each host's state against the agent's report (in sync, differs, no
+  break-glass key, other keys), the plan per user, and applies it. Each host gets a break-glass key
+  that labdex makes (the private key shown once, never stored) or that you paste; an apply never
+  removes it. New jobs `ssh_keys.report` and `ssh_keys.apply`; `install.sh --ssh-keys --ssh-users
+  "…" [--ssh-keys-only]` writes the sshd drop-in and checks it with `sshd -t`. See *Guide › SSH keys
+  through the agent*.
 - **Ansible through the agent.** A host whose Go agent has `ansible` on at both ends now takes
   part in Ansible runs through its agent's link instead of over the network: labdex makes a key
   and an SSH certificate per run and host (`labdex-ansible@<host>`, an hour, only from

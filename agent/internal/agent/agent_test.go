@@ -51,6 +51,9 @@ func (fakeRunner) Root() bool                                             { retu
 func (fakeRunner) Has(string) bool                                        { return false }
 func (fakeRunner) Run([]string, time.Duration) (int, string, string)      { return 127, "", "" }
 func (fakeRunner) Privileged(string, time.Duration) (int, string, string) { return 127, "", "" }
+func (fakeRunner) PrivilegedInput(string, []byte, time.Duration) (int, string, string) {
+	return 127, "", ""
+}
 
 var _ runner.Runner = fakeRunner{}
 

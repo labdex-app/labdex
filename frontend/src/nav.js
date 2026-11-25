@@ -29,7 +29,8 @@ export const SECTIONS = [
   ] },
   { id: 'operate', label: 'Operate', items: [
     { to: '/patches', label: 'Updates', icon: PackageCheck },
-    { to: '/agents', label: 'Agents', icon: Antenna },
+    { to: '/agents', label: 'Agents', icon: Antenna,
+      tabs: [{ to: '/agents', label: 'Agents' }, { to: '/ssh-keys', label: 'SSH keys' }] },
     { to: '/features', label: 'Automation', icon: Wrench },
     { to: '/workloads', label: 'Workloads', icon: Container },
   ] },

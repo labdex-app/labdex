@@ -51,10 +51,14 @@ var JobTypes = map[string]JobType{
 	// Go agent only (the hub sends it to agents whose hello lists it): labdex runs Ansible itself
 	// and reaches this host's sshd through pipes in the link. See "Ansible over the link".
 	"ansible.session": {"ansible", 3600, "let labdex reach this host's sshd through the link for one Ansible run"},
+	// Go agent only: SSH login keys. labdex's keys go into /etc/ssh/labdex, never into a user's
+	// own authorized_keys, and only for the users agent.conf names in ssh_users.
+	"ssh_keys.report": {"", 120, "which public keys may log in as which user, and the sshd settings that decide it"},
+	"ssh_keys.apply":  {"ssh_keys", 300, "write labdex's SSH keys (and the break-glass key) for the users in ssh_users"},
 }
 
 // GoOnly are the job types only the Go agent has; the contract's shared cases leave them out.
-var GoOnly = map[string]bool{"ansible.session": true}
+var GoOnly = map[string]bool{"ansible.session": true, "ssh_keys.report": true, "ssh_keys.apply": true}
 
 // Pipes: byte streams in the link from the hub to this host's sshd, for ansible.session.
 const (
@@ -66,7 +70,7 @@ const (
 )
 
 // Capabilities are the write capabilities, each switched on at both ends.
-var Capabilities = []string{"patch", "reboot", "ansible"}
+var Capabilities = []string{"patch", "reboot", "ansible", "ssh_keys"}
 
 // IsCapability reports whether c is a known write capability.
 func IsCapability(c string) bool {

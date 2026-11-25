@@ -95,6 +95,10 @@ func (f *fake) Run(argv []string, _ time.Duration) (int, string, string) {
 	}
 	return 1, "", "no"
 }
+func (f *fake) PrivilegedInput(name string, _ []byte, t time.Duration) (int, string, string) {
+	return f.Privileged(name, t)
+}
+
 func (f *fake) Privileged(name string, _ time.Duration) (int, string, string) {
 	if v, ok := f.priv[name]; ok {
 		if v[2] != "" {

@@ -52,7 +52,14 @@ var Privileged = []Line{
 		"apt-get", "-q", "-y"}, aptOpts, []string{"dist-upgrade"})},
 	{"dnf_upgrade", "patch", cat(systemdRun, []string{"--unit=labdex-agent-patch", "dnf", "-q", "-y", "upgrade"})},
 	{"reboot", "reboot", []string{"shutdown", "-r", "+1", "labdex-agent: reboot after updates"}},
+	// the agent's own program as root, outside the service's sandbox (ProtectHome); apply reads
+	// the keys on stdin and checks them against agent.conf again (internal/sshkeys)
+	{"ssh_keys_report", "", cat(systemdRun, []string{"--unit=labdex-agent-ssh-keys", Program, "ssh-keys", "report"})},
+	{"ssh_keys_apply", "ssh_keys", cat(systemdRun, []string{"--unit=labdex-agent-ssh-keys", Program, "ssh-keys", "apply"})},
 }
+
+// Program is where install.sh puts the Go agent.
+const Program = "/opt/labdex-agent/labdex-agent"
 
 // Lookup finds a privileged line by name.
 func Lookup(name string) (Line, bool) {
@@ -130,6 +137,8 @@ type Runner interface {
 	Run(argv []string, timeout time.Duration) (int, string, string)
 	// Privileged runs one of the Privileged lines: directly as root, else through `sudo -n`.
 	Privileged(name string, timeout time.Duration) (int, string, string)
+	// PrivilegedInput is Privileged with stdin.
+	PrivilegedInput(name string, stdin []byte, timeout time.Duration) (int, string, string)
 	// Has reports whether a program is installed.
 	Has(program string) bool
 	// Root reports whether the agent runs as root.
@@ -147,6 +156,10 @@ func (h *Host) Root() bool { return h.IsRoot }
 func (h *Host) Has(program string) bool { return Which(program, SearchPath) != "" }
 
 func (h *Host) Run(argv []string, timeout time.Duration) (int, string, string) {
+	return h.run(argv, nil, timeout)
+}
+
+func (h *Host) run(argv []string, stdin []byte, timeout time.Duration) (int, string, string) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, argv[0], argv[1:]...)
@@ -160,6 +173,9 @@ func (h *Host) Run(argv []string, timeout time.Duration) (int, string, string) {
 	}
 	cmd.Env = []string{"PATH=" + systemPath, "LC_ALL=C"}
 	cmd.Stdin = nil
+	if stdin != nil {
+		cmd.Stdin = bytes.NewReader(stdin)
+	}
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	cmd.WaitDelay = 5 * time.Second
@@ -181,6 +197,10 @@ func (h *Host) Run(argv []string, timeout time.Duration) (int, string, string) {
 }
 
 func (h *Host) Privileged(name string, timeout time.Duration) (int, string, string) {
+	return h.PrivilegedInput(name, nil, timeout)
+}
+
+func (h *Host) PrivilegedInput(name string, stdin []byte, timeout time.Duration) (int, string, string) {
 	line, ok := Lookup(name)
 	if !ok {
 		return 126, "", name + ": not a privileged command"
@@ -190,9 +210,9 @@ func (h *Host) Privileged(name string, timeout time.Duration) (int, string, stri
 		return 127, "", line.Argv[0] + ": not installed"
 	}
 	if h.IsRoot {
-		return h.Run(full, timeout)
+		return h.run(full, stdin, timeout)
 	}
-	return h.Run(append([]string{"sudo", "-n"}, full...), timeout)
+	return h.run(append([]string{"sudo", "-n"}, full...), stdin, timeout)
 }
 
 var sudoersSpecial = strings.NewReplacer(`\`, `\\`, ",", `\,`, ":", `\:`, "=", `\=`)

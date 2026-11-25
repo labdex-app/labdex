@@ -231,7 +231,14 @@ func (a *Agent) hello() map[string]any {
 	sha, _ := CertificateInfo(a.Cfg.StateDir)
 	return map[string]any{"t": "hello", "version": Version, "protocol": protocol.Protocol, "hostname": hostname,
 		"root": a.Runner.Root(), "allow": a.Cfg.AllowList(), "jobs": jobs.Names(), "facts": host.Facts(),
-		"buffered": a.spool.Len(), "certs": true, "cert_sha256": sha}
+		"buffered": a.spool.Len(), "certs": true, "cert_sha256": sha, "ssh_users": a.sshUsers()}
+}
+
+func (a *Agent) sshUsers() []string {
+	if a.Cfg.SSHUsers == nil {
+		return []string{}
+	}
+	return a.Cfg.SSHUsers
 }
 
 // linkURL is the hub URL with https → wss (http → ws in tests).
@@ -473,7 +480,7 @@ func (a *Agent) refuse(env *protocol.Envelope, why string, answer bool) {
 func (a *Agent) run(env *protocol.Envelope) {
 	started := time.Now()
 	ctx := &jobs.Context{Runner: a.Runner, Allow: a.Cfg.Allow, StateDir: a.Cfg.StateDir, FetchBundle: a.fetchBundle,
-		OpenSession: a.openSession, WriteLock: &a.writeLock}
+		OpenSession: a.openSession, WriteLock: &a.writeLock, SSHUsers: a.Cfg.SSHUsers}
 	var result map[string]any
 	ok, errText := true, ""
 	func() {
