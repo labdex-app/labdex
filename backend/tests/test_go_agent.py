@@ -166,3 +166,21 @@ def test_install_script_installs_go_by_default():
     text = (Path(__file__).resolve().parents[1] / "labdex" / "agent" / "dist" / "install.sh").read_text()
     assert "GO=1\n" in text and "--python) GO=0" in text and "--go) GO=1" in text and "labdex-agent-linux-$GOARCH" in text
     assert "ExecStart=/opt/labdex-agent/labdex-agent run" in text
+
+
+def test_go_agent_tells_the_hub_its_ssh_users_and_runs_the_report(go_agent, tls_hub):
+    conf, state, creds = go_enrol(go_agent, tls_hub, name="go-ssh")
+    with open(conf, "a") as f:
+        f.write("ssh_users = deploy, admin\n")
+    p = go_run(go_agent, conf, tls_hub["tmp"] / "go-ssh.log")
+    try:
+        wait(lambda: agents.linked(db.session.get(Agent, creds["agent_id"])), timeout=20)
+        a = db.session.get(Agent, creds["agent_id"])
+        db.session.refresh(a)
+        assert a.ssh_users == ["admin", "deploy"] and {"ssh_keys.report", "ssh_keys.apply"} <= set(a.jobs)
+        j = tls_hub["admin"].post(f"/api/hosts/{DNS}/ssh-keys/report").get_json()
+        j = job_done(tls_hub["admin"], j["id"])
+        # here the root side isn't installed (/opt/labdex-agent): the job says so instead of hanging
+        assert j["status"] in ("succeeded", "failed") and (j["status"] == "succeeded" or "ssh_keys_report" in j["error"]), j
+    finally:
+        p.kill()

@@ -27,6 +27,8 @@ type Context struct {
 	OpenSession func(id string, until time.Time) error
 	// WriteLock: write jobs run one at a time.
 	WriteLock *sync.Mutex
+	// SSHUsers: agent.conf's ssh_users.
+	SSHUsers []string
 }
 
 // Handler runs one job type. A BadJob error is a refusal; any other error a failure.
@@ -41,6 +43,8 @@ var Handlers = map[string]Handler{
 	"patch.apply":        patchApply,
 	"ansible.run":        AnsibleRun,
 	"ansible.session":    AnsibleSession,
+	"ssh_keys.report":    sshKeysReport,
+	"ssh_keys.apply":     sshKeysApply,
 }
 
 // Names is the sorted list of job types this agent runs (for hello).

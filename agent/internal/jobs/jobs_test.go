@@ -21,6 +21,8 @@ type fake struct {
 	priv     map[string]int
 	calls    []string
 	out      string
+	privOut  map[string]string
+	input    []byte
 }
 
 func (f *fake) Root() bool        { return f.root }
@@ -31,7 +33,11 @@ func (f *fake) Run(argv []string, _ time.Duration) (int, string, string) {
 }
 func (f *fake) Privileged(name string, _ time.Duration) (int, string, string) {
 	f.calls = append(f.calls, "sudo:"+name)
-	return f.priv[name], "", ""
+	return f.priv[name], f.privOut[name], ""
+}
+func (f *fake) PrivilegedInput(name string, stdin []byte, t time.Duration) (int, string, string) {
+	f.input = stdin
+	return f.Privileged(name, t)
 }
 
 func ctx(r *fake) *Context {

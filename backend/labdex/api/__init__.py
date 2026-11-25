@@ -82,5 +82,5 @@ def text_response(text: str, mimetype: str, filename: str):
 from . import (  # noqa: E402, F401
     about_api, admin, agents_api, auth_routes, changesets_api, dashboard_api, dashboards_api, discovery_api, dns_api, events_api, features_api, history,
     hostmodules_api, impact_api, inventory_api, labels_api, nav_api, naming_api, operate_api, plugins_api, pluginstore_api, racks_api, search_api, searches_api, secrets_api,
-    patches_api, sites_api, tags_api, topology_api, vault_api, workflows_api, workloads_api, zones_api,
+    patches_api, sites_api, sshkeys_api, tags_api, topology_api, vault_api, workflows_api, workloads_api, zones_api,
 )

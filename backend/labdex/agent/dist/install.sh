@@ -4,6 +4,7 @@
 #   curl -fsSLo install.sh https://lantern.example.net/api/agents/install.sh
 #   sudo sh install.sh --url https://lantern.example.net --token <one-time token> [--sha256 <of the agent>]...
 #        [--allow "patch reboot"] [--root] [--ca-file /path/ca.pem] [--python]
+#        [--ssh-keys --ssh-users "admin deploy" [--ssh-keys-only]]
 #   sudo sh install.sh --uninstall [--purge]
 #
 # --allow      write capabilities this host accepts (patch, reboot, ansible). Default: none, read-only.
@@ -12,6 +13,14 @@
 #              one static binary, no Python needed for the agent itself. --sha256 may be given once
 #              per architecture; the binary for this host's must match one of them. Ansible jobs
 #              still need Python on the host. (--go is the default and still accepted.)
+# --ssh-keys   let labdex manage SSH login keys (Go agent; adds ssh_keys to --allow). labdex's keys
+#              go into root-owned /etc/ssh/labdex/<user>.keys and <user>.break-glass, never into
+#              ~/.ssh/authorized_keys; an sshd drop-in (05-labdex-keys.conf) adds them to
+#              AuthorizedKeysFile, checked with sshd -t before sshd reloads.
+# --ssh-users  the only users labdex may manage keys for (ssh_users in agent.conf). Required with
+#              --ssh-keys. Give root only if labdex should manage root's keys.
+# --ssh-keys-only  sshd reads only labdex's files, not ~/.ssh/authorized_keys: labdex decides who
+#              logs in. Set a break-glass key in labdex and apply it before you use this.
 # --uninstall  stop and remove the agent: its service, sudo rules, config and program. Its state
 #              (key, certificate, audit log) stays in /var/lib/labdex-agent unless you add --purge,
 #              which also removes the labdex-agent user. Revoke the agent in labdex as well.
@@ -23,6 +32,7 @@
 set -eu
 
 URL="" TOKEN="${LABDEX_AGENT_TOKEN:-}" SHA="" ALLOW="" ROOT=0 CA="" UNINSTALL=0 PURGE=0 GO=1
+SSHKEYS=0 SSHUSERS="" SSHONLY=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --url) URL="$2"; shift 2 ;;
@@ -33,6 +43,9 @@ while [ $# -gt 0 ]; do
     --go) GO=1; shift ;;
     --python) GO=0; shift ;;
     --ca-file) CA="$2"; shift 2 ;;
+    --ssh-keys) SSHKEYS=1; shift ;;
+    --ssh-users) SSHUSERS="$2"; shift 2 ;;
+    --ssh-keys-only) SSHKEYS=1; SSHONLY=1; shift ;;
     --uninstall) UNINSTALL=1; shift ;;
     --purge) PURGE=1; shift ;;
     *) echo "unknown option: $1" >&2; exit 2 ;;
@@ -48,6 +61,11 @@ if [ "$UNINSTALL" = 1 ]; then
   rm -f "$UNIT" /etc/sudoers.d/labdex-agent /etc/sudoers.d/labdex-agent.new /usr/local/bin/labdex-agent
   rm -rf "$UNIT.d" /etc/labdex-agent /opt/labdex-agent
   systemctl daemon-reload 2>/dev/null || true
+  if [ -f /etc/ssh/sshd_config.d/05-labdex-keys.conf ]; then
+    # left in place on purpose: removing it could lock out whoever logs in with labdex's keys
+    echo "kept /etc/ssh/sshd_config.d/05-labdex-keys.conf and /etc/ssh/labdex: remove both and reload sshd"
+    echo "once nobody needs labdex's SSH keys (check that you can still log in first)."
+  fi
   if [ "$PURGE" = 1 ]; then
     rm -rf /var/lib/labdex-agent /var/lib/private/labdex-agent
     if id -u labdex-agent >/dev/null 2>&1; then userdel labdex-agent; fi
@@ -62,8 +80,20 @@ fi
 [ -n "$URL" ] && [ -n "$TOKEN" ] || { echo "give --url and --token" >&2; exit 2; }
 case "$URL" in https://*) ;; *) echo "the hub URL must be https://" >&2; exit 2 ;; esac
 for cap in $ALLOW; do
-  case "$cap" in patch|reboot|ansible) ;; *) echo "unknown capability: $cap" >&2; exit 2 ;; esac
+  case "$cap" in patch|reboot|ansible) ;; ssh_keys) SSHKEYS=1 ;; *) echo "unknown capability: $cap" >&2; exit 2 ;; esac
 done
+if [ "$SSHKEYS" = 1 ]; then
+  [ "$GO" = 1 ] || { echo "--ssh-keys needs the Go agent (leave out --python)" >&2; exit 2; }
+  [ -n "$SSHUSERS" ] || { echo "--ssh-keys needs --ssh-users: the users labdex may manage keys for" >&2; exit 2; }
+  SSHUSERS="$(echo "$SSHUSERS" | tr ',' ' ')"
+  for u in $SSHUSERS; do
+    echo "$u" | grep -Eq '^[a-z_][a-z0-9_.-]{0,31}$' || { echo "--ssh-users: $u is not a user name" >&2; exit 2; }
+  done
+  command -v sshd >/dev/null || [ -x /usr/sbin/sshd ] || { echo "--ssh-keys: no sshd on this host" >&2; exit 2; }
+  case " $ALLOW " in *" ssh_keys "*) ;; *) ALLOW="${ALLOW:+$ALLOW }ssh_keys" ;; esac
+elif [ -n "$SSHUSERS" ]; then
+  echo "--ssh-users goes with --ssh-keys" >&2; exit 2
+fi
 [ -z "$CA" ] || [ -r "$CA" ] || { echo "can't read --ca-file $CA" >&2; exit 2; }
 URL="${URL%/}"
 
@@ -179,6 +209,7 @@ install -d -m 0755 /etc/labdex-agent
   echo "allow = $ALLOW"
   echo "ca_file = $CA"
   echo "state_dir = /var/lib/labdex-agent"
+  [ "$SSHKEYS" = 0 ] || echo "ssh_users = $SSHUSERS"
 } > /etc/labdex-agent/agent.conf
 chmod 0644 /etc/labdex-agent/agent.conf
 install -d -m 0700 -o "$RUNAS" -g "$RUNAS" /var/lib/labdex-agent
@@ -193,6 +224,29 @@ if [ "$RUNAS" != root ]; then
   mv /etc/sudoers.d/labdex-agent.new /etc/sudoers.d/labdex-agent
 else
   rm -f /etc/sudoers.d/labdex-agent
+fi
+
+# SSH keys: labdex's files beside the users' own (or instead, with --ssh-keys-only), checked first
+if [ "$SSHKEYS" = 1 ]; then
+  install -d -m 0755 -o root -g root /etc/ssh/labdex
+  SSHD="$(command -v sshd || echo /usr/sbin/sshd)"
+  DROPIN=/etc/ssh/sshd_config.d/05-labdex-keys.conf
+  if [ "$SSHONLY" = 1 ]; then FILES="/etc/ssh/labdex/%u.keys /etc/ssh/labdex/%u.break-glass"
+  else FILES=".ssh/authorized_keys .ssh/authorized_keys2 /etc/ssh/labdex/%u.keys /etc/ssh/labdex/%u.break-glass"; fi
+  grep -Eqi '^[[:space:]]*Include[[:space:]]+/etc/ssh/sshd_config\.d/' /etc/ssh/sshd_config ||
+    { echo "--ssh-keys: /etc/ssh/sshd_config doesn't include sshd_config.d/; add AuthorizedKeysFile $FILES yourself" >&2; exit 1; }
+  install -d -m 0755 /etc/ssh/sshd_config.d
+  [ ! -f "$DROPIN" ] || cp -p "$DROPIN" "$DROPIN.bak"
+  printf '# labdex: SSH keys managed through the agent (install.sh --ssh-keys)\nAuthorizedKeysFile %s\n' "$FILES" > "$DROPIN"
+  chmod 0644 "$DROPIN"
+  if ! "$SSHD" -t; then
+    if [ -f "$DROPIN.bak" ]; then mv "$DROPIN.bak" "$DROPIN"; else rm -f "$DROPIN"; fi
+    echo "sshd -t failed with the labdex drop-in; put back as it was" >&2; exit 1
+  fi
+  rm -f "$DROPIN.bak"
+  got="$("$SSHD" -T 2>/dev/null | awk '$1 == "authorizedkeysfile" {$1 = ""; print substr($0, 2)}')"
+  [ "$got" = "$FILES" ] || echo "warning: sshd uses AuthorizedKeysFile $got (an earlier file sets it first); labdex will report it" >&2
+  systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || true
 fi
 
 printf '%s\n' "$TOKEN" | runuser -u "$RUNAS" -- $AGENT --config /etc/labdex-agent/agent.conf enrol --token -

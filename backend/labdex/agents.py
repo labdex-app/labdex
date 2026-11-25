@@ -47,7 +47,15 @@ SOURCE = "agent"
 HUB_ONLY_JOBS = {
     "ansible.session": {"write": "ansible", "timeout": 3600,
                         "about": "let labdex reach this host's sshd through the link for one Ansible run"},
+    # SSH login keys (sshkeys.py): the report runs on the discovery schedule; apply is built only
+    # from the SSH keys page, never from params someone sends
+    "ssh_keys.report": {"write": None, "timeout": 120,
+                        "about": "which public keys may log in as which user, and the sshd settings that decide it"},
+    "ssh_keys.apply": {"write": "ssh_keys", "timeout": 300,
+                       "about": "write labdex's SSH keys (and the break-glass key) for the users in ssh_users"},
 }
+# write capabilities: the shared ones, and those only the Go agent knows
+CAPABILITIES = (*protocol.CAPABILITIES, "ssh_keys")
 JOB_TYPES = {**protocol.JOB_TYPES, **HUB_ONLY_JOBS}
 SESSION_RE = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
 MAX_SESSION_MINUTES = 60
@@ -55,7 +63,9 @@ MAX_SESSION_MINUTES = 60
 
 def capabilities_for(job_type: str, params: dict) -> set[str]:
     spec = HUB_ONLY_JOBS.get(job_type)
-    return {spec["write"]} if spec else protocol.capabilities_for(job_type, params)
+    if spec:
+        return {spec["write"]} if spec["write"] else set()
+    return protocol.capabilities_for(job_type, params)
 
 
 class AgentError(ValueError):
@@ -174,7 +184,7 @@ def cert_seen(a: Agent, der: bytes | None) -> None:
 
 
 def _caps(value) -> list[str]:
-    return sorted({str(c) for c in value or [] if str(c) in protocol.CAPABILITIES}) if isinstance(value, list) else []
+    return sorted({str(c) for c in value or [] if str(c) in CAPABILITIES}) if isinstance(value, list) else []
 
 
 def authenticate(key: str) -> Agent | None:
@@ -222,8 +232,8 @@ def update_settings(a: Agent, data: dict) -> None:
     errors = []
     if "capabilities" in data:
         caps = data["capabilities"]
-        if not isinstance(caps, list) or any(c not in protocol.CAPABILITIES for c in caps):
-            errors.append({"field": "capabilities", "message": f"a list of {', '.join(protocol.CAPABILITIES)}"})
+        if not isinstance(caps, list) or any(c not in CAPABILITIES for c in caps):
+            errors.append({"field": "capabilities", "message": f"a list of {', '.join(CAPABILITIES)}"})
         else:
             a.capabilities = sorted(set(caps))
     if "allow_root" in data:
@@ -265,6 +275,12 @@ def queue(a: Agent, job_type: str, params: dict | None = None, by: str = "system
         if set(params) - {"session", "minutes"} or not SESSION_RE.match(str(params.get("session", ""))) or \
                 not isinstance(m, int) or isinstance(m, bool) or not 1 <= m <= MAX_SESSION_MINUTES:
             raise AgentError(f"ansible.session takes session (8 to 64 letters, digits, - or _) and minutes (1 to {MAX_SESSION_MINUTES})")
+    elif job_type == "ssh_keys.apply":
+        from . import sshkeys
+        try:
+            sshkeys.check_params(params)
+        except sshkeys.SSHKeyError as e:
+            raise AgentError(str(e)) from None
     elif job_type == "patch.apply":
         if set(params) - {"reboot"}:
             raise AgentError("patch.apply takes only reboot")
@@ -345,6 +361,10 @@ def _use_result(a: Agent, j: AgentJob, result: dict) -> None:
         _report_patches(a, result)
     elif j.type == "patch.apply" and isinstance(result.get("report"), dict):
         _report_patches(a, result["report"])
+    elif j.type == "ssh_keys.report":
+        a.ssh_keys = result
+    elif j.type == "ssh_keys.apply" and isinstance(result.get("report"), dict):
+        a.ssh_keys = result["report"]
 
 
 def _report_patches(a: Agent, report: dict) -> None:
@@ -359,6 +379,9 @@ def hello(a: Agent, msg: dict, worker: str, address: str = "") -> None:
     a.root = bool(msg.get("root"))
     a.host_allow = _caps(msg.get("allow"))
     a.jobs = sorted({str(t) for t in msg.get("jobs") or [] if str(t) in JOB_TYPES})
+    from .sshkeys import USER_RE
+    a.ssh_users = sorted({str(u) for u in msg.get("ssh_users") or [] if USER_RE.match(str(u))}) \
+        if isinstance(msg.get("ssh_users"), list) else []
     if isinstance(msg.get("facts"), dict):
         a.facts = msg["facts"]
     a.address = address[:64]
@@ -439,7 +462,10 @@ def tick(now=None) -> dict:
     for a in db.session.scalars(db.select(Agent).where(Agent.revoked_at.is_(None), Agent.connected != "")):
         if not linked(a, now):
             continue
-        for job_type, every in (("discovery.services", a.discovery_every), ("patch.report", a.patches_every)):
+        for job_type, every in (("discovery.services", a.discovery_every), ("patch.report", a.patches_every),
+                                ("ssh_keys.report", a.discovery_every)):
+            if job_type in HUB_ONLY_JOBS and job_type not in (a.jobs or []):
+                continue
             if every and _due(a, job_type, every, now):
                 queue(a, job_type, by="schedule", trigger="schedule")
                 out["queued"] += 1
@@ -673,7 +699,7 @@ def to_dict(a: Agent, now=None) -> dict:
             "enrolled_at": _iso(a.enrolled_at), "enrolled_by": a.enrolled_by, "revoked_at": _iso(a.revoked_at), "revoked_by": a.revoked_by,
             "last_seen": _iso(a.last_seen), "linked_at": _iso(a.linked_at), "version": a.version, "hostname": a.hostname,
             "address": a.address, "root": a.root, "allow_root": a.allow_root, "capabilities": list(a.capabilities or []),
-            "jobs": list(a.jobs or []), "ansible_become": a.ansible_become,
+            "jobs": list(a.jobs or []), "ansible_become": a.ansible_become, "ssh_users": list(a.ssh_users or []),
             "host_allow": list(a.host_allow or []), "discovery_every": a.discovery_every, "patches_every": a.patches_every,
             "facts": a.facts or {}, "metrics": a.metrics or {},
             "cert": {"mode": agent_pki.mode(), "issued": bool(a.cert_sha256), "sha256": a.cert_sha256,

@@ -171,3 +171,16 @@ func TestSSHPortConfig(t *testing.T) {
 }
 
 func writeFile(p, s string) error { return os.WriteFile(p, []byte(s), 0o644) }
+
+func TestSSHUsersConfig(t *testing.T) {
+	p := t.TempDir() + "/agent.conf"
+	_ = writeFile(p, "[agent]\nallow = ssh_keys\nssh_users = deploy, admin\n")
+	c, err := LoadConfig(p, "")
+	if err != nil || strings.Join(c.SSHUsers, " ") != "admin deploy" || !c.Allow["ssh_keys"] {
+		t.Fatalf("%v %v", c, err)
+	}
+	_ = writeFile(p, "[agent]\nssh_users = admin ../root\n")
+	if _, err := LoadConfig(p, ""); err == nil || !strings.Contains(err.Error(), "not a user name") {
+		t.Fatalf("bad user: %v", err)
+	}
+}

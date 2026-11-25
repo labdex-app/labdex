@@ -91,10 +91,13 @@ ca_file =
 state_dir = /var/lib/labdex-agent
 # the one port ansible.session pipes reach, on 127.0.0.1 (Go agent)
 ssh_port = 22
+# the only users whose SSH keys labdex may manage, with ssh_keys in allow (Go agent)
+ssh_users =
 ```
 
 An unknown capability in `allow` is a fatal config error: the agent MUST exit non-zero and say
-which. So is an `ssh_port` that isn't a number from 1 to 65535. A trailing `/` on `url` is dropped. `#` and `;` start comment lines.
+which. So is an `ssh_port` that isn't a number from 1 to 65535, and an `ssh_users` entry that
+isn't a user name (`^[a-z_][a-z0-9_.-]{0,31}$`). A trailing `/` on `url` is dropped. `#` and `;` start comment lines.
 
 ### credentials.json
 
@@ -320,8 +323,10 @@ Nothing else runs. `write` is the capability a job needs at both ends.
 | `patch.apply` | `patch` (+ `reboot` when `params.reboot`) | 3600 s | `reboot` (bool) | [Patch apply](#patch-apply) |
 | `ansible.run` | `ansible` | 3600 s | `bundle`, `playbook`, `commit`, `vars`, `check` | [Ansible](#ansible) |
 | `ansible.session` | `ansible` | 3600 s | `session`, `minutes` | [Ansible over the link](#ansible-over-the-link); Go agent only |
+| `ssh_keys.report` | — | 120 s | none | [SSH keys](#ssh-keys); Go agent only |
+| `ssh_keys.apply` | `ssh_keys` | 300 s | `users`, `break_glass` (optional) | [SSH keys](#ssh-keys); Go agent only |
 
-Capabilities: `patch`, `reboot`, `ansible`. The hub refuses to queue a job whose capability is off
+Capabilities: `patch`, `reboot`, `ansible`, and `ssh_keys` (Go agent only). The hub refuses to queue a job whose capability is off
 in labdex (an administrator's switch) or missing from the `allow` the agent reported in `hello`.
 The agent checks its own `allow` again (check 10).
 
@@ -341,13 +346,15 @@ them directly. Nothing else runs privileged.
 | `apt_upgrade` | `patch` | `systemd-run … --unit=labdex-agent-patch --setenv=DEBIAN_FRONTEND=noninteractive apt-get -q -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold dist-upgrade` |
 | `dnf_upgrade` | `patch` | `systemd-run … --unit=labdex-agent-patch dnf -q -y upgrade` |
 | `reboot` | `reboot` | `shutdown -r +1 labdex-agent: reboot after updates` |
+| `ssh_keys_report` | — | `systemd-run … --unit=labdex-agent-ssh-keys /opt/labdex-agent/labdex-agent ssh-keys report` (Go agent) |
+| `ssh_keys_apply` | `ssh_keys` | `systemd-run … --unit=labdex-agent-ssh-keys /opt/labdex-agent/labdex-agent ssh-keys apply` (Go agent; the keys on stdin) |
 
 The program (and, for `systemd-run`, the program it starts) is resolved to an absolute path:
 `argv[0]` on `/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`, the started program
 on `/usr/sbin:/usr/bin:/sbin:/bin`. Write jobs go through `systemd-run` so they run outside the
 agent's own sandbox (`ProtectSystem=strict` would make `/usr` read-only for apt too).
 
-Every command runs with no stdin, the environment `PATH=/usr/sbin:/usr/bin:/sbin:/bin` and
+Every command runs with no stdin (except `ssh_keys_apply`, which reads its JSON there), the environment `PATH=/usr/sbin:/usr/bin:/sbin:/bin` and
 `LC_ALL=C` only, and a timeout. A missing program gives exit code 127, a timeout 124, another start
 failure 126.
 
@@ -627,6 +634,52 @@ The agent's user needs no sudo rule for this: it only opens a TCP connection to 
 the run may do on the host is up to the SSH user labdex logs in as (`labdex-ansible`, set up by
 `install.sh --ansible`).
 
+## SSH keys
+
+Go agent only. labdex manages who may log in over SSH, without ever editing a user's own
+`~/.ssh/authorized_keys`: its keys go into root-owned files in `/etc/ssh/labdex`, which an sshd
+drop-in (`/etc/ssh/sshd_config.d/05-labdex-keys.conf`, written by `install.sh --ssh-keys`) adds to
+`AuthorizedKeysFile`:
+
+| File | Holds |
+| --- | --- |
+| `/etc/ssh/labdex/<user>.keys` | labdex's keys for the user, one per line, under a comment that says edits are overwritten |
+| `/etc/ssh/labdex/<user>.break-glass` | the host's break-glass key, for one user |
+
+`hello` carries `ssh_users` (a list, `[]` when none). Both jobs run the agent's own program as root
+through a fixed sudo line (the service's sandbox hides home folders, and only root writes
+`/etc/ssh`). The root side reads `ssh_users` and `allow` from `agent.conf` itself, never from the
+job.
+
+**`ssh_keys.report`** takes no parameters. The result: `users` (root, every user from uid 1000 with a
+login shell, and every user in `ssh_users`), each with `user`, `uid`, `managed` (in `ssh_users`),
+`missing` (in `ssh_users`, no account), `own` (the files `~/.ssh/authorized_keys` and
+`authorized_keys2`), `labdex` and `break_glass` (the two files above). A file is
+`{path, keys: [{type, sha256, comment, bits?, options?}], other, error?}`: fingerprints, never
+the keys, and lines that are no key are only counted. Files are opened without following a
+symbolic link (a link gives `error`). Also `sshd` (from `sshd -T`: `authorizedkeysfile`,
+`passwordauthentication`, `kbdinteractiveauthentication`, `permitrootlogin`,
+`pubkeyauthentication`, `trustedusercakeys`, `authorizedprincipalsfile`), `sshd_error`,
+`drop_in`, `uses` (sshd reads labdex's files), `exclusive` (and no others) and `at`.
+
+**`ssh_keys.apply`** takes `users` (`{user: [key, …]}`, the whole wanted set: a user in `ssh_users`
+that is left out gets an empty file) and optionally `break_glass` (`{user, key}`). The agent refuses
+the job when a user isn't in `ssh_users`, when `ssh_users` is empty, when any key isn't a plain
+public key, or when there are other parameters. A key is `<type> <base64> [comment]`:
+`ssh-ed25519`, `ecdsa-sha2-nistp256/384/521`, `sk-ssh-ed25519@openssh.com`,
+`sk-ecdsa-sha2-nistp256@openssh.com`, or `ssh-rsa` with 3072 bits or more; never options in front
+(`command=`, `from=`, …); the comment up to 100 characters of `A-Za-z0-9 @._+:=/()-`; at most 200
+keys per user. Then, as root:
+
+1. `/etc/ssh/labdex` must be a real folder, root's, not writable by group or others (made `0755` if missing).
+2. Each managed user's `<user>.keys` is replaced at once (a new file `0644` beside it, synced, renamed). Duplicates go.
+3. A `*.keys` file of a user no longer in `ssh_users` is removed: those keys must stop working.
+4. With `break_glass`, `<user>.break-glass` is written, and only then any other `*.break-glass` removed.
+   Without it, the break-glass file stays: an apply never leaves a host without one it had.
+
+The result: `ok`, `changes` (`[{user, keys, added: [sha256], removed: [sha256]}]`), `break_glass`
+(`"set for <user>"` when it changed) and `report`, a fresh `ssh_keys.report`.
+
 ## The spool
 
 What the agent has to say while the hub can't take it (results and heartbeats) goes to `buffer/`.
@@ -676,6 +729,7 @@ type `agent`).
 | `labdex-agent health` | Prints how long ago the hub answered | 0 within `HEALTHY_FOR`, else 1 |
 | `labdex-agent sudoers [--user U]` | Prints the sudo rules | 0 |
 | `labdex-agent show facts\|discovery\|patches\|metrics` | Runs a read-only collector here and prints JSON; sends nothing | 0 |
+| `labdex-agent ssh-keys report\|apply` | As root only (through `ssh_keys_report` and `ssh_keys_apply`): the root side of [SSH keys](#ssh-keys) | 0, or 1 with the reason |
 | `labdex-agent --version` | Prints the version | 0 |
 
 Every command takes `--config` (default `/etc/labdex-agent/agent.conf`). Exit code 3 matters: the

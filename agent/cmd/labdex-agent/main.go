@@ -5,6 +5,7 @@
 //	labdex-agent health              # exit 0 while the hub answered in the last two minutes
 //	labdex-agent sudoers [--user U]  # the sudo rules for this host's capabilities
 //	labdex-agent show facts|discovery|patches|metrics   # run a read-only collector here, nothing sent
+//	labdex-agent ssh-keys report|apply   # as root, through the agent's sudo rules (ssh_keys jobs)
 //
 // The contract with the hub is docs/develop/agent-protocol.md.
 package main
@@ -27,9 +28,10 @@ import (
 	"github.com/labdex-app/labdex/agent/internal/host"
 	"github.com/labdex-app/labdex/agent/internal/patch"
 	"github.com/labdex-app/labdex/agent/internal/runner"
+	"github.com/labdex-app/labdex/agent/internal/sshkeys"
 )
 
-const usage = `usage: labdex-agent [--config FILE] [--version] {enrol,run,health,sudoers,show} ...
+const usage = `usage: labdex-agent [--config FILE] [--version] {enrol,run,health,sudoers,show,ssh-keys} ...
 
 The labdex agent: one outgoing link to the hub, signed jobs only.
 
@@ -38,6 +40,8 @@ The labdex agent: one outgoing link to the hub, signed jobs only.
   health                          exit 0 while the hub answered in the last two minutes
   sudoers [--user USER]           print the sudo rules for this host's capabilities
   show facts|discovery|patches|metrics   run a read-only job here and print it (nothing is sent)
+  ssh-keys report                 as root: print which keys may log in as which user
+  ssh-keys apply                  as root: write labdex's keys from stdin (needs ssh_keys in allow)
 `
 
 func main() { os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr)) }
@@ -129,6 +133,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		enc.SetIndent("", "  ")
 		_ = enc.Encode(out)
 		return 0
+	case "ssh-keys":
+		return sshKeys(sub.Args(), cfg, stdin, stdout, stderr)
 	case "run":
 		creds := agent.LoadCredentials(cfg.StateDir)
 		if creds == nil {
@@ -152,4 +158,37 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	}
 	top.Usage()
 	return 2
+}
+
+// sshKeys is the root side of the ssh_keys jobs. The agent starts it through its sudo rules; the
+// users and the capability come from agent.conf, never from the input.
+func sshKeys(args []string, cfg *agent.Config, stdin io.Reader, stdout, stderr io.Writer) int {
+	if len(args) != 1 || (args[0] != "report" && args[0] != "apply") {
+		fmt.Fprintln(stderr, "labdex-agent ssh-keys: report or apply")
+		return 2
+	}
+	if os.Geteuid() != 0 {
+		fmt.Fprintln(stderr, "labdex-agent ssh-keys: run it as root (the agent does, through its sudo rules)")
+		return 1
+	}
+	h := sshkeys.System()
+	var out any
+	if args[0] == "report" {
+		out = h.Report(cfg.SSHUsers)
+	} else {
+		if !cfg.Allow["ssh_keys"] {
+			fmt.Fprintln(stderr, "labdex-agent ssh-keys apply: agent.conf doesn't allow ssh_keys")
+			return 1
+		}
+		d, err := sshkeys.ReadDesired(stdin)
+		if err == nil {
+			out, err = h.Apply(d, cfg.SSHUsers)
+		}
+		if err != nil {
+			fmt.Fprintln(stderr, "labdex-agent ssh-keys apply:", err)
+			return 1
+		}
+	}
+	_ = json.NewEncoder(stdout).Encode(out)
+	return 0
 }

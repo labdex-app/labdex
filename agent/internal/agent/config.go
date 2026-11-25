@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/labdex-app/labdex/agent/internal/protocol"
+	"github.com/labdex-app/labdex/agent/internal/sshkeys"
 )
 
 // Version is the agent's version; the build may set it with -ldflags "-X …/agent.Version=…".
@@ -34,6 +35,8 @@ type Config struct {
 	StateDir string
 	// SSHPort is the one port ansible.session pipes reach, on 127.0.0.1 only.
 	SSHPort int
+	// SSHUsers are the only users whose SSH keys labdex may manage (ssh_keys).
+	SSHUsers []string
 }
 
 // readINI reads the keys of one section the way Python's configparser does for simple files:
@@ -86,6 +89,13 @@ func LoadConfig(path, url string) (*Config, error) {
 		}
 		c.SSHPort = p
 	}
+	for _, u := range strings.Fields(strings.ReplaceAll(s["ssh_users"], ",", " ")) {
+		if !sshkeys.UserRe.MatchString(u) {
+			return nil, fmt.Errorf("labdex-agent: ssh_users: %q is not a user name", u)
+		}
+		c.SSHUsers = append(c.SSHUsers, u)
+	}
+	sort.Strings(c.SSHUsers)
 	var unknown []string
 	for _, a := range strings.Fields(strings.ReplaceAll(s["allow"], ",", " ")) {
 		if !protocol.IsCapability(a) {

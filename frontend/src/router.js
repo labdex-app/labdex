@@ -19,6 +19,7 @@ export const router = createRouter({
     { path: '/patches', component: () => import('./views/Patches.vue'), meta: { title: 'Patches' } },
     { path: '/workloads', component: () => import('./views/Workloads.vue'), meta: { title: 'Workloads' } },
     { path: '/agents', component: () => import('./views/Agents.vue'), meta: { title: 'Agents' } },
+    { path: '/ssh-keys', component: () => import('./views/SshKeys.vue'), meta: { title: 'SSH keys' } },
     { path: '/dns', component: () => import('./views/Dns.vue'), meta: { title: 'DNS' } },
     { path: '/discovery', component: () => import('./views/Discovery.vue'), meta: { title: 'Discovery' } },
     { path: '/plugins', component: () => import('./views/Plugins.vue'), meta: { title: 'Plugins' } },
