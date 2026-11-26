@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Shared BitsAndBricks colours.** The web UI takes its greys, status colours, fonts and radii
+  from `@bitsandbricks/tokens`, like the other BitsAndBricks apps. The light theme's amber is a
+  little deeper (`#b85a0a`, white text on buttons) so it also reads as link text; the greys lose
+  their warm tint, and filled danger buttons follow the theme.
 - **SSH keys through the agent** (Go agent). labdex keeps people's public keys and where each may
   log in, and puts them on hosts through their agents: into root-owned
   `/etc/ssh/labdex/<user>.keys`, never into `~/.ssh/authorized_keys`, and only for the users the

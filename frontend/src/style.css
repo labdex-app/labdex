@@ -1,131 +1,94 @@
 /* labdex, Blueprint: drafting paper. A faint dot grid behind the content, plain bordered cards, ink text, and
    amber only where a decision waits (every approve, plan and apply button). Light and dark are designed
    equally; the theme follows the system unless the user picks one. Status colours mean one thing each.
-   Text on a filled accent uses --on-accent: dark ink, so it reads on the amber in both themes. */
+   The greys, status colours, fonts and radii come from the shared BitsAndBricks tokens (--bnb-*), which
+   switch between light and dark themselves; labdex sets its accent and keeps only the colours it alone has
+   (code, ANSI, the topology's extra greys). */
 @import "@fontsource/geist-sans/latin-400.css";
 @import "@fontsource/geist-sans/latin-500.css";
 @import "@fontsource/geist-sans/latin-600.css";
 @import "@fontsource/geist-mono/latin-400.css";
 @import "@fontsource/geist-mono/latin-500.css";
+@import "@bitsandbricks/tokens/tokens.css";
 
 :root {
-  --sans: "Geist", -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* labdex's accent, amber: deep enough in light that it reads as text on white; text on it is worked out per theme */
+  --bnb-accent-light: #b85a0a;
+  --bnb-accent-dark: #f59a23;
+  --bnb-on-accent-light: #ffffff;
+  --bnb-on-accent-dark: #0f0f11;
+
+  --sans: var(--bnb-font-sans);
   --disp: var(--sans);  /* page titles: Geist 600, no second family */
-  --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --mono: var(--bnb-font-mono);
   --text: 1;    /* every font size is a 14px-base size times this: Comfortable (14px); see theme.js */
-  --r-box: 10px;     /* cards, dialogs, the diff box */
-  --r-ctl: 8px;      /* buttons, inputs */
-  --r-tag: 6px;      /* tags, zone chips, badges */
-  --r-sm: 4px;       /* swatches, small marks */
-  --r-chip: 999px;   /* filter chips */
+  --r-box: var(--bnb-radius-lg);   /* cards, dialogs, the diff box */
+  --r-ctl: var(--bnb-radius-md);   /* buttons, inputs */
+  --r-tag: var(--bnb-radius-sm);   /* tags, zone chips, badges */
+  --r-sm: var(--bnb-radius-xs);    /* swatches, small marks */
+  --r-chip: var(--bnb-radius-pill); /* filter chips */
   --gap: 16px;
-  --err-solid: #b42318;        /* filled danger: a destructive button, an error toast (both themes) */
-  --err-solid-hover: #912018;
-  --bg: #f7f7f5;
-  --panel: #fbfbfa;
-  --card: #ffffff;
-  --raise: #f0f0ed;
-  --hover: rgba(26, 26, 25, .035);
-  --ink: #1a1a19;
-  --muted: #5f5f5c;
-  --faint: #6b6b68;
-  --line: #e3e3e0;
-  --line-strong: #d3d3cf;
-  --dot: #d6d6d1;
+
+  --bg: var(--bnb-bg);
+  --card: var(--bnb-surface);
+  --raise: var(--bnb-raised);
+  --hover: color-mix(in srgb, var(--bnb-fg) 3.5%, transparent);
+  --ink: var(--bnb-fg);
+  --muted: var(--bnb-muted);
+  --faint: var(--bnb-faint);
+  --line: var(--bnb-line);
+  --accent: var(--bnb-accent);
+  --accent-hover: var(--bnb-accent-hover);
+  --accent-soft: var(--bnb-accent-text);  /* the accent as text and links */
+  --accent-faint: var(--bnb-accent-soft);
+  --on-accent: var(--bnb-on-accent);
+  --ok: var(--bnb-ok);
+  --warn: var(--bnb-warn);
+  --err: var(--bnb-err);
+  --info: var(--bnb-info);
+  --err-solid: var(--bnb-err);           /* filled danger: a destructive button, an error toast */
+  --err-solid-hover: color-mix(in srgb, var(--bnb-err), var(--bnb-fg) 15%);
+  --on-err-solid: var(--bnb-on-status);
+  /* ANSI colours in job output */
+  --c-green: var(--ok);
+  --c-yellow: var(--warn);
+  --c-blue: var(--info);
+  --c-red: var(--err);
+  --c-white: var(--muted);
+  --code: var(--accent-soft);
+  --bar-bg: color-mix(in srgb, var(--bnb-bg) 94%, transparent);
+
+  /* labdex's own: plain hex, because the topology reads some of them for its canvas */
+  --panel: #fbfbfc;
+  --line-strong: #d4d4d8;
+  --dot: #d4d4d8;
   --code-key: #7c3aed; --code-str: #15803d; --code-num: #c2410c; --code-bool: #2563eb;
-  --accent: #e8870e;
-  --accent-hover: #d97a06;
-  --accent-soft: #a85a00;
-  --accent-faint: rgba(232, 135, 14, 0.12);
-  --on-accent: #1a1206;
-  --ok: #15803d;
-  --warn: #a16207;
-  --err: #c2410c;
-  --info: #2563eb;
   --c-magenta: #a21caf;
-  --c-green: #15803d;
-  --c-yellow: #a16207;
-  --c-blue: #2563eb;
-  --c-red: #c2410c;
-  --c-white: #5f5f5c;
-  --code: #a85a00;
-  --scrim: rgba(26, 26, 25, .32);
-  --shadow: rgba(26, 26, 25, .12);
-  --bar-bg: rgba(255, 255, 255, .94);
+  --scrim: rgba(24, 24, 27, .32);
+  --shadow: rgba(24, 24, 27, .12);
   --zone-mix: 42%;
-  color-scheme: light;
 }
-/* Dark: chosen in the user menu, or the system says so */
+/* Dark: chosen in the user menu, or the system says so. Keep both blocks the same. */
 :root[data-theme="dark"] {
-  --bg: #0b0b0a;
-  --panel: #10100f;
-  --card: #141413;
-  --raise: #1e1e1c;
-  --hover: rgba(255, 255, 255, .035);
-  --ink: #ececea;
-  --muted: #a3a39e;
-  --faint: #8f8f8a;
-  --line: #272725;
-  --line-strong: #363633;
-  --dot: #262624;
+  --panel: #121214;
+  --line-strong: #3a3a40;
+  --dot: #26262b;
   --code-key: #c4a1ff; --code-str: #b8e986; --code-num: #ff9b73; --code-bool: #7fb2ff;
-  --accent: #f59a23;
-  --accent-hover: #f7a93f;
-  --accent-soft: #f5a83f;
-  --accent-faint: rgba(245, 154, 35, 0.13);
-  --on-accent: #1a1206;
-  --ok: #3ecf8e;
-  --warn: #f5c84c;
-  --err: #f2555a;
-  --info: #5aa9ff;
   --c-magenta: #e879f9;
-  --c-green: #3ecf8e;
-  --c-yellow: #f5c84c;
-  --c-blue: #5aa9ff;
-  --c-red: #f2555a;
-  --c-white: #a3a39e;
-  --code: #f5a83f;
   --scrim: rgba(0, 0, 0, .62);
   --shadow: rgba(0, 0, 0, .5);
-  --bar-bg: rgba(11, 11, 10, .94);
   --zone-mix: 100%;
-  color-scheme: dark;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0b0b0a;
-    --panel: #10100f;
-    --card: #141413;
-    --raise: #1e1e1c;
-    --hover: rgba(255, 255, 255, .035);
-    --ink: #ececea;
-    --muted: #a3a39e;
-    --faint: #8f8f8a;
-    --line: #272725;
-    --line-strong: #363633;
-    --dot: #262624;
+    --panel: #121214;
+    --line-strong: #3a3a40;
+    --dot: #26262b;
     --code-key: #c4a1ff; --code-str: #b8e986; --code-num: #ff9b73; --code-bool: #7fb2ff;
-    --accent: #f59a23;
-    --accent-hover: #f7a93f;
-    --accent-soft: #f5a83f;
-    --accent-faint: rgba(245, 154, 35, 0.13);
-    --on-accent: #1a1206;
-    --ok: #3ecf8e;
-    --warn: #f5c84c;
-    --err: #f2555a;
-    --info: #5aa9ff;
     --c-magenta: #e879f9;
-    --c-green: #3ecf8e;
-    --c-yellow: #f5c84c;
-    --c-blue: #5aa9ff;
-    --c-red: #f2555a;
-    --c-white: #a3a39e;
-    --code: #f5a83f;
     --scrim: rgba(0, 0, 0, .62);
     --shadow: rgba(0, 0, 0, .5);
-    --bar-bg: rgba(11, 11, 10, .94);
     --zone-mix: 100%;
-    color-scheme: dark;
   }
 }
 
@@ -333,7 +296,7 @@ table.edit input { padding-right: 8px; }
 .sev-error { color: var(--err); background: color-mix(in srgb, var(--err) 12%, transparent); }
 .sev-warning { color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); }
 .sev-info { color: var(--muted); background: var(--raise); }
-.pill { font: 600 calc(11px * var(--text))/17px var(--mono); padding: 0 6px; border-radius: var(--r-chip); background: var(--err-solid); color: #fff; min-width: 18px; text-align: center; }
+.pill { font: 600 calc(11px * var(--text))/17px var(--mono); padding: 0 6px; border-radius: var(--r-chip); background: var(--err-solid); color: var(--on-err-solid); min-width: 18px; text-align: center; }
 .pill.warn { background: var(--warn); color: var(--bg); }
 
 .fun { font-weight: 600; font-size: calc(14.5px * var(--text)); color: var(--ink); }
@@ -454,7 +417,7 @@ ul.pop { margin: 0; list-style: none; }
 .dlg-body { padding: 16px 20px; overflow-y: auto; }
 .dlg-body > * + * { margin-top: 14px; }
 .dlg-foot { display: flex; align-items: center; gap: 8px; justify-content: flex-end; padding: 12px 20px; border-top: 1px solid var(--line); background: var(--panel); border-radius: 0 0 var(--r-box) var(--r-box); }
-.btn.danger-solid { background: var(--err-solid); border-color: var(--err-solid); color: #fff; }
+.btn.danger-solid { background: var(--err-solid); border-color: var(--err-solid); color: var(--on-err-solid); }
 .btn.danger-solid:hover { background: var(--err-solid-hover); border-color: var(--err-solid-hover); }
 ::placeholder { color: var(--faint); opacity: .75; }
 .seg { display: inline-flex; gap: 2px; border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 2px; background: var(--panel); align-self: flex-start; }
