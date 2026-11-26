@@ -1154,6 +1154,10 @@ class Agent(db.Model):
     metrics: Mapped[dict] = mapped_column(JSONValue, default=dict)
     # the last discovery.services result; deferred: it's large, and each link reloads the row every second
     discovery: Mapped[dict] = mapped_column(JSONValue, default=dict, deferred=True)
+    # SSH login keys (sshkeys.py): the users the host's agent.conf lets labdex manage, from hello,
+    # and the last ssh_keys.report (deferred like discovery)
+    ssh_users: Mapped[list] = mapped_column(JSONList, default=list)
+    ssh_keys: Mapped[dict] = mapped_column(JSONValue, default=dict, deferred=True)
     connected: Mapped[str] = mapped_column(String(128), default="")  # the process holding the link, '' when not linked
     linked_at: Mapped[datetime | None] = mapped_column()
     last_seen: Mapped[datetime | None] = mapped_column()
@@ -1190,3 +1194,45 @@ class AgentJob(db.Model):
     finished_at: Mapped[datetime | None] = mapped_column()
     result: Mapped[dict | None] = mapped_column(JSONValue)
     error: Mapped[str] = mapped_column(Text, default="")
+
+
+class SSHKey(db.Model):
+    """A person's SSH public key that labdex puts on hosts through their agents (sshkeys.py).
+    Only the public key: labdex never holds the private half."""
+
+    __tablename__ = "ssh_key"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(80), unique=True)  # what people call it: "alice laptop"
+    owner: Mapped[str] = mapped_column(String(128), default="")  # whose key it is
+    public_key: Mapped[str] = mapped_column(Text)  # "<type> <base64> [comment]"
+    sha256: Mapped[str] = mapped_column(String(60), unique=True)  # "SHA256:…", as ssh-keygen -l
+    note: Mapped[str] = mapped_column(Text, default="")
+    created_by: Mapped[str] = mapped_column(String(128), default="")
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+
+
+class SSHKeyGrant(db.Model):
+    """Key may log in as user on host ("*": on every host whose agent manages that user)."""
+
+    __tablename__ = "ssh_key_grant"
+    __table_args__ = (UniqueConstraint("key_id", "host", "user"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    key_id: Mapped[int] = mapped_column(ForeignKey("ssh_key.id", ondelete="CASCADE"), index=True)
+    host: Mapped[str] = mapped_column(String(63), index=True)
+    user: Mapped[str] = mapped_column(String(32))
+    created_by: Mapped[str] = mapped_column(String(128), default="")
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+
+
+class SSHBreakGlass(db.Model):
+    """The host's break-glass key: for when labdex or the agent is down. Only the public half is
+    kept; when labdex makes the pair, it shows the private key once."""
+
+    __tablename__ = "ssh_break_glass"
+    host: Mapped[str] = mapped_column(String(63), primary_key=True)
+    user: Mapped[str] = mapped_column(String(32))
+    public_key: Mapped[str] = mapped_column(Text)
+    sha256: Mapped[str] = mapped_column(String(60))
+    source: Mapped[str] = mapped_column(String(16), default="pasted")  # pasted, generated
+    created_by: Mapped[str] = mapped_column(String(128), default="")
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)

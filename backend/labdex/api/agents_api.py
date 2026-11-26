@@ -231,7 +231,7 @@ def list_agents():
         h = store.find_host(a.host)
         if h is not None and g.principal.can("host", "view", rbac.host_facts(store.host_access(h))):
             out.append(agents.to_dict(a))
-    return jsonify({"agents": out, "job_types": agents.JOB_TYPES, "capabilities": list(protocol.CAPABILITIES)})
+    return jsonify({"agents": out, "job_types": agents.JOB_TYPES, "capabilities": list(agents.CAPABILITIES)})
 
 
 @bp.get("/hosts/<name>/agent")
@@ -246,7 +246,7 @@ def host_agent(name):
             db.select(AgentJob).where(AgentJob.agent_id == a.id).order_by(AgentJob.created_at.desc()).limit(20))]
     return jsonify({"agent": agents.to_dict(a) if a else None, "discovery": (a.discovery if a else None) or None,
                     "declared": agents.declared(h, a.discovery if a else None), "history": agents.history(h.name),
-                    "jobs": jobs, "job_types": agents.JOB_TYPES, "capabilities": list(protocol.CAPABILITIES)})
+                    "jobs": jobs, "job_types": agents.JOB_TYPES, "capabilities": list(agents.CAPABILITIES)})
 
 
 @bp.patch("/hosts/<name>/agent")
@@ -317,6 +317,8 @@ def queue_agent_job(name):
     if a is None:
         return err(404, f"no agent on '{name}'")
     data = body()
+    if data.get("type") == "ssh_keys.apply":  # built from the grants by labdex, by administrators only
+        return err(409, "apply SSH keys from the SSH keys page (POST /api/hosts/<name>/ssh-keys/apply)")
     try:
         j = agents.queue(a, str(data.get("type", "")), data.get("params") or {}, by=g.principal.label)
     except agents.AgentError as e:

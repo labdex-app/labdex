@@ -62,6 +62,7 @@ nav:
       - Patches: guide/patches.md
       - Host agents: guide/agent.md
       - A first agent, read-only: guide/agent-trial.md
+      - SSH keys through the agent: guide/ssh-keys.md
       - Working fast: guide/working-fast.md
       - Coming from another tool: guide/import.md
       - Change sets: guide/change-sets.md
@@ -101,5 +102,6 @@ nav:
       - CLI: develop/cli.md
       - Agent protocol: develop/agent-protocol.md
       - "Design: Ansible through the agent": develop/design/ansible-through-the-agent.md
+      - "Design: SSH certificates (later)": develop/design/ssh-certificates.md
       - Contributing: develop/contributing.md
   - Changelog: changelog.md
