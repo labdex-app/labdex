@@ -1,0 +1,22 @@
+name: Task
+description: Planned work, chores, or a sub-issue of an epic.
+labels: ["type:chore", "needs-triage"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What and why
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when
+      placeholder: "- [ ] ..."
+    validations:
+      required: true
+  - type: input
+    id: parent
+    attributes:
+      label: Part of
+      description: The epic or issue this belongs to, if any (#12).
