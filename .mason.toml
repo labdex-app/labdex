@@ -1,0 +1,8 @@
+[handbook]
+repo = "bitsandbricks-ch/handbook"
+profile = "web-app"
+version = "v1"
+
+# area: labels used on this repo's issues. TODO: move into Mason's own format once the
+# handbook documents one; until then this list is what `area:` means here.
+# areas = ["backend", "frontend", "agent", "plugins", "docs", "ci"]
